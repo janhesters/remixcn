@@ -8,7 +8,9 @@ import {
   checkImport,
   checkPackageMetadata,
   checkRegistryFiles,
+  checkSourceHeader,
   findCssImports,
+  findFontFaces,
   findTailwindDirectives,
   parseResolutionTrace,
   seoPhrase,
@@ -64,6 +66,67 @@ describe('findTailwindDirectives', () => {
     let css = `@layer base { :root { --radius: 4px; } }\n/* @apply px-4; */\n.tip::after { content: '@tailwind'; }`
 
     assert.deepEqual(findTailwindDirectives(css), [])
+  })
+})
+
+describe('findFontFaces', () => {
+  it('counts @font-face rules, which load font files', () => {
+    let css = `@font-face { font-family: Inter; src: url('./inter.woff2'); }\n.body { font-family: Inter; }`
+
+    assert.equal(findFontFaces(css), 1)
+  })
+
+  it('ignores @font-face inside comments and strings', () => {
+    let css = `/* @font-face { } */\n.note::before { content: '@font-face'; }\n:root { --font-sans: system-ui; }`
+
+    assert.equal(findFontFaces(css), 0)
+  })
+})
+
+describe('checkSourceHeader', () => {
+  let license = 'License texts: https://github.com/janhesters/remixcn/blob/main/THIRD_PARTY_NOTICES.md'
+
+  it('accepts the installed-source header in line comments', () => {
+    let source = [
+      '// RemixCN Button: https://janhesters.github.io/remixcn/',
+      '// Copyright (c) 2026 Jan Hesters. MIT License.',
+      '// Adapted from shadcn/ui (MIT, Copyright (c) 2023 shadcn).',
+      `// ${license}`,
+      "import { css } from 'remix/component'",
+    ].join('\n')
+
+    assert.deepEqual(checkSourceHeader(source, 'Button'), [])
+  })
+
+  it('accepts the same header as a CSS block comment', () => {
+    let source = [
+      '/*',
+      ' * RemixCN Theme: https://janhesters.github.io/remixcn/',
+      ' * Copyright (c) 2026 Jan Hesters. MIT License.',
+      ` * ${license}`,
+      ' */',
+      '@layer base, rmx, app;',
+    ].join('\n')
+
+    assert.deepEqual(checkSourceHeader(source, 'Theme'), [])
+  })
+
+  it("reports a missing header and one that names another entry", () => {
+    assert.deepEqual(checkSourceHeader("import { css } from 'remix/component'", 'Button'), [
+      'must start with the installed-source header from SOURCES.md',
+    ])
+
+    let source = [
+      '// RemixCN Badge: https://janhesters.github.io/remixcn/',
+      '// Copyright (c) 2025 Jan Hesters.',
+      '// Adapted from shadcn/ui.',
+    ].join('\n')
+
+    assert.deepEqual(checkSourceHeader(source, 'Button'), [
+      'header must start with "RemixCN Button: https://janhesters.github.io/remixcn/"',
+      'header must carry "Copyright (c) 2026 Jan Hesters. MIT License."',
+      `header must end with "${license}"`,
+    ])
   })
 })
 
@@ -244,6 +307,20 @@ describe('checkCatalog', () => {
     catalog.entries[3].target = 'registry/ui/typography.tsx'
 
     assert.deepEqual(checkCatalog(catalog), ['typography: a recipe belongs at registry/examples/typography.tsx'])
+  })
+
+  it('lets a helper be a TypeScript, TSX or CSS file in registry/lib', () => {
+    for (let target of ['registry/lib/use-timer.ts', 'registry/lib/use-timer.tsx', 'registry/lib/use-timer.css']) {
+      let catalog = validCatalog()
+      catalog.helpers[0].target = target
+
+      assert.deepEqual(checkCatalog(catalog), [], target)
+    }
+
+    let catalog = validCatalog()
+    catalog.helpers[0].target = 'registry/lib/use-timer.js'
+
+    assert.deepEqual(checkCatalog(catalog), ['use-timer: a helper belongs at registry/lib/use-timer.ts, .tsx or .css'])
   })
 
   it('requires a compatible entry to exist and be a dependency', () => {

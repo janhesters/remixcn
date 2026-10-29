@@ -107,6 +107,55 @@ export function findTailwindDirectives(css: string): string[] {
   return [...new Set(names)].map((name) => `@${name}`)
 }
 
+/** Counts @font-face rules. Registry and docs CSS use system fonts, so they load no font file. */
+export function findFontFaces(css: string): number {
+  return findCssAtRules(css).filter((rule) => rule.name === 'font-face').length
+}
+
+const noticesUrl = 'https://github.com/janhesters/remixcn/blob/main/THIRD_PARTY_NOTICES.md'
+const copyrightLine = 'Copyright (c) 2026 Jan Hesters. MIT License.'
+const licenseLine = `License texts: ${noticesUrl}`
+
+/** Reads the comment a file starts with: its `//` lines, or its first `/* *\/` block. */
+function readLeadingComment(source: string): string[] {
+  let text = source.trimStart()
+
+  if (text.startsWith('/*')) {
+    let end = text.indexOf('*/')
+    return text
+      .slice(2, end === -1 ? text.length : end)
+      .split('\n')
+      .map((line) => line.replace(/^\s*\*?\s?/, '').trimEnd())
+      .filter((line) => line !== '')
+  }
+
+  let lines: string[] = []
+  for (let line of text.split('\n')) {
+    if (!line.startsWith('//')) break
+    lines.push(line.replace(/^\/\/\s?/, '').trimEnd())
+  }
+  return lines
+}
+
+/**
+ * Checks that a registry file starts with the installed-source header that
+ * SOURCES.md defines, naming the catalog entry's title, so the copyright and
+ * license notices travel with every copied file.
+ */
+export function checkSourceHeader(source: string, title: string): string[] {
+  let lines = readLeadingComment(source)
+  if (lines.length === 0) return ['must start with the installed-source header from SOURCES.md']
+
+  let problems: string[] = []
+  let firstLine = `RemixCN ${title}: ${homepage}`
+
+  if (lines[0] !== firstLine) problems.push(`header must start with "${firstLine}"`)
+  if (lines[1] !== copyrightLine) problems.push(`header must carry "${copyrightLine}"`)
+  if (lines.at(-1) !== licenseLine) problems.push(`header must end with "${licenseLine}"`)
+
+  return problems
+}
+
 const forbiddenFamilies: Array<[RegExp, string]> = [
   [/^(react|react-dom|scheduler)(\/|$)/, 'React'],
   [/^(tailwindcss|tailwind-merge)(\/|$)|^@tailwindcss\//, 'Tailwind'],
@@ -189,10 +238,19 @@ export interface Catalog {
 }
 
 const targetDirectories = { component: 'registry/ui', recipe: 'registry/examples', helper: 'registry/lib' }
-const targetExtensions = { component: 'tsx', recipe: 'tsx', helper: 'ts' }
+// Helpers include the theme stylesheet and the icons, so they may be CSS or TSX.
+const targetExtensions = { component: ['tsx'], recipe: ['tsx'], helper: ['ts', 'tsx', 'css'] }
 
-function expectedTarget(item: CatalogItem) {
-  return `${targetDirectories[item.kind]}/${item.name}.${targetExtensions[item.kind]}`
+function expectedTargets(item: CatalogItem) {
+  return targetExtensions[item.kind].map((extension) => `${targetDirectories[item.kind]}/${item.name}.${extension}`)
+}
+
+// registry/lib/name.ts, .tsx or .css
+function describeTargets([first, ...rest]: string[]) {
+  if (rest.length === 0) return first
+
+  let extensions = rest.map((target) => target.slice(target.lastIndexOf('.')))
+  return `${[first, ...extensions.slice(0, -1)].join(', ')} or ${extensions.at(-1)}`
 }
 
 function checkItem(item: CatalogItem, catalog: Catalog, byName: Map<string, CatalogItem>): string[] {
@@ -211,8 +269,9 @@ function checkItem(item: CatalogItem, catalog: Catalog, byName: Map<string, Cata
     problems.push(`${item.name}: batch ${item.batch} does not exist`)
   }
 
-  if (item.target !== expectedTarget(item)) {
-    problems.push(`${item.name}: a ${item.kind} belongs at ${expectedTarget(item)}`)
+  let targets = expectedTargets(item)
+  if (!targets.includes(item.target)) {
+    problems.push(`${item.name}: a ${item.kind} belongs at ${describeTargets(targets)}`)
   }
 
   for (let name of item.dependsOn) {

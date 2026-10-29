@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Brand Sans";
+  src: url("./brand-sans.woff2") format("woff2");
+}
+
 .badge {
   @apply rounded px-2;
 }

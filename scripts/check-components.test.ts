@@ -36,6 +36,8 @@ describe('check:components', () => {
       /registry\/ui\/banner\.tsx: not a target in registry\/catalog\.json/,
       /apps\/docs\/app\/public\/theme\.css: "tailwindcss" brings in Tailwind/,
       /apps\/docs\/app\/public\/theme\.css: @apply is a Tailwind directive/,
+      /apps\/docs\/app\/public\/theme\.css: @font-face loads a font file/,
+      /registry\/ui\/badge\.tsx: must start with the installed-source header from SOURCES\.md/,
       /apps\/docs\/package\.json: @remixcn\/docs: dependencies may only list remix \(tailwindcss\)/,
     ]) {
       assert.match(result.stderr, problem)
