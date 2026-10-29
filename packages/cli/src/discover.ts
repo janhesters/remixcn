@@ -8,6 +8,7 @@ import type { FetchJson } from './network.ts'
 import { readComponentsConfig, registriesOf } from './project.ts'
 import { itemName } from './registry.ts'
 import { checkItem, loadPayload, parseAddress } from './resolve.ts'
+import type { Item } from './resolve.ts'
 
 export interface DiscoverContext {
   registries: Record<string, string>
@@ -30,11 +31,15 @@ export interface SearchOptions {
   types?: string[]
   limit: number
   offset: number
+  /** Skips a registry that fails to load, and reports it in `errors`, instead of failing. */
+  continueOnError?: boolean
 }
 
 export interface SearchResult {
   items: IndexItem[]
   pagination: { total: number; offset: number; limit: number; hasMore: boolean }
+  /** The registries skipped with continueOnError. */
+  errors?: Array<{ registry: string; message: string }>
 }
 
 /** The registries `root` can address: @remixcn and those in its components.json, if it has one. */
@@ -135,8 +140,16 @@ export async function search(options: SearchOptions, context: DiscoverContext): 
   let types = (options.types ?? []).map((type) => (type.startsWith('registry:') ? type : `registry:${type}`))
 
   let found: IndexItem[] = []
+  let errors: Array<{ registry: string; message: string }> = []
   for (let registry of registries) {
-    let { items } = await readIndex(registry, context)
+    let items: IndexItem[]
+    try {
+      ;({ items } = await readIndex(registry, context))
+    } catch (error) {
+      if (!options.continueOnError || !(error instanceof CliError)) throw error
+      errors.push({ registry, message: error.message })
+      continue
+    }
     found.push(...items.filter((item) => matches(item, terms) && (types.length === 0 || types.includes(item.type))))
   }
 
@@ -155,19 +168,27 @@ export async function search(options: SearchOptions, context: DiscoverContext): 
       limit: options.limit,
       hasMore: options.offset + items.length < found.length,
     },
+    ...(errors.length > 0 && { errors }),
   }
 }
 
 /** Loads each addressed item as the registry serves it, after checking that remixcn could install it. */
 export async function view(addresses: string[], context: DiscoverContext): Promise<unknown[]> {
+  return (await viewItems(addresses, context)).map((entry) => entry.payload)
+}
+
+/** Loads each addressed item, as view does, with the item checkItem reads from it. */
+export async function viewItems(
+  addresses: string[],
+  context: DiscoverContext,
+): Promise<Array<{ payload: unknown; item: Item }>> {
   if (addresses.length === 0) throw new CliError('USAGE', 'Name the items to view, such as remixcn view button.')
 
-  let payloads: unknown[] = []
+  let entries: Array<{ payload: unknown; item: Item }> = []
   for (let address of addresses) {
     let source = parseAddress(address, context)
     let payload = await loadPayload(source, context)
-    checkItem(payload, source.location)
-    payloads.push(payload)
+    entries.push({ payload, item: checkItem(payload, source.location) })
   }
-  return payloads
+  return entries
 }
