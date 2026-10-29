@@ -2,7 +2,7 @@ import { renderToString } from 'remix/component/server'
 import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 
-import { CheckIcon, ChevronRightIcon, CircleAlertIcon, CopyIcon, Icon } from './icons.tsx'
+import { CheckIcon, ChevronRightIcon, CircleAlertIcon, CopyIcon, EllipsisIcon, Icon } from './icons.tsx'
 
 function attributes(html: string) {
   let tag = /<svg([^>]*)>/.exec(html)?.[1] ?? ''
@@ -27,7 +27,7 @@ describe('icons', () => {
   })
 
   it('scales with the font size and takes the text color, so forced colors and themes apply', async () => {
-    for (let icon of [<CheckIcon />, <ChevronRightIcon />, <CircleAlertIcon />, <CopyIcon />]) {
+    for (let icon of [<CheckIcon />, <ChevronRightIcon />, <CircleAlertIcon />, <CopyIcon />, <EllipsisIcon />]) {
       let svg = attributes(await renderToString(icon))
 
       assert.equal(svg.get('width'), '1em')

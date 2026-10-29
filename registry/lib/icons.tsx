@@ -83,3 +83,12 @@ export function CopyIcon(handle: Handle<IconProps>) {
     </Icon>
   )
 }
+
+/** Three dots in a row, for content that is left out, such as the collapsed levels of a breadcrumb. */
+export function EllipsisIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M5 12h.01M12 12h.01M19 12h.01" />
+    </Icon>
+  )
+}
