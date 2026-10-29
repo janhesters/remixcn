@@ -14,6 +14,14 @@
       ]
     },
     {
+      "name": "accordion",
+      "type": "registry:ui",
+      "title": "Accordion",
+      "description": "Headings with native buttons that open and close their panels, one at a time or several, with disabled items and a cancelable change event.",
+      "registryDependencies": ["@remixcn/collapsible", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/accordion.tsx", "type": "registry:ui", "target": "@ui/accordion.tsx" }]
+    },
+    {
       "name": "alert",
       "type": "registry:ui",
       "title": "Alert",
@@ -124,6 +132,14 @@
       "description": "Code, terminal output and diffs as escaped text, with a header, line numbers, line variants, your own highlighter's tokens and a copy button.",
       "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/code-block.tsx", "type": "registry:ui", "target": "@ui/code-block.tsx" }]
+    },
+    {
+      "name": "collapsible",
+      "type": "registry:ui",
+      "title": "Collapsible",
+      "description": "A native button that shows and hides a panel, open by default or controlled, with transitions that reduced motion turns off.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/collapsible.tsx", "type": "registry:ui", "target": "@ui/collapsible.tsx" }]
     },
     {
       "name": "command",
@@ -270,6 +286,14 @@
       "files": [{ "path": "registry/ui/native-select.tsx", "type": "registry:ui", "target": "@ui/native-select.tsx" }]
     },
     {
+      "name": "pagination",
+      "type": "registry:ui",
+      "title": "Pagination",
+      "description": "Native page links with the current page, Previous and Next, an ellipsis, and turned-off boundary links. No JavaScript needed.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/pagination.tsx", "type": "registry:ui", "target": "@ui/pagination.tsx" }]
+    },
+    {
       "name": "popover",
       "type": "registry:ui",
       "title": "Popover",
@@ -371,6 +395,14 @@
       "description": "A native checkbox with the switch role, drawn as a track and a thumb in two sizes.",
       "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/switch.tsx", "type": "registry:ui", "target": "@ui/switch.tsx" }]
+    },
+    {
+      "name": "tabs",
+      "type": "registry:ui",
+      "title": "Tabs",
+      "description": "A tab list with one tab stop and arrow-key navigation, manual or automatic activation, default and line variants, in rows or columns.",
+      "registryDependencies": ["@remixcn/composite", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/tabs.tsx", "type": "registry:ui", "target": "@ui/tabs.tsx" }]
     },
     {
       "name": "textarea",
