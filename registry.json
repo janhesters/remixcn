@@ -22,6 +22,14 @@
       "files": [{ "path": "registry/ui/alert.tsx", "type": "registry:ui", "target": "@ui/alert.tsx" }]
     },
     {
+      "name": "alert-dialog",
+      "type": "registry:ui",
+      "title": "Alert Dialog",
+      "description": "A modal native dialog with the alertdialog role that waits for an answer: a cancel and a confirming action, no dismissal by outside presses, and Escape to cancel.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/dialog", "@remixcn/focus-scope", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/alert-dialog.tsx", "type": "registry:ui", "target": "@ui/alert-dialog.tsx" }]
+    },
+    {
       "name": "aspect-ratio",
       "type": "registry:ui",
       "title": "Aspect Ratio",
@@ -84,6 +92,14 @@
       "description": "Code, terminal output and diffs as escaped text, with a header, line numbers, line variants, your own highlighter's tokens and a copy button.",
       "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/code-block.tsx", "type": "registry:ui", "target": "@ui/code-block.tsx" }]
+    },
+    {
+      "name": "dialog",
+      "type": "registry:ui",
+      "title": "Dialog",
+      "description": "A native dialog over a dimmed page, modal or not, controlled or not, with triggers, close buttons, a title, a description, a header and a footer.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/focus-scope", "@remixcn/icons", "@remixcn/layer", "@remixcn/modal", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/dialog.tsx", "type": "registry:ui", "target": "@ui/dialog.tsx" }]
     },
     {
       "name": "direction",
@@ -150,6 +166,14 @@
       "files": [{ "path": "registry/ui/separator.tsx", "type": "registry:ui", "target": "@ui/separator.tsx" }]
     },
     {
+      "name": "sheet",
+      "type": "registry:ui",
+      "title": "Sheet",
+      "description": "A Dialog that slides in from the top, right, bottom or left edge of the screen.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/dialog", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/sheet.tsx", "type": "registry:ui", "target": "@ui/sheet.tsx" }]
+    },
+    {
       "name": "skeleton",
       "type": "registry:ui",
       "title": "Skeleton",
@@ -179,9 +203,15 @@
       "title": "Typography",
       "description": "Styles for headings, paragraphs, quotes, lists, inline code, links and tables, as mixins for native elements.",
       "registryDependencies": ["@remixcn/theme"],
-      "files": [
-        { "path": "registry/examples/typography.tsx", "type": "registry:component", "target": "@components/typography.tsx" }
-      ]
+      "files": [{ "path": "registry/examples/typography.tsx", "type": "registry:component", "target": "@components/typography.tsx" }]
+    },
+    {
+      "name": "focus-scope",
+      "type": "registry:lib",
+      "title": "Focus scope",
+      "description": "Initial and return focus for popups, with a fallback when the trigger was removed or disabled.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/focus-scope.ts", "type": "registry:lib", "target": "@lib/focus-scope.ts" }]
     },
     {
       "name": "icons",
@@ -190,6 +220,22 @@
       "description": "The Icon wrapper for inline SVG on a 24 by 24 grid, and the icons RemixCN draws itself.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/icons.tsx", "type": "registry:lib", "target": "@lib/icons.tsx" }]
+    },
+    {
+      "name": "layer",
+      "type": "registry:lib",
+      "title": "Dismissable layer",
+      "description": "A stack of open popups: Escape and outside presses dismiss the topmost layer, with nested and parallel layers.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/layer.ts", "type": "registry:lib", "target": "@lib/layer.ts" }]
+    },
+    {
+      "name": "modal",
+      "type": "registry:lib",
+      "title": "Modal inertness and scroll lock",
+      "description": "Stops page scrolling and makes everything outside a modal popup inert, and restores both when it closes.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/modal.ts", "type": "registry:lib", "target": "@lib/modal.ts" }]
     },
     {
       "name": "styles",
