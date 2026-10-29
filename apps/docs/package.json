@@ -1,0 +1,35 @@
+{
+  "name": "@remixcn/docs",
+  "private": true,
+  "description": "The RemixCN site: shadcn components for Remix V3, served as static files from GitHub Pages under /remixcn/",
+  "keywords": [
+    "shadcn components for Remix V3",
+    "shadcn",
+    "shadcn-ui",
+    "remix",
+    "remix-v3",
+    "registry",
+    "ui-components",
+    "accessibility",
+    "design-system",
+    "remixcn"
+  ],
+  "homepage": "https://janhesters.github.io/remixcn/",
+  "bugs": {
+    "url": "https://github.com/janhesters/remixcn/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/janhesters/remixcn.git",
+    "directory": "apps/docs"
+  },
+  "license": "MIT",
+  "author": "Jan Hesters",
+  "type": "module",
+  "engines": {
+    "node": ">=24.3.0"
+  },
+  "dependencies": {
+    "remix": "3.0.0"
+  }
+}

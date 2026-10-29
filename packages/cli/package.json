@@ -1,0 +1,43 @@
+{
+  "name": "remixcn",
+  "version": "0.0.0",
+  "private": true,
+  "description": "shadcn components for Remix V3: accessible, dependency-free UI components, a shadcn-style registry, CLI and MCP server",
+  "keywords": [
+    "shadcn components for Remix V3",
+    "shadcn",
+    "shadcn-ui",
+    "remix",
+    "remix-v3",
+    "registry",
+    "ui-components",
+    "accessibility",
+    "design-system",
+    "remixcn",
+    "cli",
+    "mcp"
+  ],
+  "homepage": "https://janhesters.github.io/remixcn/",
+  "bugs": {
+    "url": "https://github.com/janhesters/remixcn/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/janhesters/remixcn.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "Jan Hesters",
+  "type": "module",
+  "bin": {
+    "remixcn": "./dist/bin.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=24.3.0"
+  },
+  "dependencies": {}
+}
