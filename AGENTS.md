@@ -25,6 +25,8 @@ bun run style-reference    # serves the style reference at http://localhost:4400
 bun run capture:style-reference  # rewrites the screenshots in docs/images/style-reference/
 bun run button-examples    # serves the Button and Button Group examples at http://localhost:4401/ (PORT changes it)
 bun run capture:button-examples  # rewrites the screenshots in docs/images/button/
+bun run layout             # serves the Resizable and Scroll Area examples at http://localhost:4402/ (PORT changes it)
+bun run capture:layout     # rewrites the screenshots in docs/images/layout/
 ```
 
 The browser lanes need Playwright's browsers: `bunx playwright install chromium firefox webkit`. On Ubuntu and Debian, add `--with-deps` for their system libraries. WebKit needs Ubuntu's libraries, so elsewhere run `--project chromium` or `--project firefox`, and CI runs WebKit. `capture:style-reference` takes its screenshots in Chromium only.
@@ -52,14 +54,14 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | `registry/examples/<name>-example.tsx` | A component's copyable examples, named by its entry's `exampleTarget` |
 | `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry and `src/cli.ts` parses the commands. The build emits `dist/bin.js`, which `bin` points to. `README.md` documents the commands and exit codes, `components.schema.json` is the `components.json` schema, and `LICENSE` is a copy of the root one. The local MCP server will start from the same executable. See [The installer](#the-installer) |
 | `apps/docs/` | The site (C-979, C-981) |
-| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, which the end-to-end tests serve, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, `lanes/` hold workspaces whose lanes must fail, `style-reference/` is the style reference page, and `button/` serves the Button and Button Group examples with hydration and an `/echo` route that shows what a form sent |
+| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, which the end-to-end tests serve, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, `lanes/` hold workspaces whose lanes must fail, `style-reference/` is the style reference page, `button/` serves the Button and Button Group examples with hydration and an `/echo` route that shows what a form sent, and `layout/` serves the Resizable and Scroll Area examples with their client entries hydrated |
 | `docs/components/` | Each component family's API, composition notes, source and behavior map, and accessibility checks |
-| `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` and `button/` |
+| `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/`, `button/` and `layout/` |
 | `scripts/` | The checks and the registry build. `lanes.ts` lists the check lanes and `check.ts` runs them. `contracts.ts` holds the rules of `check:components`, `check:build` and the CI workflow, `secrets.ts` those of `check:secrets`, `build-registry.ts` runs the registry build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages and files. The registry's rules live in `packages/cli/src/registry.ts`, and the import and CSS rules in `packages/cli/src/source.ts`, because the executable applies them too |
 | `test/` | Workspace-wide contract tests, the registry tests that serve a build with `static-server.ts`, shared test helpers, such as `accessibility.ts` for axe-core and `mcp-client.ts` for shadcn's MCP server, and `cli.test.ts`, which packs `packages/cli` and runs the packed executable |
 | `.github/workflows/ci.yml` | CI for pull requests and main |
 
-Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Chromium, Firefox and WebKit. Browser component tests run without `theme.css`, so they set the tokens they measure on their container. `test/style-reference.test.e2e.ts` drives the style reference, and `test/button.test.e2e.ts` the Button examples. The installer doesn't copy test files.
+Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Chromium, Firefox and WebKit. Browser component tests run without `theme.css`, so they set the tokens they measure on their container. `test/style-reference.test.e2e.ts` drives the style reference, `test/button.test.e2e.ts` the Button examples, and `test/layout.test.e2e.ts` the Resizable and Scroll Area examples, with and without JavaScript. The installer doesn't copy test files.
 
 ## Source-copy model
 
@@ -87,7 +89,7 @@ Everything in `registry/ui`, `registry/lib`, and `registry/examples` runs in the
 - imports only `remix/component` (and its JSX runtime) and the `#remixcn/` aliases;
 - never imports React, Tailwind, Base UI, Radix, Floating UI, or `@remix-run/ui`, and never uses Tailwind directives in CSS;
 - never uses Node built-ins or globals, and holds no secrets;
-- exports each part by name and wraps only the parts that handle browser events in `clientEntry(...)`, with serializable props. A part that takes your mixins, such as Button, can't be an entry, since Remix serializes an entry's props to JSON. It runs in the browser inside your client entry, and its server HTML must be safe without it.
+- exports each part by name and wraps only the parts that handle browser events in `clientEntry(...)`, with serializable props. A part that takes your mixins, such as Button, can't be an entry, since Remix serializes an entry's props to JSON. Neither can a part with live children, such as a panel group or a scroll area, since the server renders an entry's component children to static HTML. Such a part runs in the browser inside your client entry, and its server HTML must be safe without it.
 
 `check:components` enforces the import rules. It reads imports with the pinned TypeScript compiler, so import text in strings, comments, and JSX doesn't count. `apps/docs/package.json` may list `remix` and nothing else under `dependencies`.
 
