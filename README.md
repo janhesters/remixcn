@@ -30,11 +30,10 @@ Two of shadcn's install steps don't fit a Remix app:
 
 ```sh
 bun install --frozen-lockfile
-bun run typecheck
-bun run test
-bun run test:browser
-bun run build:registry
+bun run check
 ```
+
+`bun run check` runs every check that exists so far and says which are not built yet. CI runs the same checks for every pull request.
 
 ## Credits
 
