@@ -210,6 +210,12 @@ export interface RovingFocusOptions extends NavigationOptions {
   typeahead?: boolean
   /** Whether disabled items still take focus (defaults to `false`). */
   disabledItemsFocusable?: boolean
+  /**
+   * Whether the tab stop stays on the selected item while focus is outside the
+   * group, and goes back to it when focus leaves (defaults to `false`), so Tab
+   * enters a tab list at its selected tab.
+   */
+  resetOnLeave?: boolean
   /** Called when another item becomes the active one, through the keyboard or focus. */
   onActiveChange?: (item: HTMLElement) => void
 }
@@ -221,8 +227,10 @@ export interface RovingFocusOptions extends NavigationOptions {
  * current item, or the first enabled one. Hidden and inert items never take
  * focus, and the items of a nested roving group belong to that group. The tab
  * stop follows changes to the items, and is checked again before Tab moves
- * focus, so a style sheet that hides the active item can't trap it. Removing
- * the mixin restores each item's original tabindex.
+ * focus, so a style sheet that hides the active item can't trap it. When the
+ * focused item is removed or disabled, focus moves to the new active item, so
+ * it stays in the group. Removing the mixin restores each item's original
+ * tabindex.
  */
 export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions]> = createMixin<
   HTMLElement,
@@ -235,6 +243,8 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
     let originalTabIndex = new Map<HTMLElement, string | null>()
     let typeahead = createTypeahead()
     let observer: MutationObserver | undefined
+    // The item that has focus, kept while it loses focus by leaving or being disabled.
+    let focusedItem: HTMLElement | null = null
 
     function getItems() {
       let current = host
@@ -260,6 +270,9 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
 
     function sync() {
       let items = getItems()
+      // While focus is outside, the tab stop follows the selection, such as
+      // when a controlled tab list selects another tab.
+      if (options.resetOnLeave && host && !host.contains(host.ownerDocument.activeElement)) active = null
       if (!active || !items.includes(active) || isSkipped(active)) {
         active =
           items.find((item) => item.matches(selectedItem) && !isSkipped(item)) ??
@@ -267,6 +280,13 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
           null
       }
       for (let item of items) setTabIndex(item, item === active ? '0' : '-1')
+
+      if (focusedItem && focusedItem !== active && (!focusedItem.isConnected || isSkipped(focusedItem))) {
+        let current = focusedItem.ownerDocument.activeElement
+        let lost = current === null || current === focusedItem || current === focusedItem.ownerDocument.body
+        focusedItem = null
+        if (lost && active) active.focus()
+      }
     }
 
     function activate(item: HTMLElement, focus: boolean) {
@@ -301,7 +321,27 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
 
     function onFocusIn(event: FocusEvent) {
       let item = getItems().find((candidate) => candidate === event.target)
+      focusedItem = item ?? null
       if (item && !isSkipped(item)) activate(item, false)
+    }
+
+    function onFocusOut(event: FocusEvent) {
+      let next = event.relatedTarget as Node | null
+      if (next && host?.contains(next)) return
+      if (next) {
+        focusedItem = null
+        if (options.resetOnLeave) {
+          active = null
+          sync()
+        }
+        return
+      }
+      // Focus went nowhere: the page lost it, or the item is leaving. Chromium
+      // fires this while it removes the item, so decide once the removal is done.
+      let item = event.target as HTMLElement
+      queueMicrotask(() => {
+        if (focusedItem === item && item.isConnected && !isSkipped(item)) focusedItem = null
+      })
     }
 
     handle.addEventListener('insert', (event) => {
@@ -310,6 +350,7 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
       host.addEventListener('keydown', onKeyDown)
       host.addEventListener('focusin', onFocusIn)
       host.ownerDocument.addEventListener('keydown', onDocumentKeyDown, true)
+      host.addEventListener('focusout', onFocusOut)
       observer = new MutationObserver(sync)
       observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: watchedAttributes })
       sync()
@@ -326,7 +367,9 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
         host.removeEventListener('keydown', onKeyDown)
         host.removeEventListener('focusin', onFocusIn)
         host.ownerDocument.removeEventListener('keydown', onDocumentKeyDown, true)
+        host.removeEventListener('focusout', onFocusOut)
       }
+      focusedItem = null
       for (let [item, value] of originalTabIndex) {
         if (value === null) item.removeAttribute('tabindex')
         else item.setAttribute('tabindex', value)
