@@ -74,6 +74,15 @@ export function XIcon(handle: Handle<IconProps>) {
   )
 }
 
+/** A short dash, such as the mark of a checkbox in the mixed state. */
+export function MinusIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M6 12h12" />
+    </Icon>
+  )
+}
+
 export function CircleAlertIcon(handle: Handle<IconProps>) {
   return () => (
     <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
