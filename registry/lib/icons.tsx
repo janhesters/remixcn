@@ -65,6 +65,15 @@ export function ChevronRightIcon(handle: Handle<IconProps>) {
   )
 }
 
+/** Two crossed strokes, for buttons that close or dismiss. */
+export function XIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M6.5 6.5l11 11M17.5 6.5l-11 11" />
+    </Icon>
+  )
+}
+
 export function CircleAlertIcon(handle: Handle<IconProps>) {
   return () => (
     <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
