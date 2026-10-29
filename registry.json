@@ -86,6 +86,14 @@
       "files": [{ "path": "registry/ui/card.tsx", "type": "registry:ui", "target": "@ui/card.tsx" }]
     },
     {
+      "name": "carousel",
+      "type": "registry:ui",
+      "title": "Carousel",
+      "description": "Slides in a native scroll container with snap points: previous and next buttons, arrow keys, mouse drags, optional autoplay with a toggle, and an API.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/carousel.tsx", "type": "registry:ui", "target": "@ui/carousel.tsx" }]
+    },
+    {
       "name": "checkbox",
       "type": "registry:ui",
       "title": "Checkbox",

@@ -363,7 +363,10 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/carousel-example.tsx",
       "behavior": "https://www.embla-carousel.com/get-started/react",
       "dependsOn": [
-        "button"
+        "button",
+        "icons",
+        "styles",
+        "theme"
       ],
       "upstreamImports": [
         "cn",
@@ -371,7 +374,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/carousel.tsx"
+      "target": "registry/ui/carousel.tsx",
+      "exampleTarget": "registry/examples/carousel-example.tsx"
     },
     {
       "name": "chart",
