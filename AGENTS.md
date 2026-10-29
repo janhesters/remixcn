@@ -8,10 +8,15 @@ RemixCN ports the shadcn/ui component catalog to Remix 3. Users copy each compon
 bun install --frozen-lockfile
 bun run typecheck          # tsc --noEmit over the whole workspace
 bun run test               # server tests: remix test --type server
+bun run test:e2e           # browser tests in Playwright's Chromium: remix test --type e2e
 bun run check:components   # catalog and browser-reachable source contracts
 bun run check:build        # builds packages/cli, checks and runs the remixcn executable
 bun run build              # builds packages/cli/dist only
+bun run style-reference    # serves the style reference at http://localhost:4400/ (PORT changes it)
+bun run capture:style-reference  # rewrites the screenshots in docs/images/style-reference/
 ```
+
+Browser tests and captures need Playwright's Chromium. Install it once with `bunx playwright install chromium` when it's missing.
 
 Use Node 24.3.0 or later (`engines` in every `package.json`). `remix` stays pinned to `3.0.0`, and `bun.lock` stays committed. Development tools are pinned to exact versions in the root `devDependencies`.
 
@@ -30,15 +35,16 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | --- | --- |
 | `registry/catalog.json` | The component inventory and source map: every entry, its upstream links, its batch, and its target file |
 | `registry/ui/<name>.tsx` | One component per file, the source users copy |
-| `registry/lib/<name>.ts` | Helpers several components share |
+| `registry/lib/<name>.ts` | Helpers several components share. A helper may also be `.tsx`, such as `icons.tsx`, or `.css`, such as `theme.css` |
 | `registry/examples/<name>.tsx` | Copyable examples and the recipes: Data Table, Date Picker, and Typography |
 | `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry. The build emits `dist/bin.js`, which `bin` points to. The local MCP server will start from the same executable |
 | `apps/docs/` | The site (C-979, C-981) |
-| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, `registries/` hold small registries that keep or break the contracts, and `imports/` holds the import forms the checks must read |
+| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, `registries/` hold small registries that keep or break the contracts, `imports/` holds the import forms the checks must read, and `style-reference/` is the style reference page |
+| `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` |
 | `scripts/` | The contract checks behind `check:components` and `check:build`. `contracts.ts` holds their rules, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages |
 | `test/` | Workspace-wide contract tests |
 
-Tests sit beside the code they test as `*.test.ts`. Browser tests will use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects.
+Tests sit beside the code they test as `*.test.ts`. Browser tests will use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects. `test/style-reference.test.e2e.ts` drives the style reference in Chromium.
 
 ## Source-copy model
 
@@ -69,11 +75,60 @@ Everything in `registry/ui`, `registry/lib`, and `registry/examples` runs in the
 
 `check:components` enforces the import rules. It reads imports with the pinned TypeScript compiler, so import text in strings, comments, and JSX doesn't count. `apps/docs/package.json` may list `remix` and nothing else under `dependencies`.
 
+## Styling
+
+Components style themselves with Remix's `css()` and read the theme's tokens. Three helpers in batch 1 hold the shared parts:
+
+- `registry/lib/theme.css` is the one global stylesheet. It declares the cascade layer order, the tokens, and a small reset. The app links it first in `<head>`, before any other stylesheet. Every component lists `theme` in `dependsOn`.
+- `registry/lib/styles.ts` holds style objects for `css()`: `focusRing()`, `invalidState`, `disabledState`, `visuallyHidden`, `transition()`, and `mirrorInRtl`, plus `mergeStyles()` to combine them.
+- `registry/lib/icons.tsx` holds the `Icon` wrapper and the icons RemixCN draws itself.
+
+### Layers and overrides
+
+`theme.css` starts with `@layer base, rmx, app;`. Remix puts every `css()` rule in the `rmx` layer and adds its style tags at the end of `<head>`. From the weakest to the strongest:
+
+1. `base`: the tokens and the reset in `theme.css`.
+2. `rmx`: every `css()` rule, the component's own and a `css()` the caller passes with `mix`.
+3. `app`: the app's own rules in `@layer app`. They beat every component, whatever their specificity.
+4. Unlayered CSS beats all layers. Keep app CSS in `app` so this stays a choice.
+
+Inside `rmx`, Remix gives every `css()` rule its own layer, `rmx.<class>`, ordered by where the rule first renders. Specificity counts only inside one rule, and the order of a `mix` array doesn't count. So:
+
+- Compose a component's base styles and states into one `css()` call with `mergeStyles()`. Then `&[aria-invalid="true"]` beats the base border as usual.
+- A caller's `css()` wins when it first renders after the component's own rule, as a style object made for that call site does. For a reliable override, the app writes a rule in `@layer app`, or sets a token.
+- Don't style a child from a parent selector, such as `'& [data-slot=title]'` in the card's rule: the child's own rule may come later and win. Let the child's own `css()` react instead, to a data attribute on an ancestor (`':where([data-size="sm"]) &'`) or to a custom property the parent sets.
+
+The style reference's Overrides section shows each case, and its browser test checks them.
+
+### Tokens
+
+- Colors keep shadcn's names in kebab case, such as `--background`, `--primary-foreground`, `--chart-1`, and `--sidebar-ring`. Each value is `light-dark(light, dark)`, so the system preference picks it, and `data-theme="light"` or `data-theme="dark"` on any element overrides it for everything inside. An app changes a color with the same form, for example `--primary: light-dark(oklch(…), oklch(…))`.
+- Components read tokens and never set them, so a token set on an ancestor reaches every component inside.
+- Type, space, radius, and shadow tokens follow Tailwind's theme names, so shadcn's classes translate one to one: `text-sm` is `var(--text-sm)` with `var(--text-sm--line-height)`, `p-4` is `calc(var(--spacing) * 4)`, `rounded-md` is `var(--radius-md)`, and `shadow-xs` is `var(--shadow-xs)`. Sizes are in rem, so text zoom scales them.
+- Fonts are system stacks, `--font-sans` and `--font-mono`. Registry and docs CSS load no font: `check:components` rejects `@font-face`.
+- Motion uses `--duration-fast`, `--duration-normal`, `--ease-out`, and `--ease-in-out`. Reduced motion sets both durations to `0s`, so animate only with them, through `transition()`.
+
+`registry/lib/theme.test.ts` keeps text at 4.5:1 or more and focus rings and control borders at 3:1 or more in both schemes (WCAG 2.2 AA). The token values are shadcn's Neutral theme, darker or lighter where shadcn's values miss those ratios (`SOURCES.md` lists them).
+
+### Conventions
+
+- Focus: `theme.css` gives every focusable element a 2px outline in `--ring` on `:focus-visible`. Don't remove it without drawing another; use `focusRing()` when the ring belongs on a wrapper. Outlines stay visible in forced colors, and box shadows don't, so the ring is an outline.
+- States: mark an invalid control with `aria-invalid="true"` and `invalidState`, and point `aria-describedby` at an error message with an icon and text. Disable with the `disabled` attribute or `aria-disabled="true"` and `disabledState`, and say why in text where it helps. No state relies on color alone.
+- Forced colors: native controls stay native. Don't set `forced-color-adjust: none`, and draw borders and focus with `border` and `outline`, which forced colors keeps.
+- Native controls: checkboxes, radios, sliders, and progress bars take `--primary` as their accent where they are, so a `data-theme` panel or a `--primary` override reaches them.
+- Reflow: size with rem and let layouts shrink below their content: a single grid column is `minmax(0, 1fr)`, a minimum width is `min(100%, …)`, and a long word such as an email address may break. Then a page fits 320px without scrolling sideways, also with text at 200%. The style reference's browser test checks both sizes.
+- Direction: use logical properties, such as `paddingInline`, `marginInlineStart`, and `borderInlineStart`, and mirror an icon that points onward with `mirrorInRtl`.
+- Icons: draw them as inline SVG on a 24 by 24 grid with `Icon`, or add them to `icons.tsx`. They take `currentColor` and `1em` from SVG attributes, which any CSS overrides, so a component sizes them in its own `css()`. Pass `label` only when no visible text says the same. Don't copy icons from an icon library or load one.
+
+### The style reference
+
+`test/fixtures/style-reference/` serves a synthetic page through Remix's renderer and asset server, as an app would: the color tokens, the type scale, the surfaces, the focus and form states, both themes side by side, the overrides, and right-to-left text. It is the style reference for later batches, not the public site. Run `bun run style-reference` to open it, and `bun run capture:style-reference` to capture the desktop and narrow pages in both themes, the focused invalid field in dark mode and in forced colors, and the narrow form states with text at 200%.
+
 ## Dependencies
 
 - Components: none. `remix` comes from the user's app.
 - CLI and MCP server: Node and Web built-ins only. `packages/cli/package.json` keeps `dependencies` empty and lists no peer or optional dependencies. `check:build` enforces it.
-- Development only, pinned exactly in the root `devDependencies`: TypeScript, `@types/node`, and `remix` for typechecks and tests. Formatting, Playwright, and accessibility test tools may join them when a ticket needs them.
+- Development only, pinned exactly in the root `devDependencies`: TypeScript, `@types/node`, and `remix` for typechecks and tests, and Playwright for browser tests and screenshots. Formatting and accessibility test tools may join them when a ticket needs them.
 
 ## Names and metadata (C-976)
 
@@ -110,6 +165,7 @@ Every later UI PR, such as a component, the gallery, or the site, still needs sc
 - `LICENSE` is Jan's MIT license. Never change it.
 - `THIRD_PARTY_NOTICES.md` holds the full MIT texts of shadcn/ui, Base UI, and Remix. Add a source's license there before copying its code.
 - `SOURCES.md` lists each adapted file, its upstream files and versions, and what changed. It also holds the credit text for the site and the header for installed source. Update it in the PR that adapts a file.
+- Every registry file starts with that header, naming its catalog title. CSS files write it as a block comment. `check:components` enforces it.
 
 ## Boundaries
 
