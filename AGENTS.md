@@ -23,6 +23,8 @@ bun run build:registry     # checks registry.json, then writes dist/r/registry.j
 node packages/cli/src/bin.ts --help  # runs the remixcn executable from source
 bun run style-reference    # serves the style reference at http://localhost:4400/ (PORT changes it)
 bun run capture:style-reference  # rewrites the screenshots in docs/images/style-reference/
+bun run button-examples    # serves the Button and Button Group examples at http://localhost:4401/ (PORT changes it)
+bun run capture:button-examples  # rewrites the screenshots in docs/images/button/
 ```
 
 The browser lanes need Playwright's browsers: `bunx playwright install chromium firefox webkit`. On Ubuntu and Debian, add `--with-deps` for their system libraries. WebKit needs Ubuntu's libraries, so elsewhere run `--project chromium` or `--project firefox`, and CI runs WebKit. `capture:style-reference` takes its screenshots in Chromium only.
@@ -46,23 +48,25 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | `registry.json` | The items that ship, in shadcn's registry format: each item's type, files, install targets and `@remixcn` dependencies |
 | `registry/ui/<name>.tsx` | One component per file, the source users copy |
 | `registry/lib/<name>.ts` | Helpers several components share. A helper may also be `.tsx`, such as `icons.tsx`, or `.css`, such as `theme.css` |
-| `registry/examples/<name>.tsx` | Copyable examples and the recipes: Data Table, Date Picker, and Typography |
+| `registry/examples/<name>.tsx` | The recipes: Data Table, Date Picker, and Typography |
+| `registry/examples/<name>-example.tsx` | A component's copyable examples, named by its entry's `exampleTarget` |
 | `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry and `src/cli.ts` parses the commands. The build emits `dist/bin.js`, which `bin` points to. `README.md` documents the commands and exit codes, `components.schema.json` is the `components.json` schema, and `LICENSE` is a copy of the root one. The local MCP server will start from the same executable. See [The installer](#the-installer) |
 | `apps/docs/` | The site (C-979, C-981) |
-| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, which the end-to-end tests serve, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, `lanes/` hold workspaces whose lanes must fail, and `style-reference/` is the style reference page |
-| `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` |
+| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, which the end-to-end tests serve, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, `lanes/` hold workspaces whose lanes must fail, `style-reference/` is the style reference page, and `button/` serves the Button and Button Group examples with hydration and an `/echo` route that shows what a form sent |
+| `docs/components/` | Each component family's API, composition notes, source and behavior map, and accessibility checks |
+| `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` and `button/` |
 | `scripts/` | The checks and the registry build. `lanes.ts` lists the check lanes and `check.ts` runs them. `contracts.ts` holds the rules of `check:components`, `check:build` and the CI workflow, `secrets.ts` those of `check:secrets`, `build-registry.ts` runs the registry build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages and files. The registry's rules live in `packages/cli/src/registry.ts`, and the import and CSS rules in `packages/cli/src/source.ts`, because the executable applies them too |
 | `test/` | Workspace-wide contract tests, the registry tests that serve a build with `static-server.ts`, shared test helpers, such as `accessibility.ts` for axe-core and `mcp-client.ts` for shadcn's MCP server, and `cli.test.ts`, which packs `packages/cli` and runs the packed executable |
 | `.github/workflows/ci.yml` | CI for pull requests and main |
 
-Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Chromium, Firefox and WebKit. `test/style-reference.test.e2e.ts` drives the style reference. The installer doesn't copy test files.
+Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Chromium, Firefox and WebKit. Browser component tests run without `theme.css`, so they set the tokens they measure on their container. `test/style-reference.test.e2e.ts` drives the style reference, and `test/button.test.e2e.ts` the Button examples. The installer doesn't copy test files.
 
 ## Source-copy model
 
 - A component is source in `registry/`, not a runtime package. The installer copies it into the user's app, and the user owns and edits it from then on.
 - `remix` comes from the user's app. Registry source never adds a dependency of its own.
 - Don't create a component runtime package or publish components to npm.
-- Every component, recipe, and helper has an entry in `registry/catalog.json` whose `target` names its file. `check:components` fails on a registry file without one.
+- Every component, recipe, and helper has an entry in `registry/catalog.json` whose `target` names its file. A component's examples are its entry's `exampleTarget`. `check:components` fails on a registry file without one.
 - Once it ships, it also has an item in `registry.json`. See [The registry build](#the-registry-build).
 
 ## Aliases
@@ -83,7 +87,7 @@ Everything in `registry/ui`, `registry/lib`, and `registry/examples` runs in the
 - imports only `remix/component` (and its JSX runtime) and the `#remixcn/` aliases;
 - never imports React, Tailwind, Base UI, Radix, Floating UI, or `@remix-run/ui`, and never uses Tailwind directives in CSS;
 - never uses Node built-ins or globals, and holds no secrets;
-- exports each part by name and wraps only the parts that handle browser events in `clientEntry(...)`, with serializable props.
+- exports each part by name and wraps only the parts that handle browser events in `clientEntry(...)`, with serializable props. A part that takes your mixins, such as Button, can't be an entry, since Remix serializes an entry's props to JSON. It runs in the browser inside your client entry, and its server HTML must be safe without it.
 
 `check:components` enforces the import rules. It reads imports with the pinned TypeScript compiler, so import text in strings, comments, and JSX doesn't count. `apps/docs/package.json` may list `remix` and nothing else under `dependencies`.
 
@@ -130,7 +134,8 @@ The style reference's Overrides section shows each case, and its browser test ch
 - Native controls: checkboxes, radios, sliders, and progress bars take `--primary` as their accent where they are, so a `data-theme` panel or a `--primary` override reaches them.
 - Reflow: size with rem and let layouts shrink below their content: a single grid column is `minmax(0, 1fr)`, a minimum width is `min(100%, …)`, and a long word such as an email address may break. Then a page fits 320px without scrolling sideways, also with text at 200%. The style reference's browser test checks both sizes.
 - Direction: use logical properties, such as `paddingInline`, `marginInlineStart`, and `borderInlineStart`, and mirror an icon that points onward with `mirrorInRtl`.
-- Icons: draw them as inline SVG on a 24 by 24 grid with `Icon`, or add them to `icons.tsx`. They take `currentColor` and `1em` from SVG attributes, which any CSS overrides, so a component sizes them in its own `css()`. Pass `label` only when no visible text says the same. Don't copy icons from an icon library or load one.
+- Groups: a control that may sit in a ButtonGroup merges `buttonGroupItem` from `styles.ts` into its own `css()`. It then joins its neighbors with a `data-slot`, and an input grows into the room the group has. The group never styles its parts.
+- Icons: draw them as inline SVG on a 24 by 24 grid with `Icon`, or add them to `icons.tsx`. Mark one that starts or ends a label with `data-icon="inline-start"` or `"inline-end"`, so a Button tightens the padding on that side. They take `currentColor` and `1em` from SVG attributes, which any CSS overrides, so a component sizes them in its own `css()`. Pass `label` only when no visible text says the same. Don't copy icons from an icon library or load one.
 
 ### The style reference
 
@@ -174,7 +179,7 @@ Browser and end-to-end tests use invented data and local servers. `t.serve` clos
 
 `registry/catalog.json` reconciles the 64 files in shadcn/ui's `apps/v4/registry/bases/base/ui` at the pinned commit with the 66 Base pages of the Components docs. It adds the Data Table, Date Picker, and Typography recipes. Sonner is a dependency-free entry compatible with Toast: it keeps Sonner's `Toaster` and `toast()` names on top of RemixCN's Toast.
 
-Each entry has a `source` link at the pinned commit (a helper that ports Base UI or Remix behavior links their pinned file instead), a `docs` link, its `batch`, what it `dependsOn`, the `upstreamImports` the port replaces, and its `target`. A dependency lands in the same batch or an earlier one. Batches 1 to 8 order the follow-up work. Separate AI Elements patterns and the Blocks collection are listed under `outOfScope`, not as entries.
+Each entry has a `source` link at the pinned commit (a helper that ports Base UI or Remix behavior links their pinned file instead), a `docs` link, its `batch`, what it `dependsOn`, the `upstreamImports` the port replaces, and its `target`. A ported component adds its `exampleTarget`, and its `dependsOn` lists the entries and helpers its file imports. A dependency lands in the same batch or an earlier one. Batches 1 to 8 order the follow-up work. Separate AI Elements patterns and the Blocks collection are listed under `outOfScope`, not as entries.
 
 Change the catalog when a ticket changes an entry. `checkCatalog` in `scripts/contracts.ts` keeps it consistent.
 
@@ -242,7 +247,7 @@ Every later UI PR, such as a component, the gallery, or the site, still needs sc
 - `LICENSE` is Jan's MIT license. Never change it.
 - `THIRD_PARTY_NOTICES.md` holds the full MIT texts of shadcn/ui, Base UI, and Remix. Add a source's license there before copying its code.
 - `SOURCES.md` lists each adapted file, its upstream files and versions, and what changed. It also holds the credit text for the site and the header for installed source. Update it in the PR that adapts a file.
-- Every registry file starts with that header, naming its catalog title. CSS files write it as a block comment. `check:components` enforces it.
+- Every registry file starts with that header, naming its catalog title, or `<title> examples` in a component's example file. CSS files write it as a block comment. `check:components` enforces it.
 
 ## Boundaries
 
