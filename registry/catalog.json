@@ -1273,6 +1273,47 @@
   ],
   "helpers": [
     {
+      "name": "theme",
+      "title": "Theme",
+      "kind": "helper",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/themes.ts",
+      "dependsOn": [],
+      "upstreamImports": [],
+      "target": "registry/lib/theme.css",
+      "note": "The global stylesheet every component needs: the cascade layer order, shadcn's Neutral theme as light and dark tokens, the type, space, radius, shadow and motion tokens, and a small reset. Link it first in the document head."
+    },
+    {
+      "name": "styles",
+      "title": "Style conventions",
+      "kind": "helper",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/styles/style-vega.css",
+      "dependsOn": [
+        "theme"
+      ],
+      "upstreamImports": [
+        "cn",
+        "tailwindcss"
+      ],
+      "target": "registry/lib/styles.ts",
+      "note": "Style objects for css(): focus ring, invalid and disabled states, visually hidden text, transitions and right-to-left mirroring, translated from the shared classes of shadcn's styles."
+    },
+    {
+      "name": "icons",
+      "title": "Icons",
+      "kind": "helper",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/app/(app)/(create)/components/icon-placeholder.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "lucide-react",
+        "react"
+      ],
+      "target": "registry/lib/icons.tsx",
+      "note": "Replaces shadcn's icon placeholder, which loads an icon library, with small original inline SVG icons and the Icon wrapper for your own."
+    },
+    {
       "name": "use-mobile",
       "title": "Mobile breakpoint",
       "kind": "helper",
