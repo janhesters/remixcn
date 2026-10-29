@@ -4,6 +4,7 @@ import { describe, it } from 'remix/test'
 import {
   checkBrowserPackage,
   checkCatalog,
+  checkCliImport,
   checkCliPackage,
   checkImport,
   checkPackageMetadata,
@@ -465,6 +466,29 @@ describe('checkCliPackage', () => {
       'remixcn: dependencies must be empty (kleur)',
       'remixcn: peerDependencies must be empty (remix)',
     ])
+  })
+})
+
+describe('checkCliImport', () => {
+  it('lets the executable import Node built-ins and its own files', () => {
+    for (let specifier of ['node:fs', 'node:util', './cli.ts', './mcp/server.ts']) {
+      assert.equal(checkCliImport('packages/cli/src/bin.ts', specifier), undefined, specifier)
+    }
+    assert.equal(checkCliImport('packages/cli/src/mcp/server.ts', '../cli.ts'), undefined)
+  })
+
+  it('reports packages, registry aliases and files outside its source', () => {
+    assert.deepEqual(
+      ['kleur', 'remix/component', '#remixcn/ui/button.tsx', '../../../registry/catalog.json'].map((specifier) =>
+        checkCliImport('packages/cli/src/cli.ts', specifier),
+      ),
+      [
+        '"kleur": the remixcn executable runs on Node and Web built-ins only, so it imports no package',
+        '"remix/component": the remixcn executable runs on Node and Web built-ins only, so it imports no package',
+        '"#remixcn/ui/button.tsx": the remixcn executable runs on Node and Web built-ins only, so it imports no package',
+        '"../../../registry/catalog.json": the published package holds only packages/cli/src, so import nothing outside it',
+      ],
+    )
   })
 })
 

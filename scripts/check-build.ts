@@ -5,9 +5,9 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { checkCliPackage, checkPackageMetadata } from './contracts.ts'
+import { checkCliImport, checkCliPackage, checkPackageMetadata } from './contracts.ts'
 import type { PackageJson } from './contracts.ts'
-import { tsc } from './typescript.ts'
+import { readScriptImports, tsc } from './typescript.ts'
 import { listPackageFiles } from './workspace.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -28,9 +28,18 @@ if (build.status !== 0) fail([`tsc -p packages/cli/tsconfig.build.json failed:\n
 let packageFiles = listPackageFiles(root)
 let workspace = readJson(join(root, 'package.json')) as PackageJson
 let pkg = readJson(join(cli, 'package.json')) as PackageJson & { version: string }
+let sourceFiles = readdirSync(join(cli, 'src'), { recursive: true, encoding: 'utf8' })
+  .filter((file) => /\.tsx?$/.test(file) && !file.includes('.test.'))
+  .map((file) => `packages/cli/src/${file.replaceAll('\\', '/')}`)
+let imports = readScriptImports(root, sourceFiles)
 let problems = [
   ...packageFiles.flatMap((file) => checkPackageMetadata(readJson(join(root, file)) as PackageJson)),
   ...checkCliPackage(pkg, workspace),
+  ...sourceFiles.flatMap((file) =>
+    (imports.get(file) ?? [])
+      .flatMap((specifier) => checkCliImport(file, specifier) ?? [])
+      .map((problem) => `${file}: ${problem}`),
+  ),
 ]
 
 let bin = join(cli, pkg.bin?.remixcn ?? 'dist/bin.js')
@@ -55,4 +64,5 @@ if (version.status !== 0 || version.stdout !== `${pkg.version}\n`) {
 
 process.stdout.write(`✓ ${packageFiles.join(', ').replace(/, ([^,]+)$/, ' and $1')} carry the approved metadata\n`)
 process.stdout.write(`✓ ${pkg.name} has no runtime dependencies\n`)
+process.stdout.write('✓ packages/cli/src imports only Node built-ins and its own files\n')
 process.stdout.write(`✓ packages/cli/dist/bin.js runs as remixcn ${pkg.version} on Node ${process.versions.node}\n`)

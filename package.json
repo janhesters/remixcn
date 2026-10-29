@@ -42,6 +42,7 @@
     "test:browser": "remix test --type browser",
     "test:e2e": "remix test --type e2e",
     "check:components": "node scripts/check-components.ts",
+    "check:secrets": "node scripts/check-secrets.ts",
     "build": "bun run --filter remixcn build",
     "build:registry": "node scripts/build-registry.ts",
     "check:build": "node scripts/check-build.ts",
