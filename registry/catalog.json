@@ -862,7 +862,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/message-scroller.tsx"
+      "target": "registry/ui/message-scroller.tsx",
+      "exampleTarget": "registry/examples/message-scroller-example.tsx"
     },
     {
       "name": "native-select",
