@@ -5,6 +5,7 @@ import { describe, it } from 'remix/test'
 import {
   ArrowDownIcon,
   CheckIcon,
+  ChevronLeftIcon,
   ChevronRightIcon,
   CircleAlertIcon,
   CopyIcon,
@@ -40,6 +41,7 @@ describe('icons', () => {
     for (let icon of [
       <ArrowDownIcon />,
       <CheckIcon />,
+      <ChevronLeftIcon />,
       <ChevronRightIcon />,
       <CircleAlertIcon />,
       <CopyIcon />,
