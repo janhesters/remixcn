@@ -1087,7 +1087,8 @@
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/slider.tsx"
+      "target": "registry/ui/slider.tsx",
+      "exampleTarget": "registry/examples/slider-example.tsx"
     },
     {
       "name": "sonner",
