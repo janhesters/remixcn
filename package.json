@@ -38,6 +38,7 @@
     "test:e2e": "remix test --type e2e",
     "check:components": "node scripts/check-components.ts",
     "build": "bun run --filter remixcn build",
+    "build:registry": "node scripts/build-registry.ts",
     "check:build": "node scripts/check-build.ts",
     "style-reference": "node --import remix/node-tsx test/fixtures/style-reference/server.tsx",
     "capture:style-reference": "node --import remix/node-tsx test/fixtures/style-reference/capture.ts"
@@ -49,6 +50,7 @@
     "@types/node": "26.6.4",
     "playwright": "1.64.1",
     "remix": "3.0.0",
+    "shadcn": "4.23.0",
     "typescript": "7.0.2"
   }
 }
