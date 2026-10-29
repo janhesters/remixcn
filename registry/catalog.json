@@ -402,7 +402,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/code-block.tsx"
+      "target": "registry/ui/code-block.tsx",
+      "exampleTarget": "registry/examples/code-block-example.tsx"
     },
     {
       "name": "collapsible",

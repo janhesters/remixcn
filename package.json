@@ -51,7 +51,9 @@
     "button-examples": "node --import remix/node-tsx test/fixtures/button/server.tsx",
     "capture:button-examples": "node --import remix/node-tsx test/fixtures/button/capture.ts",
     "layout": "node --import remix/node-tsx test/fixtures/layout/server.tsx",
-    "capture:layout": "node --import remix/node-tsx test/fixtures/layout/capture.ts"
+    "capture:layout": "node --import remix/node-tsx test/fixtures/layout/capture.ts",
+    "code-block-examples": "node --import remix/node-tsx test/fixtures/code-block/server.tsx",
+    "capture:code-block-examples": "node --import remix/node-tsx test/fixtures/code-block/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
