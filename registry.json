@@ -30,6 +30,22 @@
       "files": [{ "path": "registry/ui/button-group.tsx", "type": "registry:ui", "target": "@ui/button-group.tsx" }]
     },
     {
+      "name": "resizable",
+      "type": "registry:ui",
+      "title": "Resizable",
+      "description": "Panel groups that resize with the pointer and the keyboard: rows, columns and nested groups, minimum, maximum and default sizes, collapsible panels, and layout events.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/resizable.tsx", "type": "registry:ui", "target": "@ui/resizable.tsx" }]
+    },
+    {
+      "name": "scroll-area",
+      "type": "registry:ui",
+      "title": "Scroll Area",
+      "description": "A native scroll container with thin scrollbars that follow it. The system's scrollbars stay without JavaScript and in forced colors.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/scroll-area.tsx", "type": "registry:ui", "target": "@ui/scroll-area.tsx" }]
+    },
+    {
       "name": "styles",
       "type": "registry:lib",
       "title": "Style conventions",

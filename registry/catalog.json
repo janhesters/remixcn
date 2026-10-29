@@ -941,7 +941,10 @@
       "docs": "https://ui.shadcn.com/docs/components/base/resizable",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/resizable-example.tsx",
       "behavior": "https://github.com/bvaughn/react-resizable-panels",
-      "dependsOn": [],
+      "dependsOn": [
+        "styles",
+        "theme"
+      ],
       "upstreamImports": [
         "cn",
         "react-resizable-panels"
@@ -957,7 +960,10 @@
       "docs": "https://ui.shadcn.com/docs/components/base/scroll-area",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/scroll-area-example.tsx",
       "behavior": "https://base-ui.com/react/components/scroll-area.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "styles",
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
