@@ -1602,6 +1602,20 @@
         "react"
       ],
       "target": "registry/lib/anchor-position.ts"
+    },
+    {
+      "name": "hover-intent",
+      "title": "Hover intent",
+      "kind": "helper",
+      "batch": 4,
+      "source": "https://github.com/mui/base-ui/blob/06cf9a0064231a1393cd43d86439bbc52255fa5a/packages/react/src/utils/popups/interactions/hoverIntent.ts",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@floating-ui/utils",
+        "react",
+        "react-dom"
+      ],
+      "target": "registry/lib/hover-intent.ts"
     }
   ]
 }
