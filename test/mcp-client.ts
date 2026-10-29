@@ -41,6 +41,10 @@ export function startMcp(shadcn: string, cwd: string) {
       send('notifications/initialized')
       return result
     },
+    async listTools(): Promise<any[]> {
+      let { result } = await request('tools/list', {})
+      return result.tools
+    },
     async callTool(name: string, args: object): Promise<string> {
       let { result } = await request('tools/call', { name, arguments: args })
       assert.ok(!result.isError, result.content[0].text)
