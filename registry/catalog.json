@@ -1378,6 +1378,9 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/toast-example.tsx",
       "behavior": "https://base-ui.com/react/components/toast.md",
       "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
         "button"
       ],
       "upstreamImports": [
