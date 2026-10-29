@@ -1273,6 +1273,7 @@
         "sonner"
       ],
       "target": "registry/ui/sonner.tsx",
+      "exampleTarget": "registry/examples/sonner-example.tsx",
       "compatibleWith": "toast",
       "note": "Dependency-free Toast-compatible entry: keeps Sonner's Toaster and toast() names on top of RemixCN's toast, without the sonner or next-themes packages. Upstream's Sonner docs page redirects to Toast."
     },
@@ -1392,7 +1393,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/toast.tsx"
+      "target": "registry/ui/toast.tsx",
+      "exampleTarget": "registry/examples/toast-example.tsx"
     },
     {
       "name": "toggle",
