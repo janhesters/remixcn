@@ -949,7 +949,8 @@
         "cn",
         "react-resizable-panels"
       ],
-      "target": "registry/ui/resizable.tsx"
+      "target": "registry/ui/resizable.tsx",
+      "exampleTarget": "registry/examples/resizable-example.tsx"
     },
     {
       "name": "scroll-area",
@@ -969,7 +970,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/scroll-area.tsx"
+      "target": "registry/ui/scroll-area.tsx",
+      "exampleTarget": "registry/examples/scroll-area-example.tsx"
     },
     {
       "name": "select",
