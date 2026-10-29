@@ -174,6 +174,20 @@
       "files": [{ "path": "registry/ui/field.tsx", "type": "registry:ui", "target": "@ui/field.tsx" }]
     },
     {
+      "name": "hover-card",
+      "type": "registry:ui",
+      "title": "Hover Card",
+      "description": "Previews what's behind a link while the pointer rests on it or it has keyboard focus. The card can be hovered, and touch follows the link.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/hover-intent",
+        "@remixcn/layer",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/hover-card.tsx", "type": "registry:ui", "target": "@ui/hover-card.tsx" }]
+    },
+    {
       "name": "input",
       "type": "registry:ui",
       "title": "Input",
@@ -254,6 +268,21 @@
       "description": "A native select with a chevron, two sizes, option groups, and default or controlled values in the server HTML.",
       "registryDependencies": ["@remixcn/aria", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/native-select.tsx", "type": "registry:ui", "target": "@ui/native-select.tsx" }]
+    },
+    {
+      "name": "popover",
+      "type": "registry:ui",
+      "title": "Popover",
+      "description": "A dialog beside its trigger in a native popover: placement, collision avoidance, focus in and back, Escape and outside presses, nesting and a modal mode. Without JavaScript the browser opens it.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/focus-scope",
+        "@remixcn/layer",
+        "@remixcn/modal",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/popover.tsx", "type": "registry:ui", "target": "@ui/popover.tsx" }]
     },
     {
       "name": "progress",
@@ -368,12 +397,34 @@
       "files": [{ "path": "registry/ui/toggle-group.tsx", "type": "registry:ui", "target": "@ui/toggle-group.tsx" }]
     },
     {
+      "name": "tooltip",
+      "type": "registry:ui",
+      "title": "Tooltip",
+      "description": "A short description of its trigger on hover and keyboard focus, with an arrow, shared delays and Escape. The trigger is described before any script runs.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/hover-intent",
+        "@remixcn/layer",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/tooltip.tsx", "type": "registry:ui", "target": "@ui/tooltip.tsx" }]
+    },
+    {
       "name": "typography",
       "type": "registry:component",
       "title": "Typography",
       "description": "Styles for headings, paragraphs, quotes, lists, inline code, links and tables, as mixins for native elements.",
       "registryDependencies": ["@remixcn/theme"],
       "files": [{ "path": "registry/examples/typography.tsx", "type": "registry:component", "target": "@components/typography.tsx" }]
+    },
+    {
+      "name": "anchor-position",
+      "type": "registry:lib",
+      "title": "Anchor positioning",
+      "description": "Places a popup beside an element or a point, flips and shifts it to stay in view, and keeps it there while the page scrolls and resizes.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/anchor-position.ts", "type": "registry:lib", "target": "@lib/anchor-position.ts" }]
     },
     {
       "name": "aria",
@@ -398,6 +449,14 @@
       "description": "Initial and return focus for popups, with a fallback when the trigger was removed or disabled.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/focus-scope.ts", "type": "registry:lib", "target": "@lib/focus-scope.ts" }]
+    },
+    {
+      "name": "hover-intent",
+      "type": "registry:lib",
+      "title": "Hover intent",
+      "description": "Opens a popup while the pointer rests on its trigger or it has keyboard focus, with delays, a safe path to the popup and no opening on touch.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/hover-intent.ts", "type": "registry:lib", "target": "@lib/hover-intent.ts" }]
     },
     {
       "name": "icons",
