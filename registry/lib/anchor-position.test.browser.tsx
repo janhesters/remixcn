@@ -76,6 +76,7 @@ for (let strategy of ['auto', 'measure'] as const) {
       assert.equal(floating.style.getPropertyValue('--anchor-width'), '40px')
       assert.equal(floating.style.getPropertyValue('--available-height'), `${innerHeight - 5 - 74}px`)
       assert.equal(floating.style.getPropertyValue('--transform-origin'), '20px -4px')
+      assert.equal(floating.style.getPropertyValue('--anchor-center-x'), '20px')
     })
 
     it('flips away from the edges it would cross, side first, then alignment', async (t) => {
@@ -97,6 +98,8 @@ for (let strategy of ['auto', 'measure'] as const) {
       assert.equal(floating.dataset.side, 'bottom')
       assert.equal(floating.dataset.align, 'center')
       assert.equal(box(floating).left, 0)
+      // The anchor's center, inside the shifted floating element, for an arrow that points at it.
+      assert.equal(floating.style.getPropertyValue('--anchor-center-x'), '25px')
     })
 
     it('mirrors start alignment in right-to-left text', async (t) => {
@@ -106,6 +109,32 @@ for (let strategy of ['auto', 'measure'] as const) {
       await nextFrame()
 
       assert.equal(box(floating).right, 340)
+    })
+
+    it('places inline sides and alignment in right-to-left text, wherever the anchor is', async (t) => {
+      // Firefox's CSS anchor positioning mirrors right-to-left placements to the wrong spot, often still on screen.
+      for (let [left, side, align, expected] of [
+        [300, 'inline-start', 'center', { left: 340, top: 10 }],
+        [300, 'inline-end', 'center', { left: 100, top: 10 }],
+        [400, 'bottom', 'start', { left: 240, top: 70 }],
+      ] as const) {
+        let wrapper = document.createElement('div')
+        wrapper.dir = 'rtl'
+        document.body.append(wrapper)
+        t.after(() => wrapper.remove())
+        let { anchor, floating } = setup(t, `left: ${left}px; top: 50px`)
+        wrapper.append(anchor, floating)
+        floating.showPopover()
+        let stop = start(t, floating, anchor, { strategy, side, align })
+        await nextFrame()
+
+        assert.deepEqual(
+          { left: box(floating).left, top: box(floating).top },
+          expected,
+          `${side} ${align} at ${left}px`,
+        )
+        stop()
+      }
     })
 
     it('follows the anchor through nested scroll containers and hides when it scrolls away', async (t) => {
