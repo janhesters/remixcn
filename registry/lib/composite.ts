@@ -176,10 +176,32 @@ const watchedAttributes = [
   'data-disabled',
   'aria-selected',
   'aria-checked',
+  'aria-pressed',
   'aria-current',
+  'hidden',
+  'inert',
+  'style',
+  'class',
 ]
 
-const selectedItem = '[aria-selected="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"])'
+const selectedItem =
+  '[aria-selected="true"], [aria-checked="true"], [aria-pressed="true"], [aria-current]:not([aria-current="false"])'
+
+/** Whether the item is rendered, visible and outside an inert subtree, so it can take focus at all. */
+export function isFocusableItem(item: Element): boolean {
+  return !item.closest('[inert]') && item.getClientRects().length > 0 && getComputedStyle(item).visibility === 'visible'
+}
+
+// Each roving focus host and its sync, so a group leaves the items of a group
+// nested in it alone, and a nested group that starts tells its outer groups.
+const rovingHosts = new WeakMap<Element, () => void>()
+
+function isOwnItem(host: Element, item: Element) {
+  for (let node = item.parentElement; node && node !== host; node = node.parentElement) {
+    if (rovingHosts.has(node)) return false
+  }
+  return true
+}
 
 export interface RovingFocusOptions extends NavigationOptions {
   /** Selector for the items inside the host. */
@@ -195,9 +217,12 @@ export interface RovingFocusOptions extends NavigationOptions {
 /**
  * Roving tabindex: the active item has `tabindex="0"` and the others `-1`, so
  * Tab enters the group at the active item and the arrow keys, Home and End move
- * focus inside it. The active item starts as the selected, checked or current
- * item, or the first enabled one. Removing the mixin restores each item's
- * original tabindex.
+ * focus inside it. The active item starts as the selected, checked, pressed or
+ * current item, or the first enabled one. Hidden and inert items never take
+ * focus, and the items of a nested roving group belong to that group. The tab
+ * stop follows changes to the items, and is checked again before Tab moves
+ * focus, so a style sheet that hides the active item can't trap it. Removing
+ * the mixin restores each item's original tabindex.
  */
 export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions]> = createMixin<
   HTMLElement,
@@ -212,11 +237,20 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
     let observer: MutationObserver | undefined
 
     function getItems() {
-      return host ? [...host.querySelectorAll<HTMLElement>(options.items)] : []
+      let current = host
+      return current
+        ? [...current.querySelectorAll<HTMLElement>(options.items)].filter((item) => isOwnItem(current, item))
+        : []
     }
 
     function isSkipped(item: HTMLElement) {
-      return !options.disabledItemsFocusable && isDisabledItem(item)
+      return !isFocusableItem(item) || (!options.disabledItemsFocusable && isDisabledItem(item))
+    }
+
+    // Tab moves focus after its keydown, so a change no observer sees, such as
+    // a style sheet hiding the active item, still moves the tab stop in time.
+    function onDocumentKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Tab') sync()
     }
 
     function setTabIndex(item: HTMLElement, value: string) {
@@ -272,11 +306,15 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
 
     handle.addEventListener('insert', (event) => {
       host = event.node
+      rovingHosts.set(host, sync)
       host.addEventListener('keydown', onKeyDown)
       host.addEventListener('focusin', onFocusIn)
+      host.ownerDocument.addEventListener('keydown', onDocumentKeyDown, true)
       observer = new MutationObserver(sync)
       observer.observe(host, { childList: true, subtree: true, attributes: true, attributeFilter: watchedAttributes })
       sync()
+      // An outer group may have taken this group's items before it started.
+      for (let node = host.parentElement; node; node = node.parentElement) rovingHosts.get(node)?.()
     })
 
     handle.addEventListener('remove', () => {
@@ -284,8 +322,10 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
       observer?.disconnect()
       modes.delete(handle.id)
       if (host) {
+        rovingHosts.delete(host)
         host.removeEventListener('keydown', onKeyDown)
         host.removeEventListener('focusin', onFocusIn)
+        host.ownerDocument.removeEventListener('keydown', onDocumentKeyDown, true)
       }
       for (let [item, value] of originalTabIndex) {
         if (value === null) item.removeAttribute('tabindex')
