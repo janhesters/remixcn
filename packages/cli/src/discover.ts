@@ -1,6 +1,6 @@
 // remixcn list, search and view: reads registry indexes and items without
 // changing the app. They work before remixcn init, with the @remixcn registry.
-import { isAbsolute, resolve } from 'node:path'
+import { dirname, isAbsolute, join, resolve } from 'node:path'
 
 import { CliError } from './errors.ts'
 import { checkRegistryUrl, readJsonFile } from './network.ts'
@@ -46,6 +46,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+/** An item's URL in a registry URL, as shadcn builds it: the last "registry" in the path becomes the item's name. */
+function itemUrl(name: string, registry: string): string {
+  let url = new URL(registry)
+  let index = url.pathname.lastIndexOf('registry')
+  if (index === -1) return new URL(`${name}.json`, url).href
+  url.pathname = url.pathname.slice(0, index) + name + url.pathname.slice(index + 'registry'.length)
+  url.search = url.search.replace(/\bregistry\b/g, name)
+  return url.href
+}
+
 /**
  * Reads a registry index: a configured namespace, whose {name} becomes
  * "registry" as in shadcn, a registry.json URL, or a local registry.json.
@@ -53,6 +63,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export async function readIndex(registry: string, context: DiscoverContext): Promise<{ items: IndexItem[] }> {
   let location: string
   let value: unknown
+  let address: (name: string) => string
 
   if (registry.startsWith('@')) {
     let template = context.registries[registry]
@@ -61,14 +72,17 @@ export async function readIndex(registry: string, context: DiscoverContext): Pro
     }
     location = template.replaceAll('{name}', 'registry')
     value = await context.fetchJson(location)
+    address = (name) => `${registry}/${name}`
   } else if (/^[a-z][a-z0-9+.-]*:\/\//i.test(registry)) {
     let problem = checkRegistryUrl(registry)
     if (problem) throw new CliError('REGISTRY', problem)
     location = registry
     value = await context.fetchJson(location)
+    address = (name) => itemUrl(name, registry)
   } else if (/^\.{1,2}\//.test(registry) || isAbsolute(registry) || registry.endsWith('.json')) {
     location = resolve(context.cwd, registry)
     value = readJsonFile(location)
+    address = (name) => join(dirname(location), `${name}.json`)
   } else {
     throw new CliError(
       'USAGE',
@@ -79,7 +93,6 @@ export async function readIndex(registry: string, context: DiscoverContext): Pro
   if (!isRecord(value) || !Array.isArray(value.items))
     throw new CliError('REGISTRY', `${location} is not a registry index`)
 
-  let namespace = registry.startsWith('@') ? registry : undefined
   let items = value.items.map((item: unknown): IndexItem => {
     if (
       !isRecord(item) ||
@@ -94,8 +107,8 @@ export async function readIndex(registry: string, context: DiscoverContext): Pro
       type: item.type,
       ...(typeof item.title === 'string' && { title: item.title }),
       ...(typeof item.description === 'string' && { description: item.description }),
-      registry: namespace ?? location,
-      addCommandArgument: namespace ? `${namespace}/${item.name}` : item.name,
+      registry: registry.startsWith('@') ? registry : location,
+      addCommandArgument: address(item.name),
     }
   })
 

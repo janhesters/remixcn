@@ -630,6 +630,19 @@ describe('remixcn list, search and view', () => {
     )
   })
 
+  it('addresses the items of a registry URL or file by their own JSON, so add installs them from there', async () => {
+    let app = await initializedApp()
+
+    let url = JSON.parse((await remixcn(['search', `${registry.url}registry.json`, '-q', 'cx', '--json'])).stdout)
+    assert.equal(url.items[0].addCommandArgument, `${registry.url}cx.json`)
+
+    let file = JSON.parse((await remixcn(['search', './r/registry.json', '-q', 'cx', '--json'])).stdout)
+    assert.equal(file.items[0].addCommandArgument, join(scratch, 'r/cx.json'))
+
+    let added = await remixcn(['add', url.items[0].addCommandArgument, '--cwd', app, '--dry-run'])
+    assert.equal(added.code, 0, added.stderr)
+  })
+
   it('searches, filters and pages, as text and as JSON', async () => {
     let app = createApp()
 
