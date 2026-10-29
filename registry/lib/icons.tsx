@@ -56,6 +56,15 @@ export function CheckIcon(handle: Handle<IconProps>) {
   )
 }
 
+/** Points back. Mirror it with mirrorInRtl from styles.ts in right-to-left text. */
+export function ChevronLeftIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M14.5 5.5 8 12l6.5 6.5" />
+    </Icon>
+  )
+}
+
 /** Points onward. Mirror it with mirrorInRtl from styles.ts in right-to-left text. */
 export function ChevronRightIcon(handle: Handle<IconProps>) {
   return () => (
