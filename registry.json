@@ -150,6 +150,22 @@
       "files": [{ "path": "registry/ui/empty.tsx", "type": "registry:ui", "target": "@ui/empty.tsx" }]
     },
     {
+      "name": "field",
+      "type": "registry:ui",
+      "title": "Field",
+      "description": "Native fieldsets, legends, labels, descriptions, separators and error alerts that lay out a form control in three orientations.",
+      "registryDependencies": ["@remixcn/icons", "@remixcn/label", "@remixcn/separator", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/field.tsx", "type": "registry:ui", "target": "@ui/field.tsx" }]
+    },
+    {
+      "name": "input",
+      "type": "registry:ui",
+      "title": "Input",
+      "description": "A native input for text, email, numbers, dates, times, files and colors, with literal ARIA states.",
+      "registryDependencies": ["@remixcn/aria", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/input.tsx", "type": "registry:ui", "target": "@ui/input.tsx" }]
+    },
+    {
       "name": "item",
       "type": "registry:ui",
       "title": "Item",
@@ -164,6 +180,14 @@
       "description": "Native kbd elements for single keys and key combinations.",
       "registryDependencies": ["@remixcn/theme"],
       "files": [{ "path": "registry/ui/kbd.tsx", "type": "registry:ui", "target": "@ui/kbd.tsx" }]
+    },
+    {
+      "name": "label",
+      "type": "registry:ui",
+      "title": "Label",
+      "description": "A native label that names its control and dims with a disabled one.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/label.tsx", "type": "registry:ui", "target": "@ui/label.tsx" }]
     },
     {
       "name": "marker",
@@ -190,6 +214,14 @@
       "files": [
         { "path": "registry/ui/message-scroller.tsx", "type": "registry:ui", "target": "@ui/message-scroller.tsx" }
       ]
+    },
+    {
+      "name": "native-select",
+      "type": "registry:ui",
+      "title": "Native Select",
+      "description": "A native select with a chevron, two sizes, option groups, and default or controlled values in the server HTML.",
+      "registryDependencies": ["@remixcn/aria", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/native-select.tsx", "type": "registry:ui", "target": "@ui/native-select.tsx" }]
     },
     {
       "name": "progress",
@@ -272,6 +304,14 @@
       "files": [{ "path": "registry/ui/switch.tsx", "type": "registry:ui", "target": "@ui/switch.tsx" }]
     },
     {
+      "name": "textarea",
+      "type": "registry:ui",
+      "title": "Textarea",
+      "description": "A native textarea that grows with its text where the browser supports it.",
+      "registryDependencies": ["@remixcn/aria", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/textarea.tsx", "type": "registry:ui", "target": "@ui/textarea.tsx" }]
+    },
+    {
       "name": "toggle",
       "type": "registry:ui",
       "title": "Toggle",
@@ -294,6 +334,14 @@
       "description": "Styles for headings, paragraphs, quotes, lists, inline code, links and tables, as mixins for native elements.",
       "registryDependencies": ["@remixcn/theme"],
       "files": [{ "path": "registry/examples/typography.tsx", "type": "registry:component", "target": "@components/typography.tsx" }]
+    },
+    {
+      "name": "aria",
+      "type": "registry:lib",
+      "title": "ARIA states",
+      "description": "Writes boolean aria-* props as \"true\" or \"false\", the strings ARIA reads, also in server HTML.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/aria.ts", "type": "registry:lib", "target": "@lib/aria.ts" }]
     },
     {
       "name": "composite",
