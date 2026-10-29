@@ -1,0 +1,17 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "remixcn",
+  "homepage": "https://janhesters.github.io/remixcn/",
+  "items": [
+    {
+      "name": "licenses",
+      "type": "registry:file",
+      "title": "Licenses",
+      "description": "RemixCN's MIT license and the full license texts of shadcn/ui, Base UI and Remix. Every RemixCN item installs them.",
+      "files": [
+        { "path": "LICENSE", "type": "registry:file", "target": "@lib/remixcn/LICENSE" },
+        { "path": "THIRD_PARTY_NOTICES.md", "type": "registry:file", "target": "@lib/remixcn/THIRD_PARTY_NOTICES.md" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "$schema": "https://ui.shadcn.com/schema/registry.json",
+  "name": "remixcn",
+  "homepage": "https://janhesters.github.io/remixcn/",
+  "items": [
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "A button in the default and outline variants.",
+      "registryDependencies": ["@remixcn/cx", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/button.tsx", "type": "registry:ui", "target": "@ui/button.tsx" }],
+      "categories": ["form"]
+    },
+    {
+      "name": "cx",
+      "type": "registry:lib",
+      "title": "Class names",
+      "description": "Joins class names and skips empty ones.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/cx.ts", "type": "registry:lib", "target": "@lib/cx.ts" }]
+    },
+    {
+      "name": "theme",
+      "type": "registry:style",
+      "title": "Theme",
+      "description": "The cascade layers and the color and radius tokens, in light and dark.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/theme.css", "type": "registry:file", "target": "@lib/theme.css" }]
+    },
+    {
+      "name": "licenses",
+      "type": "registry:file",
+      "title": "Licenses",
+      "description": "The fixture's MIT license and the license texts of the project it adapts.",
+      "files": [
+        { "path": "LICENSE", "type": "registry:file", "target": "@lib/remixcn/LICENSE" },
+        { "path": "THIRD_PARTY_NOTICES.md", "type": "registry:file", "target": "@lib/remixcn/THIRD_PARTY_NOTICES.md" }
+      ]
+    }
+  ]
+}

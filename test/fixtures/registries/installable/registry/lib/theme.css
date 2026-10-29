@@ -1,0 +1,15 @@
+/*
+ * RemixCN Theme: https://janhesters.github.io/remixcn/
+ * Copyright (c) 2026 Jan Hesters. MIT License.
+ * License texts: https://github.com/janhesters/remixcn/blob/main/THIRD_PARTY_NOTICES.md
+ */
+@layer base, rmx, app;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+    --radius: 0.375rem;
+    --primary: light-dark(#171717, #e5e5e5);
+    --primary-foreground: light-dark(#fafafa, #171717);
+  }
+}
