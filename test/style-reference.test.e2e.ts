@@ -112,25 +112,38 @@ describe('style reference', () => {
       ['solid', '2px'],
     )
     assert.equal(await computed(page, '[aria-labelledby="forms"] input[type="checkbox"]', 'appearance'), 'auto')
-    assert.equal(await computed(page, '[aria-labelledby="forms"] select', 'forced-color-adjust'), 'auto')
+    // Native controls keep forced colors. WebKit has no forced-color-adjust,
+    // so there nothing can opt them out; elsewhere it must stay auto.
+    let adjustable = await page.evaluate(() => CSS.supports('forced-color-adjust', 'auto'))
+    assert.equal(
+      await computed(page, '[aria-labelledby="forms"] select', 'forced-color-adjust'),
+      adjustable ? 'auto' : '',
+    )
   })
 
   it('marks an invalid field in red, with an icon and a message', async (t) => {
     let page = await open(t)
     let email = page.getByLabel('Email').first()
 
+    // Engines round oklch() hues differently, so compare with the engine's own --destructive.
+    let destructive = await email.evaluate((element) => {
+      let probe = element.parentElement!.appendChild(document.createElement('span'))
+      probe.style.color = 'var(--destructive)'
+      let color = getComputedStyle(probe).color
+      probe.remove()
+      return color
+    })
+
     assert.equal(await email.getAttribute('aria-invalid'), 'true')
-    assert.equal(
-      await email.evaluate((element) => getComputedStyle(element).borderTopColor),
-      'oklch(0.56 0.245 27.325)',
-    )
+    assert.match(destructive, /^oklch\(0\.56 0\.245 27\.32/)
+    assert.equal(await email.evaluate((element) => getComputedStyle(element).borderTopColor), destructive)
 
     let message = page.locator(`#${await email.getAttribute('aria-describedby')}`)
     assert.equal(await message.innerText(), 'Enter an email address like name@example.com.')
     assert.equal(await message.locator('svg[aria-hidden="true"]').count(), 1)
 
     await email.focus()
-    assert.equal(await email.evaluate((element) => getComputedStyle(element).outlineColor), 'oklch(0.56 0.245 27.325)')
+    assert.equal(await email.evaluate((element) => getComputedStyle(element).outlineColor), destructive)
   })
 
   it('turns transitions off for reduced motion', async (t) => {
@@ -150,8 +163,14 @@ describe('style reference', () => {
         await page.emulateMedia({ colorScheme })
         await page.evaluate((size) => (document.documentElement.style.fontSize = size), fontSize)
 
-        let width = await page.evaluate(() => document.documentElement.scrollWidth)
-        assert.equal(width, 320, `${colorScheme}, root font size ${fontSize || 'default'}`)
+        let { width, overflowing } = await page.evaluate(() => ({
+          width: document.documentElement.scrollWidth,
+          overflowing: [...document.body.querySelectorAll('*')]
+            .filter((element) => element.getBoundingClientRect().right > innerWidth)
+            .map((element) => `${element.localName}: ${element.textContent?.trim().slice(0, 40)}`)
+            .at(-1),
+        }))
+        assert.equal(width, 320, `${colorScheme}, root font size ${fontSize || 'default'}: ${width}px, ${overflowing}`)
       }
     }
   })

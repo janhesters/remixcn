@@ -28,7 +28,12 @@ const pageStyles = css({
   gap: space(12),
   '@media (max-width: 40rem)': { padding: space(4), gap: space(10) },
 })
-const headerStyles = css({ display: 'grid', gap: space(2), '& p': { margin: 0, maxWidth: '40rem' } })
+const headerStyles = css({
+  display: 'grid',
+  gridTemplateColumns: shrinkingColumn,
+  gap: space(2),
+  '& p': { margin: 0, maxWidth: '40rem' },
+})
 const titleStyles = css({ ...text('3xl'), margin: 0, fontWeight: 600, letterSpacing: '-0.025em' })
 const sectionStyles = css({ display: 'grid', gridTemplateColumns: shrinkingColumn, gap: space(4) })
 const sectionTitleStyles = css({ ...text('xl'), margin: 0, fontWeight: 600 })
@@ -121,9 +126,12 @@ const typeRowStyles = css({
   gap: `${space(1)} ${space(4)}`,
   margin: 0,
   '& code': { color: 'var(--muted-foreground)', minWidth: '6rem' },
+  // A flex item stays as wide as its longest word unless it may shrink.
+  '& span': { minWidth: 0 },
 })
 const proseStyles = css({
   display: 'grid',
+  gridTemplateColumns: shrinkingColumn,
   gap: space(3),
   maxWidth: '40rem',
   '& p': { margin: 0 },
@@ -149,6 +157,7 @@ const surfaces: Array<{ name: string; background: string; foreground: string; el
 
 const surfaceStyles = css({
   display: 'grid',
+  gridTemplateColumns: shrinkingColumn,
   gap: space(1),
   padding: space(4),
   border: '1px solid var(--border)',
@@ -387,11 +396,13 @@ const chipStyles = css({
 const callerChipStyles = css({ borderRadius: 0 })
 const overrideListStyles = css({
   display: 'grid',
+  gridTemplateColumns: shrinkingColumn,
   gap: space(3),
   margin: 0,
   padding: 0,
   listStyle: 'none',
   '& li': { display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: `${space(1)} ${space(3)}` },
+  '& li > span': { minWidth: 0 },
 })
 
 const breadcrumbStyles = css({
