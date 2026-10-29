@@ -2,9 +2,8 @@ import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 import { registryItemSchema, registrySchema } from 'shadcn/schema'
 
-import type { CatalogItem } from './contracts.ts'
 import { buildRegistry, checkRegistry, checkSourcePath, dependencyClosure } from './registry.ts'
-import type { RegistryItem, RegistrySource } from './registry.ts'
+import type { CatalogItem, RegistryItem, RegistrySource } from './registry.ts'
 
 const homepage = 'https://janhesters.github.io/remixcn/'
 const shadcnFile =
@@ -15,10 +14,7 @@ function catalogItem(name: string, title: string, kind: CatalogItem['kind'], tar
     name,
     title,
     kind,
-    batch: 1,
     source: `${shadcnFile}/${kind === 'helper' ? 'lib' : 'ui'}/${name}.tsx`,
-    dependsOn: [],
-    upstreamImports: [],
     target,
   }
 }

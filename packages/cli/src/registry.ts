@@ -1,5 +1,7 @@
-import { checkImport, findTailwindDirectives } from './contracts.ts'
-import type { Catalog, CatalogItem } from './contracts.ts'
+// RemixCN's registry engine: the contracts registry.json keeps, the order an
+// item's dependencies install in, and the build of shadcn-format payloads.
+// The remixcn executable and the workspace scripts share it.
+import { checkImport, findTailwindDirectives } from './source.ts'
 
 export const registrySchemaUrl = 'https://ui.shadcn.com/schema/registry.json'
 export const registryItemSchemaUrl = 'https://ui.shadcn.com/schema/registry-item.json'
@@ -36,9 +38,25 @@ export interface Registry {
   items: RegistryItem[]
 }
 
+/** The parts of registry/catalog.json the registry contracts read. */
+export interface CatalogItem {
+  name: string
+  title: string
+  kind: 'component' | 'recipe' | 'helper'
+  source: string
+  target: string
+}
+
+export interface Catalog {
+  namespace: string
+  homepage: string
+  entries: CatalogItem[]
+  helpers: CatalogItem[]
+}
+
 export interface RegistrySource {
   registry: Registry
-  catalog: Pick<Catalog, 'namespace' | 'homepage' | 'entries' | 'helpers'>
+  catalog: Catalog
   /** The content of each listed file that exists, by path. */
   files: Map<string, string>
   /** The imports of each listed TypeScript and CSS file, by path. */
