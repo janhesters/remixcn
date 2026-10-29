@@ -58,11 +58,19 @@ let imports = readScriptImports(
   [...registryFiles, ...docsFiles].filter((file) => !file.endsWith('.css')),
 )
 
-function checkHeader(file: string): string[] {
-  let item = [...catalog.entries, ...catalog.helpers].find((entry) => entry.target === file)
-  if (!item) return []
+// A component's example file names its title as "<title> examples".
+function headerTitle(file: string): string | undefined {
+  for (let item of [...catalog.entries, ...catalog.helpers]) {
+    if (item.target === file) return item.title
+    if (item.exampleTarget === file) return `${item.title} examples`
+  }
+}
 
-  return checkSourceHeader(readFileSync(join(root, file), 'utf8'), item.title).map((problem) => `${file}: ${problem}`)
+function checkHeader(file: string): string[] {
+  let title = headerTitle(file)
+  if (title === undefined) return []
+
+  return checkSourceHeader(readFileSync(join(root, file), 'utf8'), title).map((problem) => `${file}: ${problem}`)
 }
 
 let problems = [

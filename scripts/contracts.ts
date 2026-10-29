@@ -100,6 +100,8 @@ export interface CatalogItem {
   dependsOn: string[]
   upstreamImports: string[]
   target: string
+  /** A component's copyable examples, at registry/examples/<name>-example.tsx. */
+  exampleTarget?: string
 }
 
 export interface UpstreamSource {
@@ -177,6 +179,15 @@ function checkItem(item: CatalogItem, catalog: Catalog, byName: Map<string, Cata
     if (!dependency) problems.push(`${item.name}: depends on ${name}, which is not in the catalog`)
     else if (dependency.batch > item.batch) {
       problems.push(`${item.name}: depends on ${name}, which lands in a later batch (${dependency.batch})`)
+    }
+  }
+
+  if (item.exampleTarget !== undefined) {
+    let exampleTarget = `${targetDirectories.recipe}/${item.name}-example.tsx`
+    if (item.kind !== 'component') {
+      problems.push(`${item.name}: only a component names an example; a ${item.kind} is its own example`)
+    } else if (item.exampleTarget !== exampleTarget) {
+      problems.push(`${item.name}: its example belongs at ${exampleTarget}`)
     }
   }
 
@@ -262,7 +273,11 @@ export function checkCatalog(catalog: Catalog): string[] {
 
 /** Reports registry source files that no catalog entry names as its target. */
 export function checkRegistryFiles(catalog: Catalog, files: string[]): string[] {
-  let targets = new Set([...catalog.entries, ...catalog.helpers].map((item) => item.target))
+  let targets = new Set(
+    [...catalog.entries, ...catalog.helpers].flatMap((item) =>
+      item.exampleTarget ? [item.target, item.exampleTarget] : [item.target],
+    ),
+  )
 
   return files
     .filter((file) => !/\.test(\.browser|\.e2e)?\.tsx?$/.test(file) && !targets.has(file))

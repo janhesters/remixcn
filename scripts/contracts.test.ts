@@ -342,6 +342,19 @@ describe('checkCatalog', () => {
     assert.deepEqual(checkCatalog(catalog), ['use-timer: a helper belongs at registry/lib/use-timer.ts, .tsx or .css'])
   })
 
+  it('lets a component name its RemixCN example file in registry/examples', () => {
+    let catalog = validCatalog()
+    catalog.entries[0].exampleTarget = 'registry/examples/button-example.tsx'
+    assert.deepEqual(checkCatalog(catalog), [])
+
+    catalog.entries[0].exampleTarget = 'registry/examples/buttons.tsx'
+    catalog.entries[3].exampleTarget = 'registry/examples/typography-example.tsx'
+    assert.deepEqual(checkCatalog(catalog), [
+      'button: its example belongs at registry/examples/button-example.tsx',
+      'typography: only a component names an example; a recipe is its own example',
+    ])
+  })
+
   it('requires a compatible entry to exist and be a dependency', () => {
     let catalog = validCatalog()
     catalog.entries[1].dependsOn = []
@@ -384,6 +397,16 @@ describe('checkRegistryFiles', () => {
     let files = ['registry/ui/button.tsx', 'registry/lib/use-timer.ts', 'registry/ui/button.test.browser.tsx']
 
     assert.deepEqual(checkRegistryFiles(validCatalog(), files), [])
+  })
+
+  it("accepts a component's example file", () => {
+    let catalog = validCatalog()
+    catalog.entries[0].exampleTarget = 'registry/examples/button-example.tsx'
+
+    assert.deepEqual(checkRegistryFiles(catalog, ['registry/examples/button-example.tsx']), [])
+    assert.deepEqual(checkRegistryFiles(validCatalog(), ['registry/examples/button-example.tsx']), [
+      'registry/examples/button-example.tsx: not a target in registry/catalog.json',
+    ])
   })
 
   it('reports registry files without a catalog entry', () => {
