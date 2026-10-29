@@ -1,0 +1,9 @@
+/*
+ * The fixture app's own stylesheet. Its rules sit in the app layer, which
+ * theme.css orders after rmx, so they beat every component's css().
+ */
+@layer app {
+  :where([data-slot="button"].square) {
+    border-radius: 0;
+  }
+}

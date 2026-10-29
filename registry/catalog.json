@@ -269,7 +269,8 @@
         "class-variance-authority",
         "cn"
       ],
-      "target": "registry/ui/button.tsx"
+      "target": "registry/ui/button.tsx",
+      "exampleTarget": "registry/examples/button-example.tsx"
     },
     {
       "name": "button-group",
@@ -288,7 +289,8 @@
         "class-variance-authority",
         "cn"
       ],
-      "target": "registry/ui/button-group.tsx"
+      "target": "registry/ui/button-group.tsx",
+      "exampleTarget": "registry/examples/button-group-example.tsx"
     },
     {
       "name": "calendar",
