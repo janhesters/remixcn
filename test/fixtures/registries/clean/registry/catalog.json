@@ -27,7 +27,8 @@
       "docs": "https://ui.shadcn.com/docs/components/base/badge",
       "dependsOn": [],
       "upstreamImports": ["@base-ui/react", "class-variance-authority", "cn"],
-      "target": "registry/ui/badge.tsx"
+      "target": "registry/ui/badge.tsx",
+      "exampleTarget": "registry/examples/badge-example.tsx"
     }
   ],
   "helpers": []

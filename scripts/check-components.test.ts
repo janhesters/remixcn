@@ -22,7 +22,7 @@ describe('check:components', () => {
     let result = checkComponents('test/fixtures/registries/clean')
 
     assert.equal(result.status, 0, result.stderr)
-    assert.match(result.stdout, /3 browser-reachable files/)
+    assert.match(result.stdout, /4 browser-reachable files/)
   })
 
   it('fails a registry that breaks them, naming each problem', () => {
@@ -38,6 +38,7 @@ describe('check:components', () => {
       /apps\/docs\/app\/public\/theme\.css: @apply is a Tailwind directive/,
       /apps\/docs\/app\/public\/theme\.css: @font-face loads a font file/,
       /registry\/ui\/badge\.tsx: must start with the installed-source header from SOURCES\.md/,
+      /registry\/examples\/badge-example\.tsx: header must start with "RemixCN Badge examples: /,
       /apps\/docs\/package\.json: @remixcn\/docs: dependencies may only list remix \(tailwindcss\)/,
     ]) {
       assert.match(result.stderr, problem)
