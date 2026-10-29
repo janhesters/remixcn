@@ -381,6 +381,14 @@
       "files": [{ "path": "registry/ui/slider.tsx", "type": "registry:ui", "target": "@ui/slider.tsx" }]
     },
     {
+      "name": "sonner",
+      "type": "registry:ui",
+      "title": "Sonner",
+      "description": "Sonner's Toaster and toast() names on top of Toast, without the sonner package: typed toasts, actions, promises and several Toasters.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/styles", "@remixcn/theme", "@remixcn/toast"],
+      "files": [{ "path": "registry/ui/sonner.tsx", "type": "registry:ui", "target": "@ui/sonner.tsx" }]
+    },
+    {
       "name": "spinner",
       "type": "registry:ui",
       "title": "Spinner",
@@ -411,6 +419,14 @@
       "description": "A native textarea that grows with its text where the browser supports it.",
       "registryDependencies": ["@remixcn/aria", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/textarea.tsx", "type": "registry:ui", "target": "@ui/textarea.tsx" }]
+    },
+    {
+      "name": "toast",
+      "type": "registry:ui",
+      "title": "Toast",
+      "description": "Toasts in a stack that pauses on hover and focus: a Toaster, the toast manager, and the provider, viewport and parts to build your own.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/toast.tsx", "type": "registry:ui", "target": "@ui/toast.tsx" }]
     },
     {
       "name": "toggle",
