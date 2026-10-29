@@ -20,6 +20,7 @@ bun run check:secrets      # no credentials in the files git tracks or would add
 bun run check:build        # builds packages/cli, checks and runs the remixcn executable
 bun run build              # builds packages/cli/dist only
 bun run build:registry     # checks registry.json, then writes dist/r/registry.json and dist/r/<name>.json
+node packages/cli/src/bin.ts --help  # runs the remixcn executable from source
 bun run style-reference    # serves the style reference at http://localhost:4400/ (PORT changes it)
 bun run capture:style-reference  # rewrites the screenshots in docs/images/style-reference/
 ```
@@ -46,12 +47,12 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | `registry/ui/<name>.tsx` | One component per file, the source users copy |
 | `registry/lib/<name>.ts` | Helpers several components share. A helper may also be `.tsx`, such as `icons.tsx`, or `.css`, such as `theme.css` |
 | `registry/examples/<name>.tsx` | Copyable examples and the recipes: Data Table, Date Picker, and Typography |
-| `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry. The build emits `dist/bin.js`, which `bin` points to. The local MCP server will start from the same executable |
+| `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry and `src/cli.ts` parses the commands. The build emits `dist/bin.js`, which `bin` points to. `README.md` documents the commands and exit codes, `components.schema.json` is the `components.json` schema, and `LICENSE` is a copy of the root one. The local MCP server will start from the same executable. See [The installer](#the-installer) |
 | `apps/docs/` | The site (C-979, C-981) |
 | `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, which the end-to-end tests serve, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, `lanes/` hold workspaces whose lanes must fail, and `style-reference/` is the style reference page |
 | `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` |
-| `scripts/` | The checks and the registry build. `lanes.ts` lists the check lanes and `check.ts` runs them. `contracts.ts` holds the rules of `check:components`, `check:build` and the CI workflow, `registry.ts` the registry's, `secrets.ts` those of `check:secrets`, `build-registry.ts` runs the registry build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages and files |
-| `test/` | Workspace-wide contract tests, the registry tests that serve a build with `static-server.ts`, and shared test helpers, such as `accessibility.ts` for axe-core |
+| `scripts/` | The checks and the registry build. `lanes.ts` lists the check lanes and `check.ts` runs them. `contracts.ts` holds the rules of `check:components`, `check:build` and the CI workflow, `secrets.ts` those of `check:secrets`, `build-registry.ts` runs the registry build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages and files. The registry's rules live in `packages/cli/src/registry.ts`, and the import and CSS rules in `packages/cli/src/source.ts`, because the executable applies them too |
+| `test/` | Workspace-wide contract tests, the registry tests that serve a build with `static-server.ts`, shared test helpers, such as `accessibility.ts` for axe-core and `mcp-client.ts` for shadcn's MCP server, and `cli.test.ts`, which packs `packages/cli` and runs the packed executable |
 | `.github/workflows/ci.yml` | CI for pull requests and main |
 
 Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Chromium, Firefox and WebKit. `test/style-reference.test.e2e.ts` drives the style reference. The installer doesn't copy test files.
@@ -192,6 +193,8 @@ Each item:
 
 The build checks everything before it writes. It fails, and leaves the previous output as it was, on invalid JSON, anything shadcn's schema rejects, a dependency cycle, a name or target used twice, a path or target that leaves its directory, a link, a test or any file outside `registry/ui`, `registry/lib`, `registry/examples` and the license texts, a missing file, a `licenses` item without one of its two texts, an import from an item the importer doesn't list, an npm or Node import, and a Tailwind directive. It never replaces an output folder that holds anything but JSON files. Items, dependencies and keys come in a fixed order, and newlines are LF, so the same source gives the same bytes.
 
+`remixcn build` runs the same build: `packages/cli/src/build.ts` checks and writes the folder, with the contracts of `packages/cli/src/registry.ts`. `scripts/build-registry.ts` calls it and adds what only the pinned development tools can check: TypeScript reads the imports, and shadcn's schema checks registry.json and every output file. The executable reads imports without a compiler: `findScriptImports` in `packages/cli/src/source.ts` tells code from comments, strings, template text, regular expressions and JSX text, and keeps the code inside template and JSX expressions. Like TypeScript, it reads no JSX in a .ts file. Apart from the JSX runtime that tsc adds for every JSX file, it reads the same imports as tsc on every TypeScript file in the workspace.
+
 `test/registry.test.ts` serves a fixture build under `/remixcn/r/` and checks it with shadcn's schema, validator, MCP server and CLI. It also installs a component into the consumer fixture, typechecks it, and compiles it with Remix's asset server. The README's Registry section describes what that test proves, so keep the two in step.
 
 ## Shared behavior helpers
@@ -207,6 +210,19 @@ Overlays, menus, and selection components build their behavior from the helpers 
 | `anchor-position.ts` | Placement next to an element or point: CSS anchor positioning, with a measured fallback (`anchorPosition`, `positionFloating`) |
 
 Prefer native `<dialog>` and `popover` features and add a helper for what they lack. Pick roving focus or active descendant per control, never both.
+
+## The installer
+
+`remixcn init` and `remixcn add` copy registry items into a Remix 3 app. `packages/cli/README.md` documents the commands, options and exit codes for users. These contracts keep them safe:
+
+- **components.json.** It follows shadcn's convention without the Tailwind and React-style settings shadcn's schema requires: `$schema` names `components.schema.json`, `version` is `1`, `rsc` is `false`, `tsx` is `true`, `css` names the theme, and `aliases` and `registries` work as in shadcn. Init keeps every other field and its order, and changes a value the user set only with `--overwrite`. shadcn's MCP server reads only `registries`, so it discovers RemixCN items.
+- **Aliases.** `aliases.ui`, `lib` and `components` resolve through `package.json` imports (`#remixcn/ui`) or `tsconfig.json` paths (`~/ui/...`), and each must stay inside the app. Init maps the `#remixcn/*` defaults to `app/ui/public/...` only when they don't resolve yet. Target `@ui/<file>` installs in the ui directory, and so on.
+- **Items.** A name means `@remixcn/<name>`. Registry items name dependencies only as `@namespace/name` or URLs, never as bare names or local files. The installer checks every payload first and refuses invalid JSON, cycles, two items with one name, npm `dependencies`, Tailwind, CSS-variable, env or other advanced fields, unsafe targets, imports no item provides, and an item whose `meta.remix` has another major version. Every file it copies must keep the rules of [Browser-reachable source](#browser-reachable-source) that the registry build checks: `checkSourceContent` refuses any import but `remix/component` and the `#remixcn/` aliases, and Tailwind directives in CSS.
+- **Network.** HTTPS only, or plain HTTP to localhost for fixtures. Each request has a 15-second limit, a 5 MB limit, and at most 5 redirects, none from a remote host to the local machine. It sends no credentials or telemetry and runs nothing it downloads.
+- **Writes.** The installer plans every file before it writes one. A file may replace only a regular file, through directories whose real path stays in the app. A changed file needs `--overwrite` or a yes in a terminal. `transaction.ts` stages each file beside its target and swaps them in, and undoes every step when one fails. `--dry-run` writes nothing. Running a command again changes nothing.
+- **Imports.** Each `#remixcn/ui/` or `#remixcn/lib/` string in installed TypeScript becomes a relative path to the installed file. CSS and the license texts install byte for byte, with their headers.
+
+`packages/cli/src/*.test.ts` test each module and every command in-process against a fixture registry on localhost. `test/cli.test.ts` packs the package with npm, then runs the packed executable: init and add through both alias styles and every kind of address, a typecheck, a server render and the asset server, and shadcn's MCP server on the result.
 
 ## Accepted decisions
 
