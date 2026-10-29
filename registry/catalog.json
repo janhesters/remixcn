@@ -670,6 +670,9 @@
       "docs": "https://ui.shadcn.com/docs/components/base/field",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/field-example.tsx",
       "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
         "label",
         "separator"
       ],
@@ -704,7 +707,11 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/input.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/input",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/input-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "aria"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
@@ -798,7 +805,9 @@
       "docs": "https://ui.shadcn.com/docs/components/base/label",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/label-example.tsx",
       "behavior": "https://base-ui.com/react/components/label.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "cn",
         "react"
@@ -896,7 +905,12 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/native-select.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/native-select",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/native-select-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "aria",
+        "icons"
+      ],
       "upstreamImports": [
         "cn",
         "icon-placeholder",
@@ -1281,7 +1295,11 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/textarea.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/textarea",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/textarea-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "aria"
+      ],
       "upstreamImports": [
         "cn",
         "react"
@@ -1442,6 +1460,17 @@
       ],
       "target": "registry/lib/icons.tsx",
       "note": "Replaces shadcn's icon placeholder, which loads an icon library, with small original inline SVG icons and the Icon wrapper for your own."
+    },
+    {
+      "name": "aria",
+      "title": "ARIA states",
+      "kind": "helper",
+      "batch": 1,
+      "source": "https://github.com/remix-run/remix/blob/6ab529634e35cac4eff786b048800831d1c5cf99/packages/component/src/runtime/core/attributes.ts",
+      "dependsOn": [],
+      "upstreamImports": [],
+      "target": "registry/lib/aria.ts",
+      "note": "Writes boolean aria-* props as \"true\" or \"false\". Remix's server writes a boolean attribute as a bare name, which ARIA reads as false, so a control that passes your ARIA props through writes them as strings."
     },
     {
       "name": "use-mobile",

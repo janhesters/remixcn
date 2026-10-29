@@ -128,6 +128,32 @@ export const mirrorInRtl: Styles = {
   '&:dir(rtl)': { transform: 'scaleX(-1)' },
 }
 
+const inStackedField =
+  ':where([data-slot="field"]:is([data-orientation="vertical"], [data-orientation="responsive"])) > &'
+const inRowField = ':where([data-slot="field"][data-orientation="horizontal"]) > &'
+const inResponsiveField = ':where([data-slot="field"][data-orientation="responsive"]) > &'
+/**
+ * The flex basis of a Field row's text and its control: half the row, less
+ * half the field's gap. The two start equal, whatever padding the control
+ * has, so the controls of several rows line up.
+ */
+export const fieldRowBasis = 'calc(50% - var(--spacing) * 1.5)'
+const controlInRow = { width: 'auto', flex: `1 1 ${fieldRowBasis}`, minWidth: 'min(100%, 8rem)' }
+
+/**
+ * Lays a control out when it sits directly in a Field: full width while the
+ * field stacks its parts, and in a row, a horizontal field or a responsive
+ * one whose FieldGroup is 28rem wide or more, it shares the row evenly with
+ * the label's text, so the controls of several rows line up, and moves to a
+ * line of its own before it gets narrower than 8rem. Merge it into the control's own css(), as Input
+ * does, so the field never styles its children from outside.
+ */
+export const fieldItem: Styles = {
+  [inStackedField]: { width: '100%' },
+  [inRowField]: controlInRow,
+  '@container field-group (min-width: 28rem)': { [inResponsiveField]: controlInRow },
+}
+
 const inGroup = ':where([data-slot="button-group"])'
 const inRow = ':where([data-slot="button-group"][data-orientation="horizontal"])'
 const inColumn = ':where([data-slot="button-group"][data-orientation="vertical"])'

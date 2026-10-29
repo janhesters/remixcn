@@ -56,6 +56,15 @@ export function CheckIcon(handle: Handle<IconProps>) {
   )
 }
 
+/** Points down, such as at a panel that opens below. Rotate it to point up. */
+export function ChevronDownIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M5.5 9.5 12 16l6.5-6.5" />
+    </Icon>
+  )
+}
+
 /** Points back. Mirror it with mirrorInRtl from styles.ts in right-to-left text. */
 export function ChevronLeftIcon(handle: Handle<IconProps>) {
   return () => (
