@@ -44,10 +44,35 @@ export function isFocusable(element: Element | null | undefined): element is HTM
   )
 }
 
-/** The elements inside `root` that Tab reaches, in document order. */
+/** Whether `element` is a radio button of a named group, which Tab treats as one stop. */
+function isGroupedRadio(element: Element | null): element is HTMLInputElement {
+  return element instanceof HTMLInputElement && element.type === 'radio' && element.name !== ''
+}
+
+/** Whether Tab treats `a` and `b` as one stop: the same element, or two radios of one group. */
+function isSameStop(a: Element | null, b: Element | null = null) {
+  if (a === b) return true
+  if (!isGroupedRadio(a) || !isGroupedRadio(b)) return false
+  return a.name === b.name && a.form === b.form
+}
+
+/**
+ * The elements inside `root` that Tab reaches, in document order. A named
+ * radio group with a checked radio is one stop, the checked radio, as in the
+ * browser. Without a checked radio, Tab enters the group at its first radio
+ * and Shift+Tab at its last, so all of them stay.
+ */
 export function getTabbableElements(root: ParentNode): HTMLElement[] {
-  return [...root.querySelectorAll(focusableSelector)].filter(
+  let candidates = [...root.querySelectorAll(focusableSelector)].filter(
     (element): element is HTMLElement => isFocusable(element) && element.tabIndex >= 0,
+  )
+  return candidates.filter(
+    (element) =>
+      !isGroupedRadio(element) ||
+      element.checked ||
+      !candidates.some(
+        (other) => other !== element && isSameStop(other, element) && (other as HTMLInputElement).checked,
+      ),
   )
 }
 
@@ -60,6 +85,14 @@ export interface FocusScopeOptions {
   returnFocus?: FocusTarget | false
   /** What to focus on close when the return target was removed, disabled or hidden. By default, the first tabbable element in its closest remaining ancestor, up to `<body>`. */
   fallbackFocus?: () => HTMLElement | null
+  /**
+   * Whether Tab on the last tabbable element and Shift+Tab on the first wrap
+   * around inside the container (defaults to `false`). A native modal dialog
+   * makes the page inert but lets Tab move on to the browser's toolbar, and
+   * Firefox doesn't bring it back; this keeps focus in the dialog, as the
+   * APG dialog pattern asks.
+   */
+  trapFocus?: boolean
 }
 
 function resolve(target: FocusTarget | undefined): HTMLElement | null {
@@ -71,13 +104,24 @@ function getFocused(document: Document) {
   return active instanceof HTMLElement && active !== document.body ? active : null
 }
 
+/** A running focus scope: call it to end it, or update the options that matter while it runs. */
+export interface FocusScope {
+  /** Ends the scope and returns focus. Safe to call twice. */
+  (): void
+  /**
+   * Replaces `trapFocus`, `returnFocus` and `fallbackFocus` while the scope
+   * runs, such as when a dialog becomes modal. Focus stays where it is.
+   */
+  update(options: FocusScopeOptions): void
+}
+
 /**
  * Moves focus into `container` on the next animation frame, once a popup that
- * just opened is visible, and returns a function that ends the scope. Ending
- * it returns focus, unless the user already moved focus somewhere outside the
- * container.
+ * just opened is visible, and returns the scope: a function that ends it.
+ * Ending it returns focus, unless the user already moved focus somewhere
+ * outside the container.
  */
-export function createFocusScope(container: HTMLElement, options: FocusScopeOptions = {}): () => void {
+export function createFocusScope(container: HTMLElement, options: FocusScopeOptions = {}): FocusScope {
   let document = container.ownerDocument
   let view = document.defaultView!
   let focused = getFocused(document)
@@ -91,6 +135,21 @@ export function createFocusScope(container: HTMLElement, options: FocusScopeOpti
   }
   let addedTabIndex = false
   let released = false
+  let current = options
+
+  // At the last stop, Tab wraps to the first one, and Shift+Tab the other way.
+  // A radio group is one stop, wherever in it focus is.
+  function wrapTab(event: KeyboardEvent) {
+    if (!current.trapFocus) return
+    if (event.key !== 'Tab' || event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return
+    let tabbable = getTabbableElements(container)
+    let edge = event.shiftKey ? tabbable[0] : tabbable.at(-1)
+    let active = document.activeElement
+    if (tabbable.length > 0 && !isSameStop(active, edge) && active !== container) return
+    event.preventDefault()
+    ;(event.shiftKey ? tabbable.at(-1) : tabbable[0])?.focus()
+  }
+  container.addEventListener('keydown', wrapTab)
 
   let frame = view.requestAnimationFrame(() => {
     if (options.initialFocus === false) return
@@ -111,22 +170,23 @@ export function createFocusScope(container: HTMLElement, options: FocusScopeOpti
   })
 
   function getReturnTarget() {
-    let target = options.returnFocus === undefined ? returnTarget : resolve(options.returnFocus || null)
+    let target = current.returnFocus === undefined ? returnTarget : resolve(current.returnFocus || null)
     if (isFocusable(target)) return target
 
-    let fallback = options.fallbackFocus?.()
+    let fallback = current.fallbackFocus?.()
     if (isFocusable(fallback)) return fallback
 
     let ancestor = ancestors.find((element) => element.isConnected)
     return ancestor ? getTabbableElements(ancestor).find((element) => !container.contains(element)) : undefined
   }
 
-  return () => {
+  function release() {
     if (released) return
     released = true
     view.cancelAnimationFrame(frame)
+    container.removeEventListener('keydown', wrapTab)
     if (addedTabIndex) container.removeAttribute('tabindex')
-    if (options.returnFocus === false) return
+    if (current.returnFocus === false) return
 
     // Wait for the popup to close, so a closing modal dialog no longer blocks the target.
     queueMicrotask(() => {
@@ -135,6 +195,17 @@ export function createFocusScope(container: HTMLElement, options: FocusScopeOpti
       getReturnTarget()?.focus()
     })
   }
+
+  return Object.assign(release, {
+    update(next: FocusScopeOptions) {
+      current = {
+        ...current,
+        trapFocus: next.trapFocus,
+        returnFocus: next.returnFocus,
+        fallbackFocus: next.fallbackFocus,
+      }
+    },
+  })
 }
 
 export interface FocusScopeMixinOptions extends FocusScopeOptions {
@@ -146,7 +217,8 @@ export interface FocusScopeMixinOptions extends FocusScopeOptions {
  * Runs a focus scope on the host while `open` isn't false. It remembers the
  * focused element when the popup starts to open, before the browser or a
  * native dialog moves focus, and returns focus when the popup closes or
- * unmounts.
+ * unmounts. Changing `trapFocus`, `returnFocus` or `fallbackFocus` while it's
+ * open updates the running scope.
  */
 export const focusScope: MixinFactory<HTMLElement, [options?: FocusScopeMixinOptions]> = createMixin<
   HTMLElement,
@@ -156,12 +228,16 @@ export const focusScope: MixinFactory<HTMLElement, [options?: FocusScopeMixinOpt
     let host: HTMLElement | null = null
     let options: FocusScopeMixinOptions = {}
     let opener: HTMLElement | null = null
-    let release: (() => void) | null = null
+    let release: FocusScope | null = null
 
     function sync() {
       let active = host !== null && options.open !== false
+      // The opener stays the return target while the options change, such as the trap.
+      let scopeOptions = { ...options, returnFocus: options.returnFocus ?? opener }
       if (active && !release) {
-        release = createFocusScope(host!, { ...options, returnFocus: options.returnFocus ?? opener })
+        release = createFocusScope(host!, scopeOptions)
+      } else if (active && release) {
+        release.update(scopeOptions)
       } else if (!active && release) {
         release()
         release = null

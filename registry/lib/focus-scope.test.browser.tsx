@@ -31,7 +31,15 @@ function setup(t: TestContext, popupHtml = '<button>First</button><button>Second
 }
 
 function focused() {
-  return document.activeElement?.textContent ?? null
+  let active = document.activeElement
+  return active instanceof HTMLInputElement ? active.value : (active?.textContent ?? null)
+}
+
+/** Dispatches Tab or Shift+Tab on the focused element, and says whether the scope took it over. */
+function tab(shiftKey = false) {
+  let event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true })
+  document.activeElement!.dispatchEvent(event)
+  return event.defaultPrevented
 }
 
 describe('getTabbableElements', () => {
@@ -46,6 +54,22 @@ describe('getTabbableElements', () => {
     assert.deepEqual(
       getTabbableElements(popup).map((element) => element.textContent || (element as HTMLInputElement).value),
       ['Link', 'Span', 'Input'],
+    )
+  })
+})
+
+describe('getTabbableElements with radio groups', () => {
+  it('keeps only the checked radio of a named group, and every radio of a group without one', (t) => {
+    let { popup } = setup(
+      t,
+      `<input type="radio" name="plan" value="Monthly"><input type="radio" name="plan" value="Yearly" checked>
+       <input type="radio" name="tone" value="Formal"><input type="radio" name="tone" value="Friendly">
+       <input type="radio" value="Unnamed">`,
+    )
+
+    assert.deepEqual(
+      getTabbableElements(popup).map((element) => (element as HTMLInputElement).value),
+      ['Yearly', 'Formal', 'Friendly', 'Unnamed'],
     )
   })
 })
@@ -187,6 +211,63 @@ describe('createFocusScope', () => {
     release()
     await settle()
     assert.equal(focused(), 'First')
+  })
+
+  it('wraps Tab and Shift+Tab around inside the container with trapFocus, and stops when released', async (t) => {
+    let { popup } = setup(t, '<button>First</button><button disabled>Off</button><button>Last</button>')
+    let release = createFocusScope(popup, { trapFocus: true })
+    await nextFrame()
+    assert.equal(focused(), 'First')
+
+    assert.equal(tab(true), true, 'Shift+Tab on the first element wraps')
+    assert.equal(focused(), 'Last')
+    assert.equal(tab(), true, 'Tab on the last element wraps')
+    assert.equal(focused(), 'First')
+    assert.equal(tab(), false, 'Tab between the edges is left to the browser')
+
+    popup.querySelector<HTMLElement>('button:last-child')!.focus()
+    release()
+    assert.equal(tab(), false)
+  })
+
+  it('treats a radio group as one stop at the edges of the trap, as the browser does', async (t) => {
+    let { popup } = setup(
+      t,
+      `<input type="radio" name="plan" value="Monthly"><input type="radio" name="plan" value="Yearly" checked>
+       <button>Middle</button>
+       <input type="radio" name="tone" value="Formal"><input type="radio" name="tone" value="Friendly">`,
+    )
+    let release = createFocusScope(popup, { trapFocus: true })
+    t.after(release)
+    await nextFrame()
+    assert.equal(focused(), 'Yearly', 'the checked radio is the first stop')
+
+    assert.equal(tab(true), true, 'Shift+Tab on the checked radio wraps')
+    assert.equal(focused(), 'Friendly', 'into the last radio of a group without a checked one')
+    popup.querySelector<HTMLInputElement>('[value="Formal"]')!.focus()
+    assert.equal(tab(), true, 'Tab anywhere in the last group wraps')
+    assert.equal(focused(), 'Yearly')
+  })
+
+  it('updates the trap and the return target of a running scope without moving focus', async (t) => {
+    let { popup, trigger } = setup(t)
+    let scope = createFocusScope(popup)
+    await nextFrame()
+    popup.querySelector<HTMLElement>('button:last-child')!.focus()
+    assert.equal(tab(), false)
+
+    scope.update({ trapFocus: true })
+    assert.equal(focused(), 'Second')
+    assert.equal(tab(), true)
+    assert.equal(focused(), 'First')
+
+    scope.update({ trapFocus: false })
+    popup.querySelector<HTMLElement>('button:last-child')!.focus()
+    assert.equal(tab(), false)
+
+    scope()
+    await settle()
+    assert.equal(document.activeElement, trigger)
   })
 
   it('skips initial focus when released before the next frame', async (t) => {
