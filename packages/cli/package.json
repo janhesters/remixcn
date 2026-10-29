@@ -32,7 +32,7 @@
   "bin": {
     "remixcn": "./dist/bin.js"
   },
-  "files": ["dist"],
+  "files": ["dist", "components.schema.json"],
   "scripts": {
     "build": "tsc -p tsconfig.build.json"
   },
