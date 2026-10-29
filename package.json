@@ -57,7 +57,9 @@
     "slider-examples": "node --import remix/node-tsx test/fixtures/slider/server.tsx",
     "capture:slider-examples": "node --import remix/node-tsx test/fixtures/slider/capture.ts",
     "display-examples": "node --import remix/node-tsx test/fixtures/display/server.tsx",
-    "capture:display-examples": "node --import remix/node-tsx test/fixtures/display/capture.ts"
+    "capture:display-examples": "node --import remix/node-tsx test/fixtures/display/capture.ts",
+    "dialog-examples": "node --import remix/node-tsx test/fixtures/dialog/server.tsx",
+    "capture:dialog-examples": "node --import remix/node-tsx test/fixtures/dialog/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"

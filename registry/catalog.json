@@ -157,7 +157,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/alert-dialog.tsx"
+      "target": "registry/ui/alert-dialog.tsx",
+      "exampleTarget": "registry/examples/alert-dialog-example.tsx"
     },
     {
       "name": "aspect-ratio",
@@ -571,7 +572,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/dialog.tsx"
+      "target": "registry/ui/dialog.tsx",
+      "exampleTarget": "registry/examples/dialog-example.tsx"
     },
     {
       "name": "direction",
@@ -1082,7 +1084,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/sheet.tsx"
+      "target": "registry/ui/sheet.tsx",
+      "exampleTarget": "registry/examples/sheet-example.tsx"
     },
     {
       "name": "sidebar",
