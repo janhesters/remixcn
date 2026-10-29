@@ -8,7 +8,7 @@ Site: https://janhesters.github.io/remixcn/ (not live yet)
 
 ## Status
 
-The workspace and the component inventory are ready. `registry/catalog.json` lists the 67 planned entries and the batch each one lands in. No component, site page, CLI command, or MCP server is ready yet, and nothing is published.
+The workspace, the component inventory, and the styling foundation are ready. `registry/catalog.json` lists the 67 planned entries and the batch each one lands in. `registry/lib/` holds the theme stylesheet with its light and dark tokens, the shared style conventions, and the icons, and `bun run style-reference` shows them on a synthetic page. No component, site page, CLI command, or MCP server is ready yet, and nothing is published.
 
 ## Contributing
 
