@@ -54,6 +54,14 @@
       "files": [{ "path": "registry/ui/scroll-area.tsx", "type": "registry:ui", "target": "@ui/scroll-area.tsx" }]
     },
     {
+      "name": "slider",
+      "type": "registry:ui",
+      "title": "Slider",
+      "description": "One or more native range-input thumbs on a shared track: horizontal or vertical, right-to-left, keyboard and pointer, one form value per thumb.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/slider.tsx", "type": "registry:ui", "target": "@ui/slider.tsx" }]
+    },
+    {
       "name": "icons",
       "type": "registry:lib",
       "title": "Icons",
