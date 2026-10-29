@@ -53,6 +53,13 @@ let tests = readdirSync(join(cli, 'dist'), { recursive: true, encoding: 'utf8' }
 )
 if (tests.length > 0) problems.push(`packages/cli/dist must not ship tests (${tests.join(', ')})`)
 
+if (
+  !existsSync(join(cli, 'LICENSE')) ||
+  readFileSync(join(cli, 'LICENSE'), 'utf8') !== readFileSync(join(root, 'LICENSE'), 'utf8')
+) {
+  problems.push('packages/cli/LICENSE must be a copy of the root LICENSE, so the package ships it')
+}
+
 if (problems.length > 0) fail(problems)
 
 let version = spawnSync(process.execPath, [bin, '--version'], { encoding: 'utf8' })
@@ -62,7 +69,14 @@ if (version.status !== 0 || version.stdout !== `${pkg.version}\n`) {
   ])
 }
 
+let help = spawnSync(process.execPath, [bin, '--help'], { encoding: 'utf8' })
+if (help.status !== 0 || !help.stdout.startsWith('Usage: remixcn ')) {
+  fail([`remixcn --help printed ${JSON.stringify(help.stdout)} (exit ${help.status}), expected its usage`])
+}
+
 process.stdout.write(`✓ ${packageFiles.join(', ').replace(/, ([^,]+)$/, ' and $1')} carry the approved metadata\n`)
-process.stdout.write(`✓ ${pkg.name} has no runtime dependencies\n`)
+process.stdout.write(`✓ ${pkg.name} has no runtime dependencies and ships the MIT license\n`)
 process.stdout.write('✓ packages/cli/src imports only Node built-ins and its own files\n')
-process.stdout.write(`✓ packages/cli/dist/bin.js runs as remixcn ${pkg.version} on Node ${process.versions.node}\n`)
+process.stdout.write(
+  `✓ packages/cli/dist/bin.js runs as remixcn ${pkg.version} on Node ${process.versions.node} and prints its help\n`,
+)

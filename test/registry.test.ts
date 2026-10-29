@@ -13,6 +13,7 @@ import { after, before, describe, it } from 'remix/test'
 import { registryItemSchema, registrySchema } from 'shadcn/schema'
 
 import { tsc } from '../scripts/typescript.ts'
+import { startMcp } from './mcp-client.ts'
 import { serveRegistry } from './static-server.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
@@ -89,54 +90,6 @@ function runNode(args: string[], cwd: string): Promise<{ status: number | null; 
 
 function typecheck(app: string) {
   return spawnSync(process.execPath, [tsc, '--noEmit', '-p', app], { encoding: 'utf8' })
-}
-
-/** Talks to shadcn's MCP server over stdio, one JSON-RPC message per line. */
-function startMcp(cwd: string) {
-  let server = spawn(process.execPath, [shadcn, 'mcp'], { cwd, stdio: ['pipe', 'pipe', 'ignore'] })
-  let pending = new Map<number, (message: any) => void>()
-  let buffer = ''
-  let id = 0
-
-  server.stdout.setEncoding('utf8').on('data', (chunk: string) => {
-    buffer += chunk
-    let lines = buffer.split('\n')
-    buffer = lines.pop() ?? ''
-    for (let line of lines.filter(Boolean)) {
-      let message = JSON.parse(line)
-      pending.get(message.id)?.(message)
-      pending.delete(message.id)
-    }
-  })
-
-  function send(method: string, params?: object) {
-    server.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', method, params })}\n`)
-  }
-
-  function request(method: string, params: object): Promise<any> {
-    return new Promise((resolve) => {
-      pending.set(++id, resolve)
-      server.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id, method, params })}\n`)
-    })
-  }
-
-  return {
-    async initialize() {
-      let { result } = await request('initialize', {
-        protocolVersion: '2025-06-18',
-        capabilities: {},
-        clientInfo: { name: 'remixcn-test', version: '0.0.0' },
-      })
-      send('notifications/initialized')
-      return result
-    },
-    async callTool(name: string, args: object): Promise<string> {
-      let { result } = await request('tools/call', { name, arguments: args })
-      assert.ok(!result.isError, result.content[0].text)
-      return result.content.map((part: { text: string }) => part.text).join('\n')
-    },
-    close: () => server.kill(),
-  }
 }
 
 describe('the built registry', () => {
@@ -222,7 +175,7 @@ describe('the built registry', () => {
   })
 
   it("lets shadcn's MCP server list, search and view the items", { timeout: 60_000 }, async () => {
-    let mcp = startMcp(createApp('mcp', true))
+    let mcp = startMcp(shadcn, createApp('mcp', true))
     try {
       assert.equal((await mcp.initialize()).serverInfo.name, 'shadcn')
 
