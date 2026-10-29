@@ -48,4 +48,4 @@ Every file in `registry/` starts with this header, and the installer keeps it. N
 // License texts: https://github.com/janhesters/remixcn/blob/main/THIRD_PARTY_NOTICES.md
 ```
 
-The installer ticket decides whether `remixcn add` also writes the full license texts into the user's project.
+The registry's `licenses` item ships `LICENSE` and `THIRD_PARTY_NOTICES.md`, and every item that ships `registry/` source depends on it. So installing any item also installs the full license texts.

@@ -12,6 +12,7 @@ bun run test:e2e           # browser tests in Playwright's Chromium: remix test 
 bun run check:components   # catalog and browser-reachable source contracts
 bun run check:build        # builds packages/cli, checks and runs the remixcn executable
 bun run build              # builds packages/cli/dist only
+bun run build:registry     # checks registry.json, then writes dist/r/registry.json and dist/r/<name>.json
 bun run style-reference    # serves the style reference at http://localhost:4400/ (PORT changes it)
 bun run capture:style-reference  # rewrites the screenshots in docs/images/style-reference/
 ```
@@ -34,15 +35,16 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | Path | Holds |
 | --- | --- |
 | `registry/catalog.json` | The component inventory and source map: every entry, its upstream links, its batch, and its target file |
+| `registry.json` | The items that ship, in shadcn's registry format: each item's type, files, install targets and `@remixcn` dependencies |
 | `registry/ui/<name>.tsx` | One component per file, the source users copy |
 | `registry/lib/<name>.ts` | Helpers several components share. A helper may also be `.tsx`, such as `icons.tsx`, or `.css`, such as `theme.css` |
 | `registry/examples/<name>.tsx` | Copyable examples and the recipes: Data Table, Date Picker, and Typography |
 | `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry. The build emits `dist/bin.js`, which `bin` points to. The local MCP server will start from the same executable |
 | `apps/docs/` | The site (C-979, C-981) |
-| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, `registries/` hold small registries that keep or break the contracts, `imports/` holds the import forms the checks must read, and `style-reference/` is the style reference page |
+| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, and `style-reference/` is the style reference page |
 | `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` |
-| `scripts/` | The contract checks behind `check:components` and `check:build`. `contracts.ts` holds their rules, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages |
-| `test/` | Workspace-wide contract tests |
+| `scripts/` | The contract checks behind `check:components` and `check:build`, and the registry build. `contracts.ts` holds their rules, `registry.ts` the registry's, `build-registry.ts` runs the build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages |
+| `test/` | Workspace-wide contract tests, and the registry tests that serve a build with `static-server.ts` |
 
 Tests sit beside the code they test as `*.test.ts`. Browser tests will use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects. `test/style-reference.test.e2e.ts` drives the style reference in Chromium.
 
@@ -52,6 +54,7 @@ Tests sit beside the code they test as `*.test.ts`. Browser tests will use `*.te
 - `remix` comes from the user's app. Registry source never adds a dependency of its own.
 - Don't create a component runtime package or publish components to npm.
 - Every component, recipe, and helper has an entry in `registry/catalog.json` whose `target` names its file. `check:components` fails on a registry file without one.
+- Once it ships, it also has an item in `registry.json`. See [The registry build](#the-registry-build).
 
 ## Aliases
 
@@ -128,7 +131,7 @@ The style reference's Overrides section shows each case, and its browser test ch
 
 - Components: none. `remix` comes from the user's app.
 - CLI and MCP server: Node and Web built-ins only. `packages/cli/package.json` keeps `dependencies` empty and lists no peer or optional dependencies. `check:build` enforces it.
-- Development only, pinned exactly in the root `devDependencies`: TypeScript, `@types/node`, and `remix` for typechecks and tests, and Playwright for browser tests and screenshots. Formatting and accessibility test tools may join them when a ticket needs them.
+- Development only, pinned exactly in the root `devDependencies`: TypeScript, `@types/node`, and `remix` for typechecks and tests, Playwright for browser tests and screenshots, and `shadcn` 4.23.0, the version at the pinned shadcn commit, whose schema, validator, MCP server and CLI check the registry. Formatting and accessibility test tools may join them when a ticket needs them. Registry source and `packages/cli` never import them.
 
 ## Names and metadata (C-976)
 
@@ -146,6 +149,23 @@ The style reference's Overrides section shows each case, and its browser test ch
 Each entry has a `source` link at the pinned commit, a `docs` link, its `batch`, what it `dependsOn`, the `upstreamImports` the port replaces, and its `target`. A dependency lands in the same batch or an earlier one. Batches 1 to 8 order the follow-up work. Separate AI Elements patterns and the Blocks collection are listed under `outOfScope`, not as entries.
 
 Change the catalog when a ticket changes an entry. `checkCatalog` in `scripts/contracts.ts` keeps it consistent.
+
+## The registry build
+
+`registry.json` lists the items that ship, in the registry format of shadcn 4.23.0. `bun run build:registry` checks it and writes `dist/r/registry.json`, the index, and `dist/r/<name>.json`, each item with its files' contents. The site serves that folder at `/remixcn/r/`, so shadcn's CLI and MCP server reach an item as `@remixcn/<name>`.
+
+Each item:
+
+- matches its catalog entry: the same name and title, and its one `registry/` file is the entry's `target`. Only the `licenses` item ships no `registry/` file. It ships both `LICENSE` and `THIRD_PARTY_NOTICES.md`, and no other item ships either.
+- has the type its schema meaning fits: `registry:ui` for a component, `registry:component` for a recipe, `registry:lib` for a TypeScript helper, `registry:style` for a CSS helper such as the theme tokens, and `registry:file` for `licenses`.
+- types each file by where it comes from. TypeScript is `registry:ui`, `registry:component` or `registry:lib`. CSS and the license texts are `registry:file`, which shadcn's CLI copies byte for byte.
+- installs each file through a target placeholder for the user's directories: `registry/ui/<file>` to `@ui/<file>`, `registry/lib/<file>` to `@lib/<file>`, `registry/examples/<file>` to `@components/<file>`, and `LICENSE` and `THIRD_PARTY_NOTICES.md` to `@lib/remixcn/`. So every `#remixcn/ui/` or `#remixcn/lib/` import names an installed file, and the installer can rewrite it to a relative path.
+- lists in `registryDependencies` each item it imports from, as `@remixcn/<name>`, and reaches `@remixcn/licenses` through them. A bare name would install shadcn/ui's React component.
+- lists no npm `dependencies` or `devDependencies`: the app supplies `remix@3.0.0`, and a missing or other Remix is the installer's error. It also sets none of `tailwind`, `cssVars`, `css`, `envVars` or `meta`. The build writes `meta`: the Remix version, the license, and the catalog's upstream source.
+
+The build checks everything before it writes. It fails, and leaves the previous output as it was, on invalid JSON, anything shadcn's schema rejects, a dependency cycle, a name or target used twice, a path or target that leaves its directory, a link, a test or any file outside `registry/ui`, `registry/lib`, `registry/examples` and the license texts, a missing file, a `licenses` item without one of its two texts, an import from an item the importer doesn't list, an npm or Node import, and a Tailwind directive. It never replaces an output folder that holds anything but JSON files. Items, dependencies and keys come in a fixed order, and newlines are LF, so the same source gives the same bytes.
+
+`test/registry.test.ts` serves a fixture build under `/remixcn/r/` and checks it with shadcn's schema, validator, MCP server and CLI. It also installs a component into the consumer fixture, typechecks it, and compiles it with Remix's asset server. The README's Registry section describes what that test proves, so keep the two in step.
 
 ## Accepted decisions
 
@@ -174,4 +194,4 @@ Every later UI PR, such as a component, the gallery, or the site, still needs sc
 
 ## Builds
 
-`packages/cli/dist/` is the only build output, and git ignores it. `check:build` rebuilds it.
+`packages/cli/dist/` and `dist/r/` are the only build outputs, and git ignores both. `check:build` rebuilds the first, and `build:registry` the second.
