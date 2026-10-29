@@ -20,10 +20,10 @@ import { parseArgs } from 'node:util'
 
 import { registryItemSchema, registrySchema } from 'shadcn/schema'
 
-import { findCssImports } from './contracts.ts'
+import { buildRegistry, checkRegistry, checkSourcePath } from '../packages/cli/src/registry.ts'
+import type { Registry, RegistrySource } from '../packages/cli/src/registry.ts'
+import { findCssImports } from '../packages/cli/src/source.ts'
 import type { Catalog } from './contracts.ts'
-import { buildRegistry, checkRegistry, checkSourcePath } from './registry.ts'
-import type { Registry, RegistrySource } from './registry.ts'
 import { readScriptImports } from './typescript.ts'
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { out: { type: 'string' } } })
