@@ -15,6 +15,7 @@ describe('check:build', () => {
       result.stdout,
       /✓ package\.json, apps\/docs\/package\.json and packages\/cli\/package\.json carry the approved metadata/,
     )
+    assert.match(result.stdout, /✓ packages\/cli\/src imports only Node built-ins and its own files/)
     assert.match(result.stdout, /✓ packages\/cli\/dist\/bin\.js runs as remixcn 0\.0\.0/)
   })
 })

@@ -1,4 +1,5 @@
 import { isBuiltin } from 'node:module'
+import { posix } from 'node:path'
 
 export const seoPhrase = 'shadcn components for Remix V3'
 export const homepage = 'https://janhesters.github.io/remixcn/'
@@ -431,6 +432,23 @@ export function checkCliPackage(pkg: PackageJson, workspace: Pick<PackageJson, '
   }
 
   return problems
+}
+
+/**
+ * Checks one import of the remixcn executable's source. The published package
+ * has no dependencies and ships only its compiled source, so the executable
+ * imports Node built-ins and its own files.
+ */
+export function checkCliImport(file: string, specifier: string): string | undefined {
+  if (isBuiltin(specifier)) return undefined
+
+  if (specifier.startsWith('./') || specifier.startsWith('../')) {
+    return posix.join(posix.dirname(file), specifier).startsWith('packages/cli/src/')
+      ? undefined
+      : `"${specifier}": the published package holds only packages/cli/src, so import nothing outside it`
+  }
+
+  return `"${specifier}": the remixcn executable runs on Node and Web built-ins only, so it imports no package`
 }
 
 /** Browser-reachable packages get remix from the consuming app and nothing else. */
