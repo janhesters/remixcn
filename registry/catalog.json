@@ -109,13 +109,19 @@
       "docs": "https://ui.shadcn.com/docs/components/base/accordion",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/accordion-example.tsx",
       "behavior": "https://base-ui.com/react/components/accordion.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
+        "collapsible"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "icon-placeholder"
       ],
-      "target": "registry/ui/accordion.tsx"
+      "target": "registry/ui/accordion.tsx",
+      "exampleTarget": "registry/examples/accordion-example.tsx"
     },
     {
       "name": "alert",
@@ -456,11 +462,14 @@
       "docs": "https://ui.shadcn.com/docs/components/base/collapsible",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/collapsible-example.tsx",
       "behavior": "https://base-ui.com/react/components/collapsible.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react"
       ],
-      "target": "registry/ui/collapsible.tsx"
+      "target": "registry/ui/collapsible.tsx",
+      "exampleTarget": "registry/examples/collapsible-example.tsx"
     },
     {
       "name": "combobox",
@@ -974,6 +983,9 @@
       "docs": "https://ui.shadcn.com/docs/components/base/pagination",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/pagination-example.tsx",
       "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
         "button"
       ],
       "upstreamImports": [
@@ -981,7 +993,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/pagination.tsx"
+      "target": "registry/ui/pagination.tsx",
+      "exampleTarget": "registry/examples/pagination-example.tsx"
     },
     {
       "name": "popover",
@@ -1322,13 +1335,18 @@
       "docs": "https://ui.shadcn.com/docs/components/base/tabs",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/tabs-example.tsx",
       "behavior": "https://base-ui.com/react/components/tabs.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "composite"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "class-variance-authority",
         "cn"
       ],
-      "target": "registry/ui/tabs.tsx"
+      "target": "registry/ui/tabs.tsx",
+      "exampleTarget": "registry/examples/tabs-example.tsx"
     },
     {
       "name": "textarea",
