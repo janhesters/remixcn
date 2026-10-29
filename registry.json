@@ -30,6 +30,14 @@
       "files": [{ "path": "registry/ui/button-group.tsx", "type": "registry:ui", "target": "@ui/button-group.tsx" }]
     },
     {
+      "name": "code-block",
+      "type": "registry:ui",
+      "title": "Code Block",
+      "description": "Code, terminal output and diffs as escaped text, with a header, line numbers, line variants, your own highlighter's tokens and a copy button.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/code-block.tsx", "type": "registry:ui", "target": "@ui/code-block.tsx" }]
+    },
+    {
       "name": "resizable",
       "type": "registry:ui",
       "title": "Resizable",
@@ -44,6 +52,14 @@
       "description": "A native scroll container with thin scrollbars that follow it. The system's scrollbars stay without JavaScript and in forced colors.",
       "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/scroll-area.tsx", "type": "registry:ui", "target": "@ui/scroll-area.tsx" }]
+    },
+    {
+      "name": "icons",
+      "type": "registry:lib",
+      "title": "Icons",
+      "description": "The Icon wrapper for inline SVG on a 24 by 24 grid, and the icons RemixCN draws itself.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/icons.tsx", "type": "registry:lib", "target": "@lib/icons.tsx" }]
     },
     {
       "name": "styles",
