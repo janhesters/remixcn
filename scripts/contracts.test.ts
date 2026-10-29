@@ -270,6 +270,21 @@ describe('checkCatalog', () => {
     ])
   })
 
+  it('lets a helper, but not a component, link a file at another pinned upstream', () => {
+    let catalog = validCatalog()
+    catalog.upstream.baseUi = { repository: 'https://github.com/mui/base-ui', commit: 'abc123' }
+    let baseUiFile = 'https://github.com/mui/base-ui/blob/abc123/packages/react/src/utils/popups/interactions/useDismiss.ts'
+    catalog.helpers[0].source = baseUiFile
+    assert.deepEqual(checkCatalog(catalog), [])
+
+    catalog.helpers[0].source = 'https://github.com/mui/base-ui/blob/master/packages/react/src/utils/popups/interactions/useDismiss.ts'
+    catalog.entries[0].source = baseUiFile
+    assert.deepEqual(checkCatalog(catalog), [
+      'button: source must link a file at shadcn commit 96da9cc7f1aa10580a3741664e2a77c721206c00',
+      'use-timer: source must link a file at a pinned upstream commit',
+    ])
+  })
+
   it('requires a Components docs page for components and recipes', () => {
     let catalog = validCatalog()
     delete catalog.entries[3].docs
