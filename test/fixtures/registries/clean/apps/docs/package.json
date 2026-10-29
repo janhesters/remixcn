@@ -1,0 +1,8 @@
+{
+  "name": "@remixcn/docs",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "remix": "3.0.0"
+  }
+}

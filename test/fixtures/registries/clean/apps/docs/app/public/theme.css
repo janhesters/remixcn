@@ -1,0 +1,7 @@
+@layer base, rmx, app;
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+}

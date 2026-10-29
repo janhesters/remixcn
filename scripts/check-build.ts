@@ -1,0 +1,54 @@
+// Builds packages/cli and checks the remixcn executable against its package contract.
+// Usage: node scripts/check-build.ts
+import { spawnSync } from 'node:child_process'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { checkCliPackage, checkPackageMetadata } from './contracts.ts'
+import type { PackageJson } from './contracts.ts'
+import { tsc } from './typescript.ts'
+import { listPackageFiles } from './workspace.ts'
+
+const root = fileURLToPath(new URL('..', import.meta.url))
+const cli = join(root, 'packages/cli')
+
+function readJson(file: string) {
+  return JSON.parse(readFileSync(file, 'utf8'))
+}
+
+function fail(problems: string[]): never {
+  for (let problem of problems) process.stderr.write(`✗ ${problem}\n`)
+  process.exit(1)
+}
+
+let build = spawnSync(process.execPath, [tsc, '-p', join(cli, 'tsconfig.build.json')], { encoding: 'utf8' })
+if (build.status !== 0) fail([`tsc -p packages/cli/tsconfig.build.json failed:\n${build.stdout}${build.stderr}`])
+
+let packageFiles = listPackageFiles(root)
+let workspace = readJson(join(root, 'package.json')) as PackageJson
+let pkg = readJson(join(cli, 'package.json')) as PackageJson & { version: string }
+let problems = [
+  ...packageFiles.flatMap((file) => checkPackageMetadata(readJson(join(root, file)) as PackageJson)),
+  ...checkCliPackage(pkg, workspace),
+]
+
+let bin = join(cli, pkg.bin?.remixcn ?? 'dist/bin.js')
+if (!existsSync(bin)) problems.push(`packages/cli: the build did not emit ${pkg.bin?.remixcn}`)
+else if (!readFileSync(bin, 'utf8').startsWith('#!/usr/bin/env node\n')) {
+  problems.push(`packages/cli: ${pkg.bin?.remixcn} must start with #!/usr/bin/env node`)
+}
+
+let tests = readdirSync(join(cli, 'dist'), { recursive: true, encoding: 'utf8' }).filter((file) => file.includes('.test.'))
+if (tests.length > 0) problems.push(`packages/cli/dist must not ship tests (${tests.join(', ')})`)
+
+if (problems.length > 0) fail(problems)
+
+let version = spawnSync(process.execPath, [bin, '--version'], { encoding: 'utf8' })
+if (version.status !== 0 || version.stdout !== `${pkg.version}\n`) {
+  fail([`remixcn --version printed ${JSON.stringify(version.stdout)} (exit ${version.status}), expected ${pkg.version}`])
+}
+
+process.stdout.write(`✓ ${packageFiles.join(', ').replace(/, ([^,]+)$/, ' and $1')} carry the approved metadata\n`)
+process.stdout.write(`✓ ${pkg.name} has no runtime dependencies\n`)
+process.stdout.write(`✓ packages/cli/dist/bin.js runs as remixcn ${pkg.version} on Node ${process.versions.node}\n`)

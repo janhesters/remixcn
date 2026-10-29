@@ -1,0 +1,1315 @@
+{
+  "name": "RemixCN",
+  "namespace": "@remixcn",
+  "homepage": "https://janhesters.github.io/remixcn/",
+  "upstream": {
+    "shadcn": {
+      "repository": "https://github.com/shadcn-ui/ui",
+      "commit": "96da9cc7f1aa10580a3741664e2a77c721206c00",
+      "path": "apps/v4/registry/bases/base",
+      "docs": "https://ui.shadcn.com/docs/components",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2023 shadcn"
+    },
+    "baseUi": {
+      "repository": "https://github.com/mui/base-ui",
+      "commit": "06cf9a0064231a1393cd43d86439bbc52255fa5a",
+      "docs": "https://base-ui.com/react/overview/accessibility",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2019 Material-UI SAS"
+    },
+    "remix": {
+      "package": "remix@3.0.0",
+      "repository": "https://github.com/remix-run/remix",
+      "commit": "6ab529634e35cac4eff786b048800831d1c5cf99",
+      "license": "MIT",
+      "copyright": "Copyright (c) 2025 Shopify Inc."
+    }
+  },
+  "reconciliation": {
+    "sourceFiles": 64,
+    "docsPages": 66,
+    "docsOnlyRecipes": [
+      "data-table",
+      "date-picker",
+      "typography"
+    ],
+    "sourceOnly": [
+      "sonner"
+    ],
+    "registryWithoutSource": [
+      "form"
+    ],
+    "note": "The 64 files in apps/v4/registry/bases/base/ui and the 66 Base pages of the Components docs agree except for these lists. Sonner has a source file but its docs page redirects to Toast. _registry.ts lists form with no file and no docs page, so it is not an entry."
+  },
+  "upstreamImportNotes": {
+    "cn": "shadcn's class-name helper (clsx and tailwind-merge) for Tailwind classes.",
+    "icon-placeholder": "shadcn's stand-in for the icon library a project picks.",
+    "react": "Listed where a file imports it. Every upstream component renders with React."
+  },
+  "batches": [
+    {
+      "id": 1,
+      "title": "Core primitives",
+      "description": "Static and native-element components that later batches build on, plus the Typography recipe."
+    },
+    {
+      "id": 2,
+      "title": "Composition and form layout",
+      "description": "Components that compose batch 1 into fields, groups, items, navigation trails and status displays."
+    },
+    {
+      "id": 3,
+      "title": "Stateful controls and disclosure",
+      "description": "Controls with checked, pressed, value or open state, and custom scroll areas."
+    },
+    {
+      "id": 4,
+      "title": "Overlays",
+      "description": "Dialogs, sheets, drawers and anchored popups."
+    },
+    {
+      "id": 5,
+      "title": "Menus and app navigation",
+      "description": "Menus, menubars, navigation menus and the sidebar."
+    },
+    {
+      "id": 6,
+      "title": "Complex selection and date input",
+      "description": "Select, combobox, command palette, one-time codes, the calendar and the Date Picker recipe."
+    },
+    {
+      "id": 7,
+      "title": "Feedback and data display",
+      "description": "Toast and its Sonner-compatible entry, carousel, resizable panels, charts and the Data Table recipe."
+    },
+    {
+      "id": 8,
+      "title": "Messages, code and traces",
+      "description": "The newer message, attachment, questionnaire, trace and code block components."
+    }
+  ],
+  "outOfScope": [
+    {
+      "name": "AI Elements patterns",
+      "reason": "Outside the first release (Jan's C-978 answer)."
+    },
+    {
+      "name": "Blocks",
+      "reason": "Outside the first release (Jan's C-978 answer)."
+    }
+  ],
+  "entries": [
+    {
+      "name": "accordion",
+      "title": "Accordion",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/accordion.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/accordion",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/accordion-example.tsx",
+      "behavior": "https://base-ui.com/react/components/accordion.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder"
+      ],
+      "target": "registry/ui/accordion.tsx"
+    },
+    {
+      "name": "alert",
+      "title": "Alert",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/alert.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/alert",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/alert-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/alert.tsx"
+    },
+    {
+      "name": "alert-dialog",
+      "title": "Alert Dialog",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/alert-dialog.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/alert-dialog",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/alert-dialog-example.tsx",
+      "behavior": "https://base-ui.com/react/components/alert-dialog.md",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/alert-dialog.tsx"
+    },
+    {
+      "name": "aspect-ratio",
+      "title": "Aspect Ratio",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/aspect-ratio.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/aspect-ratio",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/aspect-ratio-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn"
+      ],
+      "target": "registry/ui/aspect-ratio.tsx"
+    },
+    {
+      "name": "attachment",
+      "title": "Attachment",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/attachment.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/attachment",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/attachment-example.tsx",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/attachment.tsx"
+    },
+    {
+      "name": "avatar",
+      "title": "Avatar",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/avatar.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/avatar",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/avatar-example.tsx",
+      "behavior": "https://base-ui.com/react/components/avatar.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/avatar.tsx"
+    },
+    {
+      "name": "badge",
+      "title": "Badge",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/badge.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/badge",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/badge-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn"
+      ],
+      "target": "registry/ui/badge.tsx"
+    },
+    {
+      "name": "breadcrumb",
+      "title": "Breadcrumb",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/breadcrumb.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/breadcrumb",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/breadcrumb-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/breadcrumb.tsx"
+    },
+    {
+      "name": "bubble",
+      "title": "Bubble",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/bubble.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/bubble",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/bubble-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/bubble.tsx"
+    },
+    {
+      "name": "button",
+      "title": "Button",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/button.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/button",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/button-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn"
+      ],
+      "target": "registry/ui/button.tsx"
+    },
+    {
+      "name": "button-group",
+      "title": "Button Group",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/button-group.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/button-group",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/button-group-example.tsx",
+      "dependsOn": [
+        "separator"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn"
+      ],
+      "target": "registry/ui/button-group.tsx"
+    },
+    {
+      "name": "calendar",
+      "title": "Calendar",
+      "kind": "component",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/calendar.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/calendar",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/calendar-example.tsx",
+      "behavior": "https://react-day-picker.js.org",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "cn",
+        "icon-placeholder",
+        "react",
+        "react-day-picker"
+      ],
+      "target": "registry/ui/calendar.tsx"
+    },
+    {
+      "name": "card",
+      "title": "Card",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/card.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/card",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/card-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/card.tsx"
+    },
+    {
+      "name": "carousel",
+      "title": "Carousel",
+      "kind": "component",
+      "batch": 7,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/carousel.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/carousel",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/carousel-example.tsx",
+      "behavior": "https://www.embla-carousel.com/get-started/react",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "cn",
+        "embla-carousel-react",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/carousel.tsx"
+    },
+    {
+      "name": "chart",
+      "title": "Chart",
+      "kind": "component",
+      "batch": 7,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/chart.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/chart",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/chart-example.tsx",
+      "dependsOn": [
+        "card"
+      ],
+      "upstreamImports": [
+        "cn",
+        "react",
+        "recharts"
+      ],
+      "target": "registry/ui/chart.tsx"
+    },
+    {
+      "name": "checkbox",
+      "title": "Checkbox",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/checkbox.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/checkbox",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/checkbox-example.tsx",
+      "behavior": "https://base-ui.com/react/components/checkbox.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder"
+      ],
+      "target": "registry/ui/checkbox.tsx"
+    },
+    {
+      "name": "code-block",
+      "title": "Code Block",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/code-block.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/code-block",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/code-block-example.tsx",
+      "dependsOn": [
+        "button",
+        "use-highlighted-code"
+      ],
+      "upstreamImports": [
+        "class-variance-authority",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/code-block.tsx"
+    },
+    {
+      "name": "collapsible",
+      "title": "Collapsible",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/collapsible.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/collapsible",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/collapsible-example.tsx",
+      "behavior": "https://base-ui.com/react/components/collapsible.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react"
+      ],
+      "target": "registry/ui/collapsible.tsx"
+    },
+    {
+      "name": "combobox",
+      "title": "Combobox",
+      "kind": "component",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/combobox.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/combobox",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/combobox-example.tsx",
+      "behavior": "https://base-ui.com/react/components/combobox.md",
+      "dependsOn": [
+        "button",
+        "input-group"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/combobox.tsx"
+    },
+    {
+      "name": "command",
+      "title": "Command",
+      "kind": "component",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/command.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/command",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/command-example.tsx",
+      "behavior": "https://github.com/dip/cmdk",
+      "dependsOn": [
+        "dialog",
+        "input-group"
+      ],
+      "upstreamImports": [
+        "cmdk",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/command.tsx"
+    },
+    {
+      "name": "context-menu",
+      "title": "Context Menu",
+      "kind": "component",
+      "batch": 5,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/context-menu.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/context-menu",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/context-menu-example.tsx",
+      "behavior": "https://base-ui.com/react/components/context-menu.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/context-menu.tsx"
+    },
+    {
+      "name": "data-table",
+      "title": "Data Table",
+      "kind": "recipe",
+      "batch": 7,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/content/docs/components/base/data-table.mdx",
+      "docs": "https://ui.shadcn.com/docs/components/base/data-table",
+      "dependsOn": [
+        "badge",
+        "button",
+        "checkbox",
+        "dropdown-menu",
+        "input",
+        "table"
+      ],
+      "upstreamImports": [
+        "@tanstack/react-table",
+        "lucide-react",
+        "react"
+      ],
+      "target": "registry/examples/data-table.tsx"
+    },
+    {
+      "name": "date-picker",
+      "title": "Date Picker",
+      "kind": "recipe",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/content/docs/components/base/date-picker.mdx",
+      "docs": "https://ui.shadcn.com/docs/components/base/date-picker",
+      "dependsOn": [
+        "button",
+        "calendar",
+        "popover"
+      ],
+      "upstreamImports": [
+        "cn",
+        "date-fns",
+        "lucide-react",
+        "react"
+      ],
+      "target": "registry/examples/date-picker.tsx"
+    },
+    {
+      "name": "dialog",
+      "title": "Dialog",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/dialog.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/dialog",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/dialog-example.tsx",
+      "behavior": "https://base-ui.com/react/components/dialog.md",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/dialog.tsx"
+    },
+    {
+      "name": "direction",
+      "title": "Direction",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/direction.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/direction",
+      "behavior": "https://base-ui.com/react/utils/direction-provider.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react"
+      ],
+      "target": "registry/ui/direction.tsx"
+    },
+    {
+      "name": "drawer",
+      "title": "Drawer",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/drawer.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/drawer",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/drawer-example.tsx",
+      "behavior": "https://base-ui.com/react/components/drawer.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/drawer.tsx"
+    },
+    {
+      "name": "dropdown-menu",
+      "title": "Dropdown Menu",
+      "kind": "component",
+      "batch": 5,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/dropdown-menu.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/dropdown-menu",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/dropdown-menu-example.tsx",
+      "behavior": "https://base-ui.com/react/components/menu.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/dropdown-menu.tsx"
+    },
+    {
+      "name": "empty",
+      "title": "Empty",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/empty.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/empty",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/empty-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "class-variance-authority",
+        "cn"
+      ],
+      "target": "registry/ui/empty.tsx"
+    },
+    {
+      "name": "field",
+      "title": "Field",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/field.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/field",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/field-example.tsx",
+      "dependsOn": [
+        "label",
+        "separator"
+      ],
+      "upstreamImports": [
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/field.tsx"
+    },
+    {
+      "name": "hover-card",
+      "title": "Hover Card",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/hover-card.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/hover-card",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/hover-card-example.tsx",
+      "behavior": "https://base-ui.com/react/components/hover-card.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/hover-card.tsx"
+    },
+    {
+      "name": "input",
+      "title": "Input",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/input.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/input",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/input-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/input.tsx"
+    },
+    {
+      "name": "input-group",
+      "title": "Input Group",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/input-group.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/input-group",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/input-group-example.tsx",
+      "dependsOn": [
+        "button",
+        "input",
+        "textarea"
+      ],
+      "upstreamImports": [
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/input-group.tsx"
+    },
+    {
+      "name": "input-otp",
+      "title": "Input OTP",
+      "kind": "component",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/input-otp.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/input-otp",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/input-otp-example.tsx",
+      "behavior": "https://input-otp.rodz.dev",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "icon-placeholder",
+        "input-otp",
+        "react"
+      ],
+      "target": "registry/ui/input-otp.tsx"
+    },
+    {
+      "name": "item",
+      "title": "Item",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/item.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/item",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/item-example.tsx",
+      "dependsOn": [
+        "separator"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/item.tsx"
+    },
+    {
+      "name": "kbd",
+      "title": "Kbd",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/kbd.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/kbd",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/kbd-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn"
+      ],
+      "target": "registry/ui/kbd.tsx"
+    },
+    {
+      "name": "label",
+      "title": "Label",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/label.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/label",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/label-example.tsx",
+      "behavior": "https://base-ui.com/react/components/label.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/label.tsx"
+    },
+    {
+      "name": "marker",
+      "title": "Marker",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/marker.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/marker",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/marker-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/marker.tsx"
+    },
+    {
+      "name": "menubar",
+      "title": "Menubar",
+      "kind": "component",
+      "batch": 5,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/menubar.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/menubar",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/menubar-example.tsx",
+      "behavior": "https://base-ui.com/react/components/menubar.md",
+      "dependsOn": [
+        "dropdown-menu"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/menubar.tsx"
+    },
+    {
+      "name": "message",
+      "title": "Message",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/message.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/message",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/message-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/message.tsx"
+    },
+    {
+      "name": "message-scroller",
+      "title": "Message Scroller",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/message-scroller.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/message-scroller",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/message-scroller-example.tsx",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@shadcn/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/message-scroller.tsx"
+    },
+    {
+      "name": "native-select",
+      "title": "Native Select",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/native-select.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/native-select",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/native-select-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/native-select.tsx"
+    },
+    {
+      "name": "navigation-menu",
+      "title": "Navigation Menu",
+      "kind": "component",
+      "batch": 5,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/navigation-menu.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/navigation-menu",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/navigation-menu-example.tsx",
+      "behavior": "https://base-ui.com/react/components/navigation-menu.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "icon-placeholder"
+      ],
+      "target": "registry/ui/navigation-menu.tsx"
+    },
+    {
+      "name": "pagination",
+      "title": "Pagination",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/pagination.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/pagination",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/pagination-example.tsx",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/pagination.tsx"
+    },
+    {
+      "name": "popover",
+      "title": "Popover",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/popover.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/popover",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/popover-example.tsx",
+      "behavior": "https://base-ui.com/react/components/popover.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/popover.tsx"
+    },
+    {
+      "name": "progress",
+      "title": "Progress",
+      "kind": "component",
+      "batch": 2,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/progress.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/progress",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/progress-example.tsx",
+      "behavior": "https://base-ui.com/react/components/progress.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/progress.tsx"
+    },
+    {
+      "name": "questionnaire",
+      "title": "Questionnaire",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/questionnaire.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/questionnaire",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/questionnaire-example.tsx",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@shadcn/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/questionnaire.tsx"
+    },
+    {
+      "name": "radio-group",
+      "title": "Radio Group",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/radio-group.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/radio-group",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/radio-group-example.tsx",
+      "behavior": "https://base-ui.com/react/components/radio-group.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/radio-group.tsx"
+    },
+    {
+      "name": "resizable",
+      "title": "Resizable",
+      "kind": "component",
+      "batch": 7,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/resizable.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/resizable",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/resizable-example.tsx",
+      "behavior": "https://github.com/bvaughn/react-resizable-panels",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "react-resizable-panels"
+      ],
+      "target": "registry/ui/resizable.tsx"
+    },
+    {
+      "name": "scroll-area",
+      "title": "Scroll Area",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/scroll-area.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/scroll-area",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/scroll-area-example.tsx",
+      "behavior": "https://base-ui.com/react/components/scroll-area.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/scroll-area.tsx"
+    },
+    {
+      "name": "select",
+      "title": "Select",
+      "kind": "component",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/select.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/select",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/select-example.tsx",
+      "behavior": "https://base-ui.com/react/components/select.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/select.tsx"
+    },
+    {
+      "name": "separator",
+      "title": "Separator",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/separator.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/separator",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/separator-example.tsx",
+      "behavior": "https://base-ui.com/react/components/separator.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/separator.tsx"
+    },
+    {
+      "name": "sheet",
+      "title": "Sheet",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/sheet.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/sheet",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/sheet-example.tsx",
+      "behavior": "https://base-ui.com/react/components/dialog.md",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/sheet.tsx"
+    },
+    {
+      "name": "sidebar",
+      "title": "Sidebar",
+      "kind": "component",
+      "batch": 5,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/sidebar.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/sidebar",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/sidebar-example.tsx",
+      "dependsOn": [
+        "button",
+        "input",
+        "separator",
+        "sheet",
+        "skeleton",
+        "tooltip",
+        "use-mobile"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/sidebar.tsx"
+    },
+    {
+      "name": "skeleton",
+      "title": "Skeleton",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/skeleton.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/skeleton",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/skeleton-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn"
+      ],
+      "target": "registry/ui/skeleton.tsx"
+    },
+    {
+      "name": "slider",
+      "title": "Slider",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/slider.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/slider",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/slider-example.tsx",
+      "behavior": "https://base-ui.com/react/components/slider.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/slider.tsx"
+    },
+    {
+      "name": "sonner",
+      "title": "Sonner",
+      "kind": "component",
+      "batch": 7,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/sonner.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/toast",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/sonner-example.tsx",
+      "behavior": "https://sonner.emilkowal.ski",
+      "dependsOn": [
+        "toast"
+      ],
+      "upstreamImports": [
+        "icon-placeholder",
+        "next-themes",
+        "sonner"
+      ],
+      "target": "registry/ui/sonner.tsx",
+      "compatibleWith": "toast",
+      "note": "Dependency-free Toast-compatible entry: keeps Sonner's Toaster and toast() names on top of RemixCN's toast, without the sonner or next-themes packages. Upstream's Sonner docs page redirects to Toast."
+    },
+    {
+      "name": "spinner",
+      "title": "Spinner",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/spinner.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/spinner",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/spinner-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "icon-placeholder"
+      ],
+      "target": "registry/ui/spinner.tsx"
+    },
+    {
+      "name": "switch",
+      "title": "Switch",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/switch.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/switch",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/switch-example.tsx",
+      "behavior": "https://base-ui.com/react/components/switch.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/switch.tsx"
+    },
+    {
+      "name": "table",
+      "title": "Table",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/table.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/table",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/table-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/table.tsx"
+    },
+    {
+      "name": "tabs",
+      "title": "Tabs",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/tabs.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/tabs",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/tabs-example.tsx",
+      "behavior": "https://base-ui.com/react/components/tabs.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn"
+      ],
+      "target": "registry/ui/tabs.tsx"
+    },
+    {
+      "name": "textarea",
+      "title": "Textarea",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/textarea.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/textarea",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/textarea-example.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/textarea.tsx"
+    },
+    {
+      "name": "toast",
+      "title": "Toast",
+      "kind": "component",
+      "batch": 7,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/toast.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/toast",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/toast-example.tsx",
+      "behavior": "https://base-ui.com/react/components/toast.md",
+      "dependsOn": [
+        "button"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/toast.tsx"
+    },
+    {
+      "name": "toggle",
+      "title": "Toggle",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/toggle.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/toggle",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/toggle-example.tsx",
+      "behavior": "https://base-ui.com/react/components/toggle.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn"
+      ],
+      "target": "registry/ui/toggle.tsx"
+    },
+    {
+      "name": "toggle-group",
+      "title": "Toggle Group",
+      "kind": "component",
+      "batch": 3,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/toggle-group.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/toggle-group",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/toggle-group-example.tsx",
+      "behavior": "https://base-ui.com/react/components/toggle-group.md",
+      "dependsOn": [
+        "toggle"
+      ],
+      "upstreamImports": [
+        "@base-ui/react",
+        "class-variance-authority",
+        "cn",
+        "react"
+      ],
+      "target": "registry/ui/toggle-group.tsx"
+    },
+    {
+      "name": "tooltip",
+      "title": "Tooltip",
+      "kind": "component",
+      "batch": 4,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/tooltip.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/tooltip",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/tooltip-example.tsx",
+      "behavior": "https://base-ui.com/react/components/tooltip.md",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@base-ui/react",
+        "cn"
+      ],
+      "target": "registry/ui/tooltip.tsx"
+    },
+    {
+      "name": "trace",
+      "title": "Trace",
+      "kind": "component",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/trace.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/trace",
+      "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/trace-example.tsx",
+      "dependsOn": [
+        "collapsible"
+      ],
+      "upstreamImports": [
+        "cn",
+        "icon-placeholder",
+        "react"
+      ],
+      "target": "registry/ui/trace.tsx"
+    },
+    {
+      "name": "typography",
+      "title": "Typography",
+      "kind": "recipe",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/content/docs/components/base/typography.mdx",
+      "docs": "https://ui.shadcn.com/docs/components/base/typography",
+      "dependsOn": [],
+      "upstreamImports": [],
+      "target": "registry/examples/typography.tsx"
+    }
+  ],
+  "helpers": [
+    {
+      "name": "use-mobile",
+      "title": "Mobile breakpoint",
+      "kind": "helper",
+      "batch": 5,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/hooks/use-mobile.ts",
+      "dependsOn": [],
+      "upstreamImports": [
+        "react"
+      ],
+      "target": "registry/lib/use-mobile.ts"
+    },
+    {
+      "name": "highlighter",
+      "title": "Syntax highlighter",
+      "kind": "helper",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/lib/highlighter.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "react",
+        "shiki"
+      ],
+      "target": "registry/lib/highlighter.ts"
+    },
+    {
+      "name": "use-highlighted-code",
+      "title": "Highlighted code",
+      "kind": "helper",
+      "batch": 8,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/hooks/use-highlighted-code.ts",
+      "dependsOn": [
+        "highlighter"
+      ],
+      "upstreamImports": [
+        "react"
+      ],
+      "target": "registry/lib/use-highlighted-code.ts"
+    }
+  ]
+}
