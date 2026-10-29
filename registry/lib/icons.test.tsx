@@ -9,11 +9,16 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleAlertIcon,
+  CircleCheckIcon,
   CopyIcon,
   EllipsisIcon,
   Icon,
+  InfoIcon,
+  LoaderIcon,
   MinusIcon,
+  OctagonXIcon,
   SearchIcon,
+  TriangleAlertIcon,
   XIcon,
 } from './icons.tsx'
 
@@ -52,6 +57,11 @@ describe('icons', () => {
       <XIcon />,
       <MinusIcon />,
       <SearchIcon />,
+      <CircleCheckIcon />,
+      <InfoIcon />,
+      <TriangleAlertIcon />,
+      <OctagonXIcon />,
+      <LoaderIcon />,
     ]) {
       let svg = attributes(await renderToString(icon))
 

@@ -147,3 +147,48 @@ export function SearchIcon(handle: Handle<IconProps>) {
     </Icon>
   )
 }
+
+export function CircleCheckIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 12.5 11 15l4.5-5" />
+    </Icon>
+  )
+}
+
+export function InfoIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5M12 7.5h.01" />
+    </Icon>
+  )
+}
+
+export function TriangleAlertIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M10.3 4.2 2.9 17a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 4.2a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9.5v4M12 17h.01" />
+    </Icon>
+  )
+}
+
+export function OctagonXIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M8.3 3h7.4L21 8.3v7.4L15.7 21H8.3L3 15.7V8.3Z" />
+      <path d="m9.5 9.5 5 5M14.5 9.5l-5 5" />
+    </Icon>
+  )
+}
+
+/** An open ring. Turn it with an animation for a loading state, and stop it for reduced motion. */
+export function LoaderIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M12 3a9 9 0 1 0 9 9" />
+    </Icon>
+  )
+}
