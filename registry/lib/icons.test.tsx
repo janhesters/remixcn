@@ -10,6 +10,7 @@ import {
   CopyIcon,
   EllipsisIcon,
   Icon,
+  MinusIcon,
   XIcon,
 } from './icons.tsx'
 
@@ -44,6 +45,7 @@ describe('icons', () => {
       <CopyIcon />,
       <EllipsisIcon />,
       <XIcon />,
+      <MinusIcon />,
     ]) {
       let svg = attributes(await renderToString(icon))
 
@@ -61,6 +63,7 @@ describe('icons', () => {
 
     assert.equal(start.get('data-icon'), 'inline-start')
     assert.equal(end.get('data-icon'), 'inline-end')
+    assert.equal(attributes(await renderToString(<MinusIcon data-icon="inline-end" />)).get('data-icon'), 'inline-end')
     assert.equal(attributes(await renderToString(<CircleAlertIcon />)).has('data-icon'), false)
   })
 
