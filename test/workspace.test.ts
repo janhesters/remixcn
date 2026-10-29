@@ -8,7 +8,7 @@ import { describe, it } from 'remix/test'
 
 import { checkCatalog, checkPackageMetadata, homepage, seoPhrase } from '../scripts/contracts.ts'
 import type { Catalog } from '../scripts/contracts.ts'
-import { listPackageFiles } from '../scripts/workspace.ts'
+import { listPackageFiles, listWorkspaceFiles } from '../scripts/workspace.ts'
 
 const root = fileURLToPath(new URL('..', import.meta.url))
 
@@ -68,6 +68,16 @@ describe('workspace', () => {
     assert.equal(compilerOptions.module, 'NodeNext')
     assert.equal(compilerOptions.jsx, 'react-jsx')
     assert.equal(compilerOptions.jsxImportSource, 'remix/component')
+  })
+
+  it('lists the files remix test discovers, without dependencies, builds or fixtures', () => {
+    let files = listWorkspaceFiles(root)
+
+    assert.ok(files.includes('scripts/lanes.ts'))
+    assert.ok(files.includes('packages/cli/src/cli.test.ts'))
+    assert.ok(!files.some((file) => /(^|\/)(node_modules|dist|\.git)\/|^test\/fixtures\//.test(file)))
+    // The check lanes count test files the same way, so the two lists must agree.
+    assert.deepEqual(readJson('remix.json').test.exclude, ['**/node_modules/**', '**/dist/**', 'test/fixtures/**'])
   })
 
   it('maps the registry aliases to the registry folders', () => {

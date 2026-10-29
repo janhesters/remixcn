@@ -20,6 +20,7 @@
     "**/dist",
     "test/fixtures/consumer-app",
     "test/fixtures/imports",
+    "test/fixtures/lanes",
     "test/fixtures/registries"
   ]
 }

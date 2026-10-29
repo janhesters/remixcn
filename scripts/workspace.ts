@@ -17,3 +17,19 @@ export function listPackageFiles(root: string): string[] {
   let files = directories.map((directory) => `${directory}/package.json`).filter((file) => existsSync(join(root, file)))
   return ['package.json', ...files.sort()]
 }
+
+const skippedDirectories = new Set(['.git', 'node_modules', 'dist'])
+
+/**
+ * Lists the workspace's files relative to `root`, as `remix test` sees them:
+ * without dependencies, build output or the fixtures under `test/fixtures`.
+ */
+export function listWorkspaceFiles(root: string, directory = ''): string[] {
+  return readdirSync(join(root, directory), { withFileTypes: true }).flatMap((entry) => {
+    let path = directory ? `${directory}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      return skippedDirectories.has(entry.name) || path === 'test/fixtures' ? [] : listWorkspaceFiles(root, path)
+    }
+    return entry.isFile() ? [path] : []
+  })
+}

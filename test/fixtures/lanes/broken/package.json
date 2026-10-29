@@ -1,0 +1,12 @@
+{
+  "name": "lanes-broken",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "test": "remix test --type server",
+    "lint": "node leak.ts",
+    "check:format": "node leak.ts --keep-output",
+    "check:secrets": "node leak.ts --keep-output --unmarked"
+  }
+}
