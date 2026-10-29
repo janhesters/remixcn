@@ -1262,6 +1262,9 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/sonner-example.tsx",
       "behavior": "https://sonner.emilkowal.ski",
       "dependsOn": [
+        "theme",
+        "styles",
+        "button",
         "toast"
       ],
       "upstreamImports": [
