@@ -17,6 +17,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { Client } from '@modelcontextprotocol/client'
+import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
 import * as assert from 'remix/assert'
 import { createAssetServer } from 'remix/assets'
 import { after, before, describe, it } from 'remix/test'
@@ -236,23 +238,62 @@ describe('the packed remixcn executable', () => {
     typecheck(app)
   })
 
-  it("lets shadcn's MCP server discover the registries remixcn init configures", { timeout: 60_000 }, async () => {
-    let app = createApp('mcp', {})
-    await remixcn(['init', '--cwd', app])
+  it(
+    "serves the registries remixcn init configures through its MCP server, as shadcn's MCP server finds them",
+    { timeout: 60_000 },
+    async () => {
+      let app = createApp('mcp', {})
+      await remixcn(['init', '--cwd', app])
+      let before = readdirSync(app, { recursive: true, encoding: 'utf8' }).sort()
 
-    let mcp = startMcp(shadcn, app)
-    try {
-      await mcp.initialize()
-      let list = await mcp.callTool('list_items_in_registries', { registries: ['@remixcn'] })
-      assert.ok(
-        list.includes('- button (registry:ui) - A button in the default and outline variants. [@remixcn]'),
-        list,
+      let client = new Client(
+        { name: 'remixcn-smoke-test', version: '1.0.0' },
+        { versionNegotiation: { mode: 'auto' } },
       )
+      await client.connect(
+        new StdioClientTransport({ command: process.execPath, args: [bin, 'mcp'], cwd: app, stderr: 'pipe' }),
+      )
+      try {
+        assert.equal(client.getNegotiatedProtocolVersion(), '2026-07-28')
+        assert.equal((await client.listTools()).tools.length, 7)
 
-      let search = await mcp.callTool('search_items_in_registries', { registries: ['@remixcn'], query: 'class names' })
-      assert.match(search, /cx/)
-    } finally {
-      mcp.close()
-    }
-  })
+        let call = async (name: string, args: Record<string, unknown>) => {
+          let result = await client.callTool({ name, arguments: args })
+          assert.equal(result.isError, false, JSON.stringify(result))
+          return (result.content as Array<{ text: string }>)[0].text
+        }
+        assert.match(await call('get_project_registries', {}), /- @remixcn\n/)
+        assert.match(
+          await call('list_items_in_registries', {}),
+          /- button \(registry:ui\) - A button in the default and outline variants\. \[@remixcn\]\n {2}Add command: `npx remixcn add button`/,
+        )
+        assert.match(await call('view_items_in_registries', { items: ['button'] }), /export function Button\(/)
+        assert.equal(
+          await call('get_add_command_for_items', { items: ['button', '@remixcn/cx'] }),
+          'npx remixcn add button cx',
+        )
+      } finally {
+        await client.close()
+      }
+      assert.deepEqual(readdirSync(app, { recursive: true, encoding: 'utf8' }).sort(), before)
+
+      let mcp = startMcp(shadcn, app)
+      try {
+        await mcp.initialize()
+        let list = await mcp.callTool('list_items_in_registries', { registries: ['@remixcn'] })
+        assert.ok(
+          list.includes('- button (registry:ui) - A button in the default and outline variants. [@remixcn]'),
+          list,
+        )
+
+        let search = await mcp.callTool('search_items_in_registries', {
+          registries: ['@remixcn'],
+          query: 'class names',
+        })
+        assert.match(search, /cx/)
+      } finally {
+        mcp.close()
+      }
+    },
+  )
 })

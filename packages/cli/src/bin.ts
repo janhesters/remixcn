@@ -16,9 +16,13 @@ async function confirm(question: string) {
   }
 }
 
+// A reader that closes stdout has gone, such as an MCP client: stop reading, so remixcn mcp ends.
+process.stdout.on('error', () => process.stdin.destroy())
+
 process.exitCode = await run(process.argv.slice(2), {
   stdout: (text) => process.stdout.write(text),
   stderr: (text) => process.stderr.write(text),
+  stdin: process.stdin,
   version,
   confirm: process.stdin.isTTY && process.stderr.isTTY ? confirm : undefined,
 })
