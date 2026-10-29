@@ -1,6 +1,9 @@
 {
   "$schema": "./node_modules/remix/schema/remix.json",
   "test": {
-    "exclude": ["**/node_modules/**", "**/dist/**", "test/fixtures/**"]
+    "exclude": ["**/node_modules/**", "**/dist/**", "test/fixtures/**"],
+    "playwright": {
+      "configFile": "./playwright.config.ts"
+    }
   }
 }
