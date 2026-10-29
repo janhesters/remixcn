@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://janhesters.github.io/remixcn/schema/components.json",
+  "title": "RemixCN components.json",
+  "description": "Where remixcn installs RemixCN items in a Remix 3 app. It follows shadcn's components.json without the Tailwind and React settings, and keeps any other field.",
+  "type": "object",
+  "required": ["version", "aliases"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "version": {
+      "description": "The RemixCN config version.",
+      "const": 1
+    },
+    "rsc": {
+      "description": "RemixCN components are not React Server Components.",
+      "const": false
+    },
+    "tsx": {
+      "description": "RemixCN ships TypeScript source.",
+      "const": true
+    },
+    "css": {
+      "description": "The theme stylesheet, relative to the app. Link it first in <head>.",
+      "type": "string"
+    },
+    "aliases": {
+      "description": "Import aliases that resolve through package.json imports or tsconfig.json paths to the directories items install in. Keep them under app/**/public/ so the browser can load them.",
+      "type": "object",
+      "required": ["ui", "lib", "components"],
+      "properties": {
+        "ui": { "description": "Components: @ui/ targets.", "type": "string", "minLength": 1 },
+        "lib": { "description": "Helpers, the theme and the license texts: @lib/ targets.", "type": "string", "minLength": 1 },
+        "components": { "description": "Recipes and examples: @components/ targets.", "type": "string", "minLength": 1 }
+      }
+    },
+    "registries": {
+      "description": "Registry namespaces and their item URL templates. remixcn adds @remixcn.",
+      "type": "object",
+      "propertyNames": { "pattern": "^@[a-z0-9][a-z0-9-]*$" },
+      "additionalProperties": {
+        "description": "An HTTPS URL with a {name} placeholder. Plain HTTP works only for localhost.",
+        "type": "string",
+        "pattern": "^(https://|http://(localhost|127\\.0\\.0\\.1|\\[::1\\])[:/]).*\\{name\\}"
+      }
+    }
+  },
+  "additionalProperties": true
+}

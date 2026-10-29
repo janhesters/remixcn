@@ -1,7 +1,7 @@
 // RemixCN's registry engine: the contracts registry.json keeps, the order an
 // item's dependencies install in, and the build of shadcn-format payloads.
 // The remixcn executable and the workspace scripts share it.
-import { checkImport, findTailwindDirectives } from './source.ts'
+import { checkImport, findTailwindDirectives, tailwindDirectiveProblem } from './source.ts'
 
 export const registrySchemaUrl = 'https://ui.shadcn.com/schema/registry.json'
 export const registryItemSchemaUrl = 'https://ui.shadcn.com/schema/registry-item.json'
@@ -63,7 +63,7 @@ export interface RegistrySource {
   imports: Map<string, string[]>
 }
 
-const shippedTypes = ['registry:ui', 'registry:component', 'registry:lib', 'registry:style', 'registry:file']
+export const shippedTypes = ['registry:ui', 'registry:component', 'registry:lib', 'registry:style', 'registry:file']
 const itemFields = new Set([
   '$schema',
   'name',
@@ -77,7 +77,7 @@ const itemFields = new Set([
   'docs',
   'categories',
 ])
-const itemName = /^[a-z0-9]+(-[a-z0-9]+)*$/
+export const itemName = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const licenseFiles = new Set(['LICENSE', 'THIRD_PARTY_NOTICES.md'])
 const registrySource = /^registry\/(ui|lib|examples)\/[a-z0-9]+(-[a-z0-9]+)*\.(tsx?|css)$/
 const aliasDirectories = { ui: '@ui', lib: '@lib', examples: '@components' } as const
@@ -87,7 +87,7 @@ const aliasImport = /^#remixcn\/(ui|lib)\/(.+)$/
  * A relative path that names a file inside its directory: no parent or empty
  * segments, no backslashes, home, drive or percent-encoded parts.
  */
-function isPlainPath(path: string) {
+export function isPlainPath(path: string): boolean {
   // Rejecting control characters is the point of this pattern.
   // oxlint-disable-next-line no-control-regex
   return !/[\\%~:\0-\x1f]/.test(path) && path.split('/').every((segment) => !['', '.', '..'].includes(segment))
@@ -132,12 +132,12 @@ function expectedItemType(entry: CatalogItem) {
     : { type: 'registry:lib', kind: 'catalog helper written in TypeScript' }
 }
 
-function isSafeTarget(target: string | undefined) {
+export function isSafeTarget(target: string | undefined): boolean {
   let match = /^@(ui|lib|components)\/(.+)$/.exec(target ?? '')
   return match !== null && isPlainPath(match[2])
 }
 
-function dependencyName(dependency: string) {
+export function dependencyName(dependency: string): string | undefined {
   return dependency.startsWith('@remixcn/') ? dependency.slice('@remixcn/'.length) : undefined
 }
 
@@ -210,7 +210,7 @@ function checkFile(item: RegistryItem, file: RegistryFile, source: RegistrySourc
 
   if (content !== undefined && file.path.endsWith('.css')) {
     for (let directive of findTailwindDirectives(content)) {
-      problems.push(`${item.name}: ${file.path}: ${directive} is a Tailwind directive, which shipped CSS must not use`)
+      problems.push(`${item.name}: ${file.path}: ${tailwindDirectiveProblem(directive)}`)
     }
   }
 
