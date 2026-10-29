@@ -78,3 +78,25 @@ export function transition(...properties: string[]): Styles {
 export const mirrorInRtl: Styles = {
   '&:dir(rtl)': { transform: 'scaleX(-1)' },
 }
+
+const inGroup = ':where([data-slot="button-group"])'
+const inRow = ':where([data-slot="button-group"][data-orientation="horizontal"])'
+const inColumn = ':where([data-slot="button-group"][data-orientation="vertical"])'
+
+/**
+ * Joins a control to its neighbors when it sits directly in a ButtonGroup:
+ * it drops the corners and the leading border it shares with another part,
+ * an input grows into the room a wider group gives it and shrinks on a narrow
+ * screen, and a focused part draws its ring above its neighbors. Only parts
+ * with a data-slot attribute count as neighbors. Merge it into the control's
+ * own css(), as Button does, so the group never styles its children from
+ * outside. Logical corners follow right-to-left text.
+ */
+export const buttonGroupItem: Styles = {
+  [`${inGroup} > &:focus-visible`]: { position: 'relative', zIndex: 1 },
+  [`${inGroup} > &:where(input)`]: { flex: '1 1 auto', minWidth: 0 },
+  [`${inRow} > &:has(~ [data-slot])`]: { borderStartEndRadius: 0, borderEndEndRadius: 0 },
+  [`${inRow} > [data-slot] ~ &`]: { borderStartStartRadius: 0, borderEndStartRadius: 0, borderInlineStartWidth: 0 },
+  [`${inColumn} > &:has(~ [data-slot])`]: { borderEndStartRadius: 0, borderEndEndRadius: 0 },
+  [`${inColumn} > [data-slot] ~ &`]: { borderStartStartRadius: 0, borderStartEndRadius: 0, borderBlockStartWidth: 0 },
+}

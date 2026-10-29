@@ -14,12 +14,17 @@ export interface IconProps {
    * hidden from assistive technology.
    */
   label?: string
+  /**
+   * Marks an icon that starts or ends a label, such as inside a Button, which
+   * then tightens the padding on that side.
+   */
+  'data-icon'?: 'inline-start' | 'inline-end'
 }
 
 /** Wraps stroke paths on a 24 by 24 grid in an SVG that scales with the font size and takes the text color. */
 export function Icon(handle: Handle<IconProps & { children?: RemixNode }>) {
   return () => {
-    let { label, children } = handle.props
+    let { label, children, 'data-icon': position } = handle.props
 
     return (
       <svg
@@ -35,6 +40,7 @@ export function Icon(handle: Handle<IconProps & { children?: RemixNode }>) {
         role={label ? 'img' : undefined}
         aria-label={label}
         aria-hidden={label ? undefined : 'true'}
+        data-icon={position}
       >
         {children}
       </svg>
@@ -44,7 +50,7 @@ export function Icon(handle: Handle<IconProps & { children?: RemixNode }>) {
 
 export function CheckIcon(handle: Handle<IconProps>) {
   return () => (
-    <Icon label={handle.props.label}>
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
       <path d="M5 12.5 9.5 17 19 7.5" />
     </Icon>
   )
@@ -53,7 +59,7 @@ export function CheckIcon(handle: Handle<IconProps>) {
 /** Points onward. Mirror it with mirrorInRtl from styles.ts in right-to-left text. */
 export function ChevronRightIcon(handle: Handle<IconProps>) {
   return () => (
-    <Icon label={handle.props.label}>
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
       <path d="M9.5 5.5 16 12l-6.5 6.5" />
     </Icon>
   )
@@ -61,7 +67,7 @@ export function ChevronRightIcon(handle: Handle<IconProps>) {
 
 export function CircleAlertIcon(handle: Handle<IconProps>) {
   return () => (
-    <Icon label={handle.props.label}>
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 7.5v5.5M12 16.5h.01" />
     </Icon>
