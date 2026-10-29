@@ -681,7 +681,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/field.tsx"
+      "target": "registry/ui/field.tsx",
+      "exampleTarget": "registry/examples/field-example.tsx"
     },
     {
       "name": "hover-card",
@@ -717,7 +718,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/input.tsx"
+      "target": "registry/ui/input.tsx",
+      "exampleTarget": "registry/examples/input-example.tsx"
     },
     {
       "name": "input-group",
@@ -812,7 +814,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/label.tsx"
+      "target": "registry/ui/label.tsx",
+      "exampleTarget": "registry/examples/label-example.tsx"
     },
     {
       "name": "marker",
@@ -916,7 +919,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/native-select.tsx"
+      "target": "registry/ui/native-select.tsx",
+      "exampleTarget": "registry/examples/native-select-example.tsx"
     },
     {
       "name": "navigation-menu",
@@ -1304,7 +1308,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/textarea.tsx"
+      "target": "registry/ui/textarea.tsx",
+      "exampleTarget": "registry/examples/textarea-example.tsx"
     },
     {
       "name": "toast",
