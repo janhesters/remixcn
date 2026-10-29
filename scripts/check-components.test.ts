@@ -15,7 +15,7 @@ describe('check:components', () => {
     let result = checkComponents('.')
 
     assert.equal(result.status, 0, result.stderr)
-    assert.match(result.stdout, /registry\/catalog\.json: 67 entries and 6 helpers in 8 batches/)
+    assert.match(result.stdout, /registry\/catalog\.json: 67 entries and 11 helpers in 8 batches/)
   })
 
   it('passes a registry that keeps the contracts', () => {

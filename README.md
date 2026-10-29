@@ -8,7 +8,7 @@ Site: https://janhesters.github.io/remixcn/ (not live yet)
 
 ## Status
 
-The workspace, the component inventory, the styling foundation, and the registry build are ready. `registry/catalog.json` lists the 67 planned entries and the batch each one lands in. `registry/lib/` holds the theme stylesheet with its light and dark tokens, the shared style conventions, and the icons, and `bun run style-reference` shows them on a synthetic page. `bun run build:registry` turns `registry.json` into a registry in shadcn's format; so far it ships only the license texts. No component, site page, CLI command, or MCP server is ready yet, and nothing is published.
+The workspace, the component inventory, the styling foundation, and the registry build are ready. `registry/catalog.json` lists the 67 planned entries and the batch each one lands in. `registry/lib/` holds the theme stylesheet with its light and dark tokens, the shared style conventions, and the icons, and `bun run style-reference` shows them on a synthetic page. It also holds the shared behavior helpers for the overlay and selection components: focus, dismissal, modal, keyboard navigation, and positioning. `bun run build:registry` turns `registry.json` into a registry in shadcn's format; so far it ships only the license texts. No component, site page, CLI command, or MCP server is ready yet, and nothing is published.
 
 ## Registry
 
@@ -32,6 +32,7 @@ Two of shadcn's install steps don't fit a Remix app:
 bun install --frozen-lockfile
 bun run typecheck
 bun run test
+bun run test:browser
 bun run build:registry
 ```
 
