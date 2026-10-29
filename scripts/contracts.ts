@@ -456,3 +456,89 @@ export function checkBrowserPackage(pkg: PackageJson): string[] {
   let extra = Object.keys(pkg.dependencies ?? {}).filter((name) => name !== 'remix')
   return extra.length > 0 ? [`${pkg.name}: dependencies may only list remix (${extra.join(', ')})`] : []
 }
+
+/** Lists the keys directly under a top-level block of a workflow, such as `on:`. */
+function readBlockKeys(workflow: string, block: string): string[] {
+  let lines = workflow.split('\n')
+  let start = lines.indexOf(`${block}:`)
+  if (start === -1) return []
+
+  let keys: string[] = []
+  for (let line of lines.slice(start + 1)) {
+    if (line !== '' && !line.startsWith(' ')) break
+    let key = /^ {2}([\w-]+):/.exec(line)?.[1]
+    if (key) keys.push(key)
+  }
+  return keys
+}
+
+function quoted(values: string[]) {
+  return values.map((value) => `"${value}"`).join(', ')
+}
+
+const publishing = [
+  /\b(?:npm|bun|yarn|pnpm) publish\b/,
+  /^\s*environment:/m,
+  /\bgh release\b/,
+  /actions\/deploy-pages@/,
+  /actions\/upload-pages-artifact@/,
+]
+
+/**
+ * Checks a GitHub Actions workflow against the CI contract: it runs for pull
+ * requests and main, only reads the repository, pins each action to a commit,
+ * runs on free hosted runners without secrets, publishes and deploys nothing,
+ * and keeps its diagnostics briefly.
+ */
+export function checkWorkflow(workflow: string): string[] {
+  let problems: string[] = []
+
+  for (let trigger of readBlockKeys(workflow, 'on')) {
+    if (trigger !== 'pull_request' && trigger !== 'push') {
+      problems.push(`trigger "${trigger}": CI runs only for pull requests and pushes`)
+    }
+  }
+  if (!/^ {2}push:\n {4}branches: \[main\]$/m.test(workflow))
+    problems.push('push must run for main only, as "branches: [main]"')
+
+  let writes = [...workflow.matchAll(/^\s*([\w-]+: write(?:-all)?)\s*$/gm)].map((match) => match[1])
+  if (!/^permissions:\n {2}contents: read\n(?! )/m.test(workflow) || writes.length > 0) {
+    let found = writes.length > 0 ? ` (${quoted(writes)})` : ''
+    problems.push(`permissions must be "contents: read" only, and no job asks for write access${found}`)
+  }
+
+  for (let [, runner] of workflow.matchAll(/^\s*runs-on:\s*(.+?)\s*$/gm)) {
+    if (runner !== 'ubuntu-24.04') {
+      problems.push(
+        `runs-on "${runner}": use ubuntu-24.04, a standard hosted runner that is free for public repositories`,
+      )
+    }
+  }
+
+  for (let [, action] of workflow.matchAll(/^\s*(?:- )?uses:\s*([^\s#]+)/gm)) {
+    if (!/^[\w.-]+\/[\w./-]+@[0-9a-f]{40}$/.test(action))
+      problems.push(`"${action}": pin each action to a full commit SHA`)
+  }
+
+  if (/^\s*restore-keys:/m.test(workflow)) {
+    problems.push('restore-keys: caches restore their exact key only, so a cache from another lockfile never stands in')
+  }
+
+  let secrets = [...workflow.matchAll(/\$\{\{\s*(secrets\.[\w-]+)/g)].map((match) => match[1])
+  if (secrets.length > 0) problems.push(`workflows read no secrets (${quoted(secrets)})`)
+
+  let published = publishing.flatMap((pattern) => pattern.exec(workflow)?.[0].trim() ?? [])
+  if (published.length > 0) problems.push(`workflows publish and deploy nothing (${quoted(published)})`)
+
+  let uploads = workflow.match(/uses:\s*actions\/upload-artifact@/g)?.length ?? 0
+  let limits = [...workflow.matchAll(/^\s*retention-days:\s*(\d+)/gm)].map((match) => Number(match[1]))
+  if (limits.length < uploads) {
+    let counts = `${uploads} upload${uploads === 1 ? '' : 's'}, ${limits.length} limit${limits.length === 1 ? '' : 's'}`
+    problems.push(`each upload-artifact step sets retention-days (${counts})`)
+  }
+  for (let days of limits.filter((days) => days > 14)) {
+    problems.push(`retention-days ${days}: keep diagnostics for 14 days at most`)
+  }
+
+  return problems
+}

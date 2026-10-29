@@ -1,0 +1,106 @@
+# Checks every pull request and every push to main. It needs no secrets, only
+# reads the repository, publishes and deploys nothing, and runs on GitHub's
+# free hosted runners. scripts/check.ts plans and runs the lanes, the same
+# way `bun run check` does locally.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  plan:
+    name: Plan the lanes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.3.0
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: bun install --frozen-lockfile
+      # Lists the built lanes as the matrix below. Lanes that aren't built yet
+      # show up as notices and in the run summary, never as passing jobs.
+      - id: plan
+        run: bun run check --plan
+
+  lane:
+    name: ${{ matrix.name }}
+    needs: plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      LANE: ${{ matrix.lane }}
+      PROJECT: ${{ matrix.project }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node }}
+          package-manager-cache: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: package.json
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lock') }}
+      - run: bun install --frozen-lockfile
+
+      - name: Read the Playwright version
+        id: playwright
+        if: matrix.project
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+      - name: Cache the browser
+        if: matrix.project
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ matrix.project }}
+      - name: Install the browser and its system libraries
+        if: matrix.project
+        run: node_modules/.bin/playwright install --with-deps "$PROJECT"
+
+      - name: Run the lane
+        run: bun run check "$LANE" ${PROJECT:+--project "$PROJECT"} --diagnostics .diagnostics
+
+      # Diagnostics come from fixtures with invented data. They are uploaded
+      # only after a check finds no credentials in them.
+      - name: Check the diagnostics for credentials
+        id: scan
+        if: failure() && hashFiles('.diagnostics/**') != ''
+        run: node scripts/check-secrets.ts .diagnostics
+      - name: Upload the diagnostics
+        if: failure() && steps.scan.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: diagnostics-${{ matrix.lane }}-${{ matrix.project || matrix.node }}
+          path: .diagnostics
+          retention-days: 7
+          if-no-files-found: ignore
