@@ -713,7 +713,8 @@
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/hover-card.tsx"
+      "target": "registry/ui/hover-card.tsx",
+      "exampleTarget": "registry/examples/hover-card-example.tsx"
     },
     {
       "name": "input",
@@ -1004,7 +1005,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/popover.tsx"
+      "target": "registry/ui/popover.tsx",
+      "exampleTarget": "registry/examples/popover-example.tsx"
     },
     {
       "name": "progress",
@@ -1433,7 +1435,8 @@
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/tooltip.tsx"
+      "target": "registry/ui/tooltip.tsx",
+      "exampleTarget": "registry/examples/tooltip-example.tsx"
     },
     {
       "name": "trace",
