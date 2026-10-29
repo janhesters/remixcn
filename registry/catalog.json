@@ -125,13 +125,16 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/alert.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/alert",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/alert-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "class-variance-authority",
         "cn",
         "react"
       ],
-      "target": "registry/ui/alert.tsx"
+      "target": "registry/ui/alert.tsx",
+      "exampleTarget": "registry/examples/alert-example.tsx"
     },
     {
       "name": "alert-dialog",
@@ -160,11 +163,14 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/aspect-ratio.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/aspect-ratio",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/aspect-ratio-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "cn"
       ],
-      "target": "registry/ui/aspect-ratio.tsx"
+      "target": "registry/ui/aspect-ratio.tsx",
+      "exampleTarget": "registry/examples/aspect-ratio-example.tsx"
     },
     {
       "name": "attachment",
@@ -194,13 +200,16 @@
       "docs": "https://ui.shadcn.com/docs/components/base/avatar",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/avatar-example.tsx",
       "behavior": "https://base-ui.com/react/components/avatar.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "react"
       ],
-      "target": "registry/ui/avatar.tsx"
+      "target": "registry/ui/avatar.tsx",
+      "exampleTarget": "registry/examples/avatar-example.tsx"
     },
     {
       "name": "badge",
@@ -210,13 +219,17 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/badge.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/badge",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/badge-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "class-variance-authority",
         "cn"
       ],
-      "target": "registry/ui/badge.tsx"
+      "target": "registry/ui/badge.tsx",
+      "exampleTarget": "registry/examples/badge-example.tsx"
     },
     {
       "name": "breadcrumb",
@@ -226,14 +239,19 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/breadcrumb.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/breadcrumb",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/breadcrumb-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "icons"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/breadcrumb.tsx"
+      "target": "registry/ui/breadcrumb.tsx",
+      "exampleTarget": "registry/examples/breadcrumb-example.tsx"
     },
     {
       "name": "bubble",
@@ -320,12 +338,15 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/card.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/card",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/card-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "cn",
         "react"
       ],
-      "target": "registry/ui/card.tsx"
+      "target": "registry/ui/card.tsx",
+      "exampleTarget": "registry/examples/card-example.tsx"
     },
     {
       "name": "carousel",
@@ -550,11 +571,14 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/direction.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/direction",
       "behavior": "https://base-ui.com/react/utils/direction-provider.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react"
       ],
-      "target": "registry/ui/direction.tsx"
+      "target": "registry/ui/direction.tsx",
+      "exampleTarget": "registry/examples/direction-example.tsx"
     },
     {
       "name": "drawer",
@@ -599,12 +623,15 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/empty.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/empty",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/empty-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "class-variance-authority",
         "cn"
       ],
-      "target": "registry/ui/empty.tsx"
+      "target": "registry/ui/empty.tsx",
+      "exampleTarget": "registry/examples/empty-example.tsx"
     },
     {
       "name": "field",
@@ -704,6 +731,8 @@
       "docs": "https://ui.shadcn.com/docs/components/base/item",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/item-example.tsx",
       "dependsOn": [
+        "theme",
+        "styles",
         "separator"
       ],
       "upstreamImports": [
@@ -712,7 +741,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/item.tsx"
+      "target": "registry/ui/item.tsx",
+      "exampleTarget": "registry/examples/item-example.tsx"
     },
     {
       "name": "kbd",
@@ -722,11 +752,14 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/kbd.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/kbd",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/kbd-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "cn"
       ],
-      "target": "registry/ui/kbd.tsx"
+      "target": "registry/ui/kbd.tsx",
+      "exampleTarget": "registry/examples/kbd-example.tsx"
     },
     {
       "name": "label",
@@ -893,12 +926,16 @@
       "docs": "https://ui.shadcn.com/docs/components/base/progress",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/progress-example.tsx",
       "behavior": "https://base-ui.com/react/components/progress.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/progress.tsx"
+      "target": "registry/ui/progress.tsx",
+      "exampleTarget": "registry/examples/progress-example.tsx"
     },
     {
       "name": "questionnaire",
@@ -1003,12 +1040,15 @@
       "docs": "https://ui.shadcn.com/docs/components/base/separator",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/separator-example.tsx",
       "behavior": "https://base-ui.com/react/components/separator.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/separator.tsx"
+      "target": "registry/ui/separator.tsx",
+      "exampleTarget": "registry/examples/separator-example.tsx"
     },
     {
       "name": "sheet",
@@ -1064,11 +1104,14 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/skeleton.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/skeleton",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/skeleton-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "cn"
       ],
-      "target": "registry/ui/skeleton.tsx"
+      "target": "registry/ui/skeleton.tsx",
+      "exampleTarget": "registry/examples/skeleton-example.tsx"
     },
     {
       "name": "slider",
@@ -1119,12 +1162,15 @@
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/spinner.tsx",
       "docs": "https://ui.shadcn.com/docs/components/base/spinner",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/spinner-example.tsx",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [
         "cn",
         "icon-placeholder"
       ],
-      "target": "registry/ui/spinner.tsx"
+      "target": "registry/ui/spinner.tsx",
+      "exampleTarget": "registry/examples/spinner-example.tsx"
     },
     {
       "name": "switch",
@@ -1287,7 +1333,9 @@
       "batch": 1,
       "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/content/docs/components/base/typography.mdx",
       "docs": "https://ui.shadcn.com/docs/components/base/typography",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme"
+      ],
       "upstreamImports": [],
       "target": "registry/examples/typography.tsx"
     }

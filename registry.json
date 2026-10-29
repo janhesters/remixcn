@@ -14,6 +14,46 @@
       ]
     },
     {
+      "name": "alert",
+      "type": "registry:ui",
+      "title": "Alert",
+      "description": "A callout with an optional icon, title, description and action, whose live role follows the message's urgency.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/alert.tsx", "type": "registry:ui", "target": "@ui/alert.tsx" }]
+    },
+    {
+      "name": "aspect-ratio",
+      "type": "registry:ui",
+      "title": "Aspect Ratio",
+      "description": "Keeps its content at a width-to-height ratio with the native aspect-ratio property.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/aspect-ratio.tsx", "type": "registry:ui", "target": "@ui/aspect-ratio.tsx" }]
+    },
+    {
+      "name": "avatar",
+      "type": "registry:ui",
+      "title": "Avatar",
+      "description": "An image with a fallback while it loads or when it fails, plus a corner badge, groups and a count.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/avatar.tsx", "type": "registry:ui", "target": "@ui/avatar.tsx" }]
+    },
+    {
+      "name": "badge",
+      "type": "registry:ui",
+      "title": "Badge",
+      "description": "A small label in six variants, and badgeVariants() for links that look like badges.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/badge.tsx", "type": "registry:ui", "target": "@ui/badge.tsx" }]
+    },
+    {
+      "name": "breadcrumb",
+      "type": "registry:ui",
+      "title": "Breadcrumb",
+      "description": "A navigation landmark with an ordered list of native links, separators, the current page and an ellipsis.",
+      "registryDependencies": ["@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/breadcrumb.tsx", "type": "registry:ui", "target": "@ui/breadcrumb.tsx" }]
+    },
+    {
       "name": "button",
       "type": "registry:ui",
       "title": "Button",
@@ -30,12 +70,60 @@
       "files": [{ "path": "registry/ui/button-group.tsx", "type": "registry:ui", "target": "@ui/button-group.tsx" }]
     },
     {
+      "name": "card",
+      "type": "registry:ui",
+      "title": "Card",
+      "description": "A surface with a header, title, description, action, content and footer, in two sizes.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/card.tsx", "type": "registry:ui", "target": "@ui/card.tsx" }]
+    },
+    {
       "name": "code-block",
       "type": "registry:ui",
       "title": "Code Block",
       "description": "Code, terminal output and diffs as escaped text, with a header, line numbers, line variants, your own highlighter's tokens and a copy button.",
       "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/code-block.tsx", "type": "registry:ui", "target": "@ui/code-block.tsx" }]
+    },
+    {
+      "name": "direction",
+      "type": "registry:ui",
+      "title": "Direction",
+      "description": "Sets the text direction of a subtree with the native dir attribute, and reads it while rendering or in the browser.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/direction.tsx", "type": "registry:ui", "target": "@ui/direction.tsx" }]
+    },
+    {
+      "name": "empty",
+      "type": "registry:ui",
+      "title": "Empty",
+      "description": "Shows that there is nothing here yet, with media, a title, a description and actions.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/empty.tsx", "type": "registry:ui", "target": "@ui/empty.tsx" }]
+    },
+    {
+      "name": "item",
+      "type": "registry:ui",
+      "title": "Item",
+      "description": "A row with media, a title, a description and actions, in groups that are lists, and itemVariants() for links.",
+      "registryDependencies": ["@remixcn/separator", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/item.tsx", "type": "registry:ui", "target": "@ui/item.tsx" }]
+    },
+    {
+      "name": "kbd",
+      "type": "registry:ui",
+      "title": "Kbd",
+      "description": "Native kbd elements for single keys and key combinations.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/kbd.tsx", "type": "registry:ui", "target": "@ui/kbd.tsx" }]
+    },
+    {
+      "name": "progress",
+      "type": "registry:ui",
+      "title": "Progress",
+      "description": "A progress bar with a label and a formatted value, determinate or indeterminate.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/progress.tsx", "type": "registry:ui", "target": "@ui/progress.tsx" }]
     },
     {
       "name": "resizable",
@@ -54,12 +142,46 @@
       "files": [{ "path": "registry/ui/scroll-area.tsx", "type": "registry:ui", "target": "@ui/scroll-area.tsx" }]
     },
     {
+      "name": "separator",
+      "type": "registry:ui",
+      "title": "Separator",
+      "description": "A horizontal or vertical line, meaningful or decorative.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/separator.tsx", "type": "registry:ui", "target": "@ui/separator.tsx" }]
+    },
+    {
+      "name": "skeleton",
+      "type": "registry:ui",
+      "title": "Skeleton",
+      "description": "A placeholder shape that pulses while content loads, hidden from assistive technology.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/skeleton.tsx", "type": "registry:ui", "target": "@ui/skeleton.tsx" }]
+    },
+    {
       "name": "slider",
       "type": "registry:ui",
       "title": "Slider",
       "description": "One or more native range-input thumbs on a shared track: horizontal or vertical, right-to-left, keyboard and pointer, one form value per thumb.",
       "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/slider.tsx", "type": "registry:ui", "target": "@ui/slider.tsx" }]
+    },
+    {
+      "name": "spinner",
+      "type": "registry:ui",
+      "title": "Spinner",
+      "description": "A turning ring with a status name, or decorative next to text that says what is pending.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/spinner.tsx", "type": "registry:ui", "target": "@ui/spinner.tsx" }]
+    },
+    {
+      "name": "typography",
+      "type": "registry:component",
+      "title": "Typography",
+      "description": "Styles for headings, paragraphs, quotes, lists, inline code, links and tables, as mixins for native elements.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [
+        { "path": "registry/examples/typography.tsx", "type": "registry:component", "target": "@components/typography.tsx" }
+      ]
     },
     {
       "name": "icons",
