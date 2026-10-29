@@ -393,3 +393,26 @@ export function findScriptImports(source: string, options: { jsx?: boolean } = {
     ),
   ]
 }
+
+export function tailwindDirectiveProblem(directive: string): string {
+  return `${directive} is a Tailwind directive, which shipped CSS must not use`
+}
+
+const scriptPath = /\.[cm]?[jt]sx?$/
+
+/**
+ * Lists how a source file breaks the rules registry source keeps: an import
+ * other than remix/component and the #remixcn aliases, or a Tailwind
+ * directive in CSS. The installer checks every file it copies with it.
+ */
+export function checkSourceContent(path: string, content: string): string[] {
+  let imports = path.endsWith('.css')
+    ? findCssImports(content)
+    : scriptPath.test(path)
+      ? findScriptImports(content, { jsx: allowsJsx(path) })
+      : []
+  return [
+    ...imports.flatMap((specifier) => checkImport(specifier, { allowRelative: false }) ?? []),
+    ...(path.endsWith('.css') ? findTailwindDirectives(content).map(tailwindDirectiveProblem) : []),
+  ]
+}
