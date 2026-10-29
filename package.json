@@ -47,7 +47,9 @@
     "build:registry": "node scripts/build-registry.ts",
     "check:build": "node scripts/check-build.ts",
     "style-reference": "node --import remix/node-tsx test/fixtures/style-reference/server.tsx",
-    "capture:style-reference": "node --import remix/node-tsx test/fixtures/style-reference/capture.ts"
+    "capture:style-reference": "node --import remix/node-tsx test/fixtures/style-reference/capture.ts",
+    "button-examples": "node --import remix/node-tsx test/fixtures/button/server.tsx",
+    "capture:button-examples": "node --import remix/node-tsx test/fixtures/button/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
