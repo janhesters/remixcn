@@ -5,6 +5,7 @@ import type { TestContext } from 'remix/test'
 
 import { contrastRatio } from '../scripts/color.ts'
 import { findAccessibilityViolations } from './accessibility.ts'
+import { paintColors, toRgba } from './paint.ts'
 import { createDisplayExamples } from './fixtures/display/server.tsx'
 
 // Pages open with reduced motion, so transitions take 0s and animations stay
@@ -58,48 +59,6 @@ function avatarState(page: Page, selector: string) {
       }
     })
 }
-
-/** Paints each element's background and text on a canvas, as the browser composites them, and returns sRGB bytes. */
-function paintColors(page: Page, selector: string) {
-  return page.locator(selector).evaluateAll((elements) => {
-    let canvas = document.createElement('canvas')
-    canvas.width = canvas.height = 1
-    let context = canvas.getContext('2d', { willReadFrequently: true })!
-    let paint = (color: string) => {
-      // A canvas that can't parse a color keeps its previous fill, so fail instead of measuring that.
-      context.fillStyle = '#010203'
-      context.fillStyle = color
-      if (context.fillStyle === '#010203') throw new Error(`The canvas can't paint ${color}`)
-      context.fillRect(0, 0, 1, 1)
-    }
-    let read = () => [...context.getImageData(0, 0, 1, 1).data]
-    let isOpaque = (color: string) => {
-      context.clearRect(0, 0, 1, 1)
-      paint(color)
-      return read()[3] === 255
-    }
-
-    return elements.map((element) => {
-      let layers: string[] = []
-      for (let node: Element | null = element; node; node = node.parentElement) {
-        let background = getComputedStyle(node).backgroundColor
-        layers.unshift(background)
-        if (isOpaque(background)) break
-      }
-      context.clearRect(0, 0, 1, 1)
-      for (let layer of layers) paint(layer)
-      let background = read()
-      paint(getComputedStyle(element).color)
-      return {
-        label: `${element.getAttribute('data-slot')}: ${element.textContent?.trim().slice(0, 30)}`,
-        background,
-        text: read(),
-      }
-    })
-  })
-}
-
-const toRgba = ([r, g, b]: number[]) => ({ r: r / 255, g: g / 255, b: b / 255, alpha: 1 })
 
 describe('Display and feedback examples', () => {
   it('pass axe-core WCAG 2.2 A and AA checks, in both color schemes', async (t) => {
