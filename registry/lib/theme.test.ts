@@ -115,7 +115,18 @@ describe('theme.css', () => {
     assert.match(tokens.get('font-sans')?.light ?? '', /^ui-sans-serif, system-ui, sans-serif/)
     assert.match(tokens.get('font-mono')?.light ?? '', /^ui-monospace, .*monospace$/)
 
-    for (let name of ['text-xs', 'text-sm', 'text-base', 'text-lg', 'text-xl', 'text-2xl', 'text-3xl', 'text-4xl', 'spacing', 'radius']) {
+    for (let name of [
+      'text-xs',
+      'text-sm',
+      'text-base',
+      'text-lg',
+      'text-xl',
+      'text-2xl',
+      'text-3xl',
+      'text-4xl',
+      'spacing',
+      'radius',
+    ]) {
       assert.match(tokens.get(name)?.light ?? '', /^[\d.]+rem$/, name)
     }
   })

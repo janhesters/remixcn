@@ -452,8 +452,8 @@ export function StyleReference(handle: Handle<{ stylesheets: string[] }>) {
             <h1 mix={titleStyles}>RemixCN style reference</h1>
             <p>The theme tokens, text, surfaces, focus and form states every component uses.</p>
             <p mix={mutedStyles}>
-              A synthetic test fixture, not the public site. The page follows your system theme; the panels under
-              Themes set theirs with data-theme.
+              A synthetic test fixture, not the public site. The page follows your system theme; the panels under Themes
+              set theirs with data-theme.
             </p>
           </header>
 

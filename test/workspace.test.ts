@@ -172,7 +172,11 @@ describe('contributor docs and credits', () => {
     let notices = read('THIRD_PARTY_NOTICES.md')
 
     assert.match(read('LICENSE'), /^Copyright \(c\) 2026 Jan Hesters$/m)
-    for (let copyright of ['Copyright (c) 2023 shadcn', 'Copyright (c) 2019 Material-UI SAS', 'Copyright (c) 2025 Shopify Inc.']) {
+    for (let copyright of [
+      'Copyright (c) 2023 shadcn',
+      'Copyright (c) 2019 Material-UI SAS',
+      'Copyright (c) 2025 Shopify Inc.',
+    ]) {
       assert.ok(notices.includes(copyright), copyright)
     }
   })

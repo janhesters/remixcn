@@ -181,7 +181,10 @@ describe('the built registry', () => {
   before(async () => {
     scratch = mkdtempSync(join(tmpdir(), 'remixcn-registry-'))
     out = join(scratch, 'site/r')
-    let build = spawnSync(process.execPath, ['scripts/build-registry.ts', fixture, '--out', out], { cwd: root, encoding: 'utf8' })
+    let build = spawnSync(process.execPath, ['scripts/build-registry.ts', fixture, '--out', out], {
+      cwd: root,
+      encoding: 'utf8',
+    })
     assert.equal(build.status, 0, build.stderr)
     registry = await serveRegistry(out, '/remixcn/r/')
   })
@@ -209,7 +212,9 @@ describe('the built registry', () => {
 
   it("passes shadcn's registry validator, as does the workspace registry.json", { timeout: 60_000 }, () => {
     for (let workspace of [fixture, root]) {
-      let result = spawnSync(process.execPath, [shadcn, 'registry', 'validate', '--cwd', workspace], { encoding: 'utf8' })
+      let result = spawnSync(process.execPath, [shadcn, 'registry', 'validate', '--cwd', workspace], {
+        encoding: 'utf8',
+      })
 
       assert.equal(result.status, 0, result.stdout + result.stderr)
       assert.match(result.stdout + result.stderr, /Registry is valid/)
@@ -243,75 +248,89 @@ describe('the built registry', () => {
     }
   })
 
-  it('installs a component with its helper, tokens and license texts into a Remix app that compiles', { timeout: 60_000 }, async () => {
-    let app = createApp('remixcn-install')
+  it(
+    'installs a component with its helper, tokens and license texts into a Remix app that compiles',
+    { timeout: 60_000 },
+    async () => {
+      let app = createApp('remixcn-install')
 
-    let installed = await install(registry.url, 'button', app)
+      let installed = await install(registry.url, 'button', app)
 
-    assert.deepEqual(installed, ['button', 'cx', 'licenses', 'theme'])
-    let button = readFileSync(join(app, 'app/ui/public/components/ui/button.tsx'), 'utf8')
-    assert.match(button, /^\/\/ RemixCN Button: https:\/\/janhesters\.github\.io\/remixcn\/\n/)
-    assert.match(button, /import \{ cx \} from '\.\.\/\.\.\/lib\/cx\.ts'/)
-    for (let [path, source] of [
-      ['app/ui/public/lib/theme.css', 'registry/lib/theme.css'],
-      ['app/ui/public/lib/remixcn/LICENSE', 'LICENSE'],
-      ['app/ui/public/lib/remixcn/THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_NOTICES.md'],
-    ]) {
-      assert.equal(readFileSync(join(app, path), 'utf8'), readFileSync(join(fixture, source), 'utf8'), path)
-    }
+      assert.deepEqual(installed, ['button', 'cx', 'licenses', 'theme'])
+      let button = readFileSync(join(app, 'app/ui/public/components/ui/button.tsx'), 'utf8')
+      assert.match(button, /^\/\/ RemixCN Button: https:\/\/janhesters\.github\.io\/remixcn\/\n/)
+      assert.match(button, /import \{ cx \} from '\.\.\/\.\.\/lib\/cx\.ts'/)
+      for (let [path, source] of [
+        ['app/ui/public/lib/theme.css', 'registry/lib/theme.css'],
+        ['app/ui/public/lib/remixcn/LICENSE', 'LICENSE'],
+        ['app/ui/public/lib/remixcn/THIRD_PARTY_NOTICES.md', 'THIRD_PARTY_NOTICES.md'],
+      ]) {
+        assert.equal(readFileSync(join(app, path), 'utf8'), readFileSync(join(fixture, source), 'utf8'), path)
+      }
 
-    mkdirSync(join(app, 'app/actions/public'), { recursive: true })
-    writeFileSync(
-      join(app, 'app/actions/public/save-button.tsx'),
-      "import { Button } from '../../ui/public/components/ui/button.tsx'\n\nexport function SaveButton() {\n  return () => <Button label=\"Save\" variant=\"outline\" />\n}\n",
-    )
-    let result = typecheck(app)
-    assert.equal(result.status, 0, result.stdout + result.stderr)
+      mkdirSync(join(app, 'app/actions/public'), { recursive: true })
+      writeFileSync(
+        join(app, 'app/actions/public/save-button.tsx'),
+        'import { Button } from \'../../ui/public/components/ui/button.tsx\'\n\nexport function SaveButton() {\n  return () => <Button label="Save" variant="outline" />\n}\n',
+      )
+      let result = typecheck(app)
+      assert.equal(result.status, 0, result.stdout + result.stderr)
 
-    let assets = createAssetServer({
-      basePath: '/assets',
-      rootDir: app,
-      allowFiles: ['app/**/public/**'],
-      allowPackages: ['remix'],
-      watch: false,
-    })
-    async function compile(url: string) {
-      let response = await assets.fetch(new Request(new URL(url, 'http://localhost/')))
-      assert.equal(response?.status, 200, url)
-      return (await response?.text()) ?? ''
-    }
-    try {
-      let button = await compile('/assets/app/ui/public/components/ui/button.tsx')
-      let helper = /from\s*["']([^"']*\/lib\/cx\.ts[^"']*)["']/.exec(button)?.[1]
-      assert.ok(helper, button)
-      await compile(new URL(helper, 'http://localhost/assets/app/ui/public/components/ui/').pathname)
-      await compile('/assets/app/ui/public/lib/theme.css')
-    } finally {
-      await assets.close()
-    }
-  })
+      let assets = createAssetServer({
+        basePath: '/assets',
+        rootDir: app,
+        allowFiles: ['app/**/public/**'],
+        allowPackages: ['remix'],
+        watch: false,
+      })
+      async function compile(url: string) {
+        let response = await assets.fetch(new Request(new URL(url, 'http://localhost/')))
+        assert.equal(response?.status, 200, url)
+        return (await response?.text()) ?? ''
+      }
+      try {
+        let button = await compile('/assets/app/ui/public/components/ui/button.tsx')
+        let helper = /from\s*["']([^"']*\/lib\/cx\.ts[^"']*)["']/.exec(button)?.[1]
+        assert.ok(helper, button)
+        await compile(new URL(helper, 'http://localhost/assets/app/ui/public/components/ui/').pathname)
+        await compile('/assets/app/ui/public/lib/theme.css')
+      } finally {
+        await assets.close()
+      }
+    },
+  )
 
-  it("installs with shadcn's CLI, which drops the license header and keeps the #remixcn/ imports", { timeout: 120_000 }, async () => {
-    let app = createApp('shadcn-add', true)
-    let source = (path: string) => readFileSync(join(fixture, path), 'utf8')
+  it(
+    "installs with shadcn's CLI, which drops the license header and keeps the #remixcn/ imports",
+    { timeout: 120_000 },
+    async () => {
+      let app = createApp('shadcn-add', true)
+      let source = (path: string) => readFileSync(join(fixture, path), 'utf8')
 
-    let result = await runNode([shadcn, 'add', '@remixcn/button', '--yes'], app)
+      let result = await runNode([shadcn, 'add', '@remixcn/button', '--yes'], app)
 
-    assert.equal(result.status, 0, result.output)
-    let button = readFileSync(join(app, 'app/ui/public/components/ui/button.tsx'), 'utf8')
-    let buttonSource = source('registry/ui/button.tsx')
-    assert.equal(button, buttonSource.slice(buttonSource.indexOf('import ')))
-    assert.equal(readFileSync(join(app, 'app/ui/public/lib/cx.ts'), 'utf8'), source('registry/lib/cx.ts').replace(/^(\/\/.*\n)+/, ''))
-    assert.equal(readFileSync(join(app, 'app/ui/public/lib/theme.css'), 'utf8'), source('registry/lib/theme.css'))
-    assert.equal(readFileSync(join(app, 'app/ui/public/lib/remixcn/LICENSE'), 'utf8'), source('LICENSE'))
-    assert.equal(readFileSync(join(app, 'app/ui/public/lib/remixcn/THIRD_PARTY_NOTICES.md'), 'utf8'), source('THIRD_PARTY_NOTICES.md'))
+      assert.equal(result.status, 0, result.output)
+      let button = readFileSync(join(app, 'app/ui/public/components/ui/button.tsx'), 'utf8')
+      let buttonSource = source('registry/ui/button.tsx')
+      assert.equal(button, buttonSource.slice(buttonSource.indexOf('import ')))
+      assert.equal(
+        readFileSync(join(app, 'app/ui/public/lib/cx.ts'), 'utf8'),
+        source('registry/lib/cx.ts').replace(/^(\/\/.*\n)+/, ''),
+      )
+      assert.equal(readFileSync(join(app, 'app/ui/public/lib/theme.css'), 'utf8'), source('registry/lib/theme.css'))
+      assert.equal(readFileSync(join(app, 'app/ui/public/lib/remixcn/LICENSE'), 'utf8'), source('LICENSE'))
+      assert.equal(
+        readFileSync(join(app, 'app/ui/public/lib/remixcn/THIRD_PARTY_NOTICES.md'), 'utf8'),
+        source('THIRD_PARTY_NOTICES.md'),
+      )
 
-    let strict = typecheck(app)
-    assert.match(strict.stdout, /button\.tsx\(\d+,\d+\): error TS2877/)
+      let strict = typecheck(app)
+      assert.match(strict.stdout, /button\.tsx\(\d+,\d+\): error TS2877/)
 
-    let tsconfig = readFileSync(join(app, 'tsconfig.json'), 'utf8')
-    writeFileSync(join(app, 'tsconfig.json'), tsconfig.replace(/\s*"rewriteRelativeImportExtensions": true,/, ''))
-    let relaxed = typecheck(app)
-    assert.equal(relaxed.status, 0, relaxed.stdout + relaxed.stderr)
-  })
+      let tsconfig = readFileSync(join(app, 'tsconfig.json'), 'utf8')
+      writeFileSync(join(app, 'tsconfig.json'), tsconfig.replace(/\s*"rewriteRelativeImportExtensions": true,/, ''))
+      let relaxed = typecheck(app)
+      assert.equal(relaxed.status, 0, relaxed.stdout + relaxed.stderr)
+    },
+  )
 })

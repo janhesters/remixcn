@@ -7,7 +7,8 @@ import { buildRegistry, checkRegistry, checkSourcePath, dependencyClosure } from
 import type { RegistryItem, RegistrySource } from './registry.ts'
 
 const homepage = 'https://janhesters.github.io/remixcn/'
-const shadcnFile = 'https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base'
+const shadcnFile =
+  'https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base'
 
 function catalogItem(name: string, title: string, kind: CatalogItem['kind'], target: string): CatalogItem {
   return {
@@ -138,7 +139,10 @@ describe('checkRegistry', () => {
   it('keeps the name registry for the index', () => {
     let problems = problemsAfter((source) => source.registry.items.push({ ...licenses(), name: 'registry', files: [] }))
 
-    assert.ok(problems.includes('registry: the index is registry.json, so no item may take this name'), problems.join('\n'))
+    assert.ok(
+      problems.includes('registry: the index is registry.json, so no item may take this name'),
+      problems.join('\n'),
+    )
   })
 
   it('rejects two files that install to the same target', () => {
@@ -266,7 +270,13 @@ describe('checkRegistry', () => {
   })
 
   it('rejects targets that leave their install directory', () => {
-    for (let target of ['@ui/../../button.tsx', '~/button.tsx', '/tmp/button.tsx', '@ui/./button.tsx', 'C:\\button.tsx']) {
+    for (let target of [
+      '@ui/../../button.tsx',
+      '~/button.tsx',
+      '/tmp/button.tsx',
+      '@ui/./button.tsx',
+      'C:\\button.tsx',
+    ]) {
       let problems = problemsAfter((source) => {
         file(source, 'button').target = target
       })
@@ -314,7 +324,9 @@ describe('checkRegistry', () => {
   })
 
   it('rejects npm packages, Node built-ins and relative paths in shipped imports', () => {
-    let problems = problemsAfter((source) => source.imports.get('registry/ui/button.tsx')?.push('lodash', 'node:fs', '../lib/cx.ts'))
+    let problems = problemsAfter((source) =>
+      source.imports.get('registry/ui/button.tsx')?.push('lodash', 'node:fs', '../lib/cx.ts'),
+    )
 
     assert.deepEqual(problems, [
       'button: registry/ui/button.tsx: "lodash": browser-reachable source imports only remix/component and #remixcn/ui/ or #remixcn/lib/ files',
@@ -326,7 +338,9 @@ describe('checkRegistry', () => {
   it('rejects Tailwind directives in shipped CSS', () => {
     let problems = problemsAfter((source) => source.files.set('registry/lib/theme.css', '@tailwind base;\n'))
 
-    assert.deepEqual(problems, ['theme: registry/lib/theme.css: @tailwind is a Tailwind directive, which shipped CSS must not use'])
+    assert.deepEqual(problems, [
+      'theme: registry/lib/theme.css: @tailwind is a Tailwind directive, which shipped CSS must not use',
+    ])
   })
 
   it('requires every item with registry source to install the license texts', () => {
@@ -367,7 +381,14 @@ describe('checkRegistry', () => {
 
 describe('checkSourcePath', () => {
   it('accepts registry source and the license texts', () => {
-    for (let path of ['registry/ui/button.tsx', 'registry/lib/cx.ts', 'registry/lib/theme.css', 'registry/examples/data-table.tsx', 'LICENSE', 'THIRD_PARTY_NOTICES.md']) {
+    for (let path of [
+      'registry/ui/button.tsx',
+      'registry/lib/cx.ts',
+      'registry/lib/theme.css',
+      'registry/examples/data-table.tsx',
+      'LICENSE',
+      'THIRD_PARTY_NOTICES.md',
+    ]) {
       assert.equal(checkSourcePath(path), undefined, path)
     }
   })
@@ -429,7 +450,9 @@ describe('buildRegistry', () => {
       ],
       meta: { remix: '3.0.0', license: 'MIT', source: `${shadcnFile}/ui/button.tsx` },
     })
-    assert.deepEqual(index.items[0].files, [{ path: 'registry/ui/button.tsx', type: 'registry:ui', target: '@ui/button.tsx' }])
+    assert.deepEqual(index.items[0].files, [
+      { path: 'registry/ui/button.tsx', type: 'registry:ui', target: '@ui/button.tsx' },
+    ])
   })
 
   it('credits RemixCN without an upstream source on items outside the catalog', () => {

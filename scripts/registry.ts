@@ -70,6 +70,8 @@ const aliasImport = /^#remixcn\/(ui|lib)\/(.+)$/
  * segments, no backslashes, home, drive or percent-encoded parts.
  */
 function isPlainPath(path: string) {
+  // Rejecting control characters is the point of this pattern.
+  // oxlint-disable-next-line no-control-regex
   return !/[\\%~:\0-\x1f]/.test(path) && path.split('/').every((segment) => !['', '.', '..'].includes(segment))
 }
 
@@ -197,7 +199,12 @@ function checkFile(item: RegistryItem, file: RegistryFile, source: RegistrySourc
   return problems
 }
 
-function checkImports(item: RegistryItem, file: RegistryFile, owners: Map<string, string>, imports: string[]): string[] {
+function checkImports(
+  item: RegistryItem,
+  file: RegistryFile,
+  owners: Map<string, string>,
+  imports: string[],
+): string[] {
   let dependencies = new Set(dependencyNames(item))
 
   return imports.flatMap((specifier) => {
@@ -268,7 +275,8 @@ function checkItem(item: RegistryItem, source: RegistrySource, owners: Map<strin
         `${item.name}: depends on "${dependency}", but registryDependencies name @remixcn items; a bare name installs shadcn/ui's React component`,
       )
     } else if (name === item.name) problems.push(`${item.name}: depends on itself`)
-    else if (!names.has(name)) problems.push(`${item.name}: depends on ${dependency}, which registry.json does not list`)
+    else if (!names.has(name))
+      problems.push(`${item.name}: depends on ${dependency}, which registry.json does not list`)
   }
 
   let files = item.files ?? []
@@ -316,7 +324,9 @@ export function checkRegistry(source: RegistrySource): string[] {
   let problems: string[] = []
   let namespace = catalog.namespace.replace(/^@/, '')
 
-  if (registry.name !== namespace) problems.push(`registry name must be "${namespace}", the catalog namespace without @`)
+  if (registry.name !== namespace) {
+    problems.push(`registry name must be "${namespace}", the catalog namespace without @`)
+  }
   if (registry.homepage !== catalog.homepage) problems.push(`registry homepage must be ${catalog.homepage}`)
   if (registry.include !== undefined) problems.push('registry must list its items itself, without include')
 
@@ -394,7 +404,11 @@ export function buildRegistry(source: RegistrySource, options: { remix: string }
       })),
       ...(item.docs !== undefined && { docs: item.docs }),
       ...(item.categories !== undefined && { categories: [...item.categories] }),
-      meta: { remix: options.remix, license: 'MIT', ...(shipsSource && upstream !== undefined && { source: upstream }) },
+      meta: {
+        remix: options.remix,
+        license: 'MIT',
+        ...(shipsSource && upstream !== undefined && { source: upstream }),
+      },
     }
   })
 

@@ -32,7 +32,10 @@ function setup(t: TestContext, anchorStyle: string) {
  * Gives the visual viewport the size and offsets a pinch zoom would, and fires
  * its resize event. Browser tests can't zoom the page itself.
  */
-function pinchZoom(t: TestContext, geometry: { width: number; height: number; offsetLeft?: number; offsetTop?: number }) {
+function pinchZoom(
+  t: TestContext,
+  geometry: { width: number; height: number; offsetLeft?: number; offsetTop?: number },
+) {
   let viewport = window.visualViewport!
   let values = { offsetLeft: 0, offsetTop: 0, scale: innerWidth / geometry.width, ...geometry }
   for (let [key, value] of Object.entries(values)) {
@@ -44,7 +47,12 @@ function pinchZoom(t: TestContext, geometry: { width: number; height: number; of
   viewport.dispatchEvent(new Event('resize'))
 }
 
-function start(t: TestContext, floating: HTMLElement, anchor: Element | { x: number; y: number }, options: FloatingOptions) {
+function start(
+  t: TestContext,
+  floating: HTMLElement,
+  anchor: Element | { x: number; y: number },
+  options: FloatingOptions,
+) {
   let cleanup = positionFloating(floating, anchor, options)
   t.after(cleanup)
   return cleanup
@@ -301,7 +309,10 @@ describe('positionFloating strategy', () => {
     assert.match(anchor.style.getPropertyValue('anchor-name'), /^--remixcn-anchor-\d+$/)
     assert.equal(floating.style.getPropertyValue('position-anchor'), anchor.style.getPropertyValue('anchor-name'))
     assert.equal(floating.style.getPropertyValue('position-area'), 'right span-top')
-    assert.equal(floating.style.getPropertyValue('position-try-fallbacks'), 'flip-inline, flip-block, flip-inline flip-block')
+    assert.equal(
+      floating.style.getPropertyValue('position-try-fallbacks'),
+      'flip-inline, flip-block, flip-inline flip-block',
+    )
     assert.equal(floating.style.getPropertyValue('top'), 'auto')
   })
 
@@ -361,7 +372,12 @@ describe('anchorPosition', () => {
         <div
           popover="manual"
           style={{ width: '100px', height: '50px', padding: 0, border: 0 }}
-          mix={anchorPosition({ anchor: () => trigger, open: handle.props.open, side: handle.props.side, align: 'start' })}
+          mix={anchorPosition({
+            anchor: () => trigger,
+            open: handle.props.open,
+            side: handle.props.side,
+            align: 'start',
+          })}
         />
       </div>
     )

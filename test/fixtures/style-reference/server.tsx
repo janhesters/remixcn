@@ -29,7 +29,10 @@ export async function createStyleReference() {
 
   let router = createRouter()
   router.get('/', async () => createHtmlResponse(await renderToString(<StyleReference stylesheets={hrefs} />)))
-  router.get('/assets/*', async ({ request }) => (await assets.fetch(request)) ?? new Response('Not found', { status: 404 }))
+  router.get(
+    '/assets/*',
+    async ({ request }) => (await assets.fetch(request)) ?? new Response('Not found', { status: 404 }),
+  )
 
   return { fetch: (request: Request) => router.fetch(request), close: () => assets.close() }
 }

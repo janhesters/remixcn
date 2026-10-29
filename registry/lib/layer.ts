@@ -147,7 +147,9 @@ function createStack(document: Document): Stack {
     'pointerdown',
     (event) => {
       let down = getTarget(event)
-      stack.press = down ? { down, downPoint: { x: event.clientX, y: event.clientY }, entries: [...stack.entries] } : null
+      stack.press = down
+        ? { down, downPoint: { x: event.clientX, y: event.clientY }, entries: [...stack.entries] }
+        : null
     },
     capture,
   )
@@ -179,8 +181,9 @@ export function openLayer(element: HTMLElement, options: LayerOptions): Layer {
   let stack = stacks.get(document) ?? createStack(document)
   let trigger = resolve(options.trigger)
   let parent =
-    stack.entries.findLast(({ layer }) => layer.element.contains(element) || (trigger && layer.element.contains(trigger)))
-      ?.layer ?? null
+    stack.entries.findLast(
+      ({ layer }) => layer.element.contains(element) || (trigger && layer.element.contains(trigger)),
+    )?.layer ?? null
 
   let controller = new AbortController()
   let entry: Entry = {

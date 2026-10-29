@@ -36,7 +36,15 @@ function center(element: Element) {
 
 function pointer(type: string, target: Element, at: { clientX: number; clientY: number }, pointerType = 'mouse') {
   target.dispatchEvent(
-    new PointerEvent(type, { bubbles: true, cancelable: true, composed: true, pointerId: 1, isPrimary: true, pointerType, ...at }),
+    new PointerEvent(type, {
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      pointerId: 1,
+      isPrimary: true,
+      pointerType,
+      ...at,
+    }),
   )
 }
 
@@ -201,7 +209,7 @@ describe('openLayer', () => {
     assert.deepEqual([below.dismissed, modal.dismissed], [[], ['outside-press']])
   })
 
-  it("dismisses a modal dialog on a backdrop press, but not on presses inside its box", (t) => {
+  it('dismisses a modal dialog on a backdrop press, but not on presses inside its box', (t) => {
     let dialog = document.createElement('dialog')
     dialog.style.cssText = 'width: 100px; height: 60px; padding: 0'
     let button = document.createElement('button')
@@ -258,7 +266,10 @@ describe('dismissableLayer', () => {
     return () => (
       <div
         data-popover
-        mix={dismissableLayer({ open: handle.props.open, onDismiss: (request) => handle.props.onDismiss(request.reason) })}
+        mix={dismissableLayer({
+          open: handle.props.open,
+          onDismiss: (request) => handle.props.onDismiss(request.reason),
+        })}
       />
     )
   }

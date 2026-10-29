@@ -85,7 +85,12 @@ function alignOn(start: number, size: number, floatingSize: number, align: Align
   return atStart ? start : start + size - floatingSize
 }
 
-function coordinates(anchor: Rect, floating: Pick<Rect, 'width' | 'height'>, side: PhysicalSide, options: Required<PlacementOptions>) {
+function coordinates(
+  anchor: Rect,
+  floating: Pick<Rect, 'width' | 'height'>,
+  side: PhysicalSide,
+  options: Required<PlacementOptions>,
+) {
   let { align, sideOffset, alignOffset, dir } = options
   let rtl = dir === 'rtl'
   // A positive align offset moves away from the aligned edge, mirrored in right-to-left text.
@@ -103,14 +108,24 @@ function coordinates(anchor: Rect, floating: Pick<Rect, 'width' | 'height'>, sid
   }
 }
 
-function mainOverflow(position: { x: number; y: number }, floating: Pick<Rect, 'width' | 'height'>, side: PhysicalSide, bounds: Rect) {
+function mainOverflow(
+  position: { x: number; y: number },
+  floating: Pick<Rect, 'width' | 'height'>,
+  side: PhysicalSide,
+  bounds: Rect,
+) {
   if (side === 'bottom') return position.y + floating.height - (bounds.y + bounds.height)
   if (side === 'top') return bounds.y - position.y
   if (side === 'right') return position.x + floating.width - (bounds.x + bounds.width)
   return bounds.x - position.x
 }
 
-function crossOverflow(position: { x: number; y: number }, floating: Pick<Rect, 'width' | 'height'>, side: PhysicalSide, bounds: Rect) {
+function crossOverflow(
+  position: { x: number; y: number },
+  floating: Pick<Rect, 'width' | 'height'>,
+  side: PhysicalSide,
+  bounds: Rect,
+) {
   if (isVertical(side)) return Math.max(bounds.x - position.x, position.x + floating.width - (bounds.x + bounds.width))
   return Math.max(bounds.y - position.y, position.y + floating.height - (bounds.y + bounds.height))
 }
@@ -152,7 +167,8 @@ export function computePosition(
 
   let side = resolveSide(resolved.side, resolved.dir)
   let align = resolved.align
-  let place = (candidate: [PhysicalSide, Align]) => coordinates(anchor, floating, candidate[0], { ...resolved, align: candidate[1] })
+  let place = (candidate: [PhysicalSide, Align]) =>
+    coordinates(anchor, floating, candidate[0], { ...resolved, align: candidate[1] })
 
   // Like CSS position-try-fallbacks: the preferred placement, the opposite
   // side, then the other alignment on each side. The first that fits wins.
@@ -166,11 +182,18 @@ export function computePosition(
   }
   let fitting = candidates.find((candidate) => {
     let position = place(candidate)
-    return mainOverflow(position, floating, candidate[0], bounds) <= 0 && crossOverflow(position, floating, candidate[0], bounds) <= 0
+    return (
+      mainOverflow(position, floating, candidate[0], bounds) <= 0 &&
+      crossOverflow(position, floating, candidate[0], bounds) <= 0
+    )
   })
 
   if (fitting) [side, align] = fitting
-  else if (resolved.flip && mainOverflow(place([opposite[side], align]), floating, opposite[side], bounds) < mainOverflow(place([side, align]), floating, side, bounds)) {
+  else if (
+    resolved.flip &&
+    mainOverflow(place([opposite[side], align]), floating, opposite[side], bounds) <
+      mainOverflow(place([side, align]), floating, side, bounds)
+  ) {
     side = opposite[side]
   }
 
@@ -291,13 +314,20 @@ function isAnchorVisible(anchor: Element, rect: Rect) {
   if (!anchor.isConnected || (rect.width === 0 && rect.height === 0 && !anchor.getClientRects().length)) return false
 
   let visible = getViewport(anchor.ownerDocument)
-  for (let parent = anchor.parentElement; parent && parent !== anchor.ownerDocument.documentElement; parent = parent.parentElement) {
+  for (
+    let parent = anchor.parentElement;
+    parent && parent !== anchor.ownerDocument.documentElement;
+    parent = parent.parentElement
+  ) {
     if (clipsOverflow(parent)) visible = intersect(visible, parent.getBoundingClientRect())
   }
 
   let shown = intersect(visible, rect)
   return rect.width === 0 || rect.height === 0
-    ? rect.x >= visible.x && rect.x <= visible.x + visible.width && rect.y >= visible.y && rect.y <= visible.y + visible.height
+    ? rect.x >= visible.x &&
+        rect.x <= visible.x + visible.width &&
+        rect.y >= visible.y &&
+        rect.y <= visible.y + visible.height
     : shown.width > 0 && shown.height > 0
 }
 
@@ -353,7 +383,11 @@ function getCssMargins(side: PhysicalSide, options: Required<PlacementOptions>):
   margins[opposite[side]] = sideOffset
   margins[side] = padding
 
-  let [startEdge, endEdge]: PhysicalSide[] = isVertical(side) ? (dir === 'rtl' ? ['right', 'left'] : ['left', 'right']) : ['top', 'bottom']
+  let [startEdge, endEdge]: PhysicalSide[] = isVertical(side)
+    ? dir === 'rtl'
+      ? ['right', 'left']
+      : ['left', 'right']
+    : ['top', 'bottom']
   if (align === 'start') {
     margins[startEdge] = alignOffset
     margins[endEdge] = padding
@@ -424,7 +458,10 @@ export function positionFloating(
 
   function useBrowserPlacement() {
     floatingStyles.style('position-area', getPositionArea(requestedSide, placement.align, dir))
-    floatingStyles.style('position-try-fallbacks', placement.flip ? getTryFallbacks(requestedSide, placement.align) : 'none')
+    floatingStyles.style(
+      'position-try-fallbacks',
+      placement.flip ? getTryFallbacks(requestedSide, placement.align) : 'none',
+    )
     setBox(auto, cssMargins)
   }
 
@@ -474,10 +511,10 @@ export function positionFloating(
       if (!contains(bounds, rect)) return undefined
 
       let side = readSide(rect, anchorRect, position.side)
-      let placed = (align: Align) => computePosition(anchorRect, size, boundary, { ...placement, side, align, flip: false })
+      let placed = (align: Align) =>
+        computePosition(anchorRect, size, boundary, { ...placement, side, align, flip: false })
       // The browser flips start and end alignment only when it may flip.
-      let alignments: Align[] =
-        placement.flip && placement.align !== 'center' ? ['start', 'end'] : [placement.align]
+      let alignments: Align[] = placement.flip && placement.align !== 'center' ? ['start', 'end'] : [placement.align]
       let align = placement.shift
         ? alignments.length === 1
           ? alignments[0]

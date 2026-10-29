@@ -49,7 +49,12 @@ function luminance({ r, g, b }: Rgba) {
 
 function blend(foreground: Rgba, background: Rgba): Rgba {
   let mix = (top: number, bottom: number) => top * foreground.alpha + bottom * (1 - foreground.alpha)
-  return { r: mix(foreground.r, background.r), g: mix(foreground.g, background.g), b: mix(foreground.b, background.b), alpha: 1 }
+  return {
+    r: mix(foreground.r, background.r),
+    g: mix(foreground.g, background.g),
+    b: mix(foreground.b, background.b),
+    alpha: 1,
+  }
 }
 
 /**

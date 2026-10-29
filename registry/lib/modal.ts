@@ -29,7 +29,8 @@ export function lockScroll(document: Document = globalThis.document): () => void
     let { scrollX, scrollY } = view
     let scrollbarWidth = view.innerWidth - root.clientWidth
     let saved = ['overflow-x', 'overflow-y', 'scrollbar-gutter'].map(
-      (property) => [property, root.style.getPropertyValue(property), root.style.getPropertyPriority(property)] as const,
+      (property) =>
+        [property, root.style.getPropertyValue(property), root.style.getPropertyPriority(property)] as const,
     )
 
     // Keep the space of a classic scrollbar, so the page doesn't shift sideways.
@@ -86,7 +87,9 @@ const skippedTags = new Set(['SCRIPT', 'STYLE', 'TEMPLATE', 'LINK', 'META', 'NOS
 function reconcile(state: InertState, document: Document) {
   let keep = state.scopes.at(-1)?.keep ?? new Set<Element>()
   // A kept element inside another one is covered by it, so walk only from the outermost.
-  let outermost = [...keep].filter((element) => ![...keep].some((other) => other !== element && other.contains(element)))
+  let outermost = [...keep].filter(
+    (element) => ![...keep].some((other) => other !== element && other.contains(element)),
+  )
   let parents = new Set<Element>()
   for (let element of outermost) {
     for (let parent = element.parentElement; parent; parent = parent.parentElement) parents.add(parent)
@@ -175,7 +178,10 @@ export interface ModalOptions {
  * unless the host is a native <dialog>, everything outside it becomes inert.
  * Closing or unmounting the popup restores the earlier state.
  */
-export const modal: MixinFactory<HTMLElement, [options?: ModalOptions]> = createMixin<HTMLElement, [options?: ModalOptions]>(
+export const modal: MixinFactory<HTMLElement, [options?: ModalOptions]> = createMixin<
+  HTMLElement,
+  [options?: ModalOptions]
+>(
   (handle) => {
     let host: HTMLElement | null = null
     let options: ModalOptions = {}

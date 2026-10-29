@@ -111,7 +111,7 @@ describe('checkSourceHeader', () => {
     assert.deepEqual(checkSourceHeader(source, 'Theme'), [])
   })
 
-  it("reports a missing header and one that names another entry", () => {
+  it('reports a missing header and one that names another entry', () => {
     assert.deepEqual(checkSourceHeader("import { css } from 'remix/component'", 'Button'), [
       'must start with the installed-source header from SOURCES.md',
     ])
@@ -273,11 +273,13 @@ describe('checkCatalog', () => {
   it('lets a helper, but not a component, link a file at another pinned upstream', () => {
     let catalog = validCatalog()
     catalog.upstream.baseUi = { repository: 'https://github.com/mui/base-ui', commit: 'abc123' }
-    let baseUiFile = 'https://github.com/mui/base-ui/blob/abc123/packages/react/src/utils/popups/interactions/useDismiss.ts'
+    let baseUiFile =
+      'https://github.com/mui/base-ui/blob/abc123/packages/react/src/utils/popups/interactions/useDismiss.ts'
     catalog.helpers[0].source = baseUiFile
     assert.deepEqual(checkCatalog(catalog), [])
 
-    catalog.helpers[0].source = 'https://github.com/mui/base-ui/blob/master/packages/react/src/utils/popups/interactions/useDismiss.ts'
+    catalog.helpers[0].source =
+      'https://github.com/mui/base-ui/blob/master/packages/react/src/utils/popups/interactions/useDismiss.ts'
     catalog.entries[0].source = baseUiFile
     assert.deepEqual(checkCatalog(catalog), [
       'button: source must link a file at shadcn commit 96da9cc7f1aa10580a3741664e2a77c721206c00',
