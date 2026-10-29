@@ -1,6 +1,8 @@
 // The remixcn command line: parses arguments, runs a command, and prints its
 // result as text or, with --json, as one JSON document on stdout. Every
-// failure ends with the exit code its kind documents (errors.ts).
+// failure ends with the exit code its kind documents (errors.ts). remixcn mcp
+// instead serves MCP on stdin and stdout until its input ends.
+import { existsSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import type { ParseArgsConfig } from 'node:util'
@@ -11,6 +13,8 @@ import { buildRegistryFolder } from './build.ts'
 import { registriesAt, search, view } from './discover.ts'
 import { CliError, exitCodes } from './errors.ts'
 import { init, nextSteps } from './init.ts'
+import { legacyVersion, modernVersion, serveMcp } from './mcp.ts'
+import { remixcnServer } from './mcp-tools.ts'
 import { createFetcher } from './network.ts'
 import type { FetchJson } from './network.ts'
 import { majorVersion, readProject, remixVersion, supportedRemix } from './project.ts'
@@ -19,6 +23,8 @@ import type { FileSystem } from './transaction.ts'
 export interface CliEnvironment {
   stdout: (text: string) => void
   stderr: (text: string) => void
+  /** What remixcn mcp reads. Defaults to process.stdin. */
+  stdin?: AsyncIterable<Uint8Array | string>
   version: string
   /** The directory remixcn runs in. Defaults to process.cwd(). */
   cwd?: string
@@ -41,7 +47,7 @@ Commands:
   search [registries...]   Search the items of registries
   view <items...>          Show items as the registry serves them
   build [registry]         Build registry.json into one JSON file per item
-  mcp                      Reserved for the RemixCN MCP server
+  mcp                      Serve RemixCN's tools to AI clients over MCP (stdio)
   version                  Show the version
   help [command]           Show help for a command
 
@@ -137,10 +143,33 @@ Options:
   -o, --output <dir>   Where to write (default: dist/r)
   --json               Print the result as JSON
 `,
-  mcp: `Usage: remixcn mcp
+  mcp: `Usage: remixcn mcp [options]
 
-Reserved for the RemixCN MCP server, which arrives in a later release.
-shadcn's MCP server already reads the registries in components.json.
+Serves RemixCN's MCP tools to an AI client on stdin and stdout, as MCP
+${modernVersion} and ${legacyVersion} define them. The tools list, search and
+view the items of the registries in components.json and @remixcn, find
+examples, build the remixcn add command, and give an audit checklist. They
+change no file, run no command and open no port. Diagnostics go to stderr.
+
+Options:
+  -c, --cwd <dir>  The app's directory (default: the current directory)
+
+Add the server to your AI client in the app's root. remixcn changes no
+client config itself.
+
+  Claude Code, in .mcp.json:
+    { "mcpServers": { "remixcn": { "command": "npx", "args": ["-y", "remixcn", "mcp"] } } }
+
+  Cursor, in .cursor/mcp.json:
+    { "mcpServers": { "remixcn": { "command": "npx", "args": ["-y", "remixcn", "mcp"] } } }
+
+  VS Code, in .vscode/mcp.json:
+    { "servers": { "remixcn": { "command": "npx", "args": ["-y", "remixcn", "mcp"] } } }
+
+  Codex, in ~/.codex/config.toml:
+    [mcp_servers.remixcn]
+    command = "npx"
+    args = ["-y", "remixcn", "mcp"]
 `,
 }
 
@@ -170,7 +199,7 @@ const commandOptions: Record<string, ParseArgsConfig['options']> = {
   search: { ...common, ...listing },
   view: { ...common },
   build: { ...common, output: { type: 'string', short: 'o' } },
-  mcp: { ...common },
+  mcp: { cwd: common.cwd, help: common.help },
   version: { ...common },
   help: { ...common },
 }
@@ -265,11 +294,22 @@ async function runCommand(
       return print(text, { help: text })
     }
 
-    case 'mcp':
-      throw new CliError(
-        'UNAVAILABLE',
-        "remixcn mcp arrives in a later release. Until then, shadcn's MCP server reads the registries in components.json: npx shadcn@latest mcp",
+    case 'mcp': {
+      if (positionals.length > 0) throw new CliError('USAGE', 'remixcn mcp takes no arguments. Run remixcn help mcp.')
+      if (!existsSync(cwd) || !statSync(cwd).isDirectory()) {
+        throw new CliError('PROJECT', `${cwd} is not a directory. Pass the app's directory with --cwd.`)
+      }
+      environment.stderr(
+        `remixcn mcp: serving RemixCN's tools for ${cwd} on stdio (MCP ${modernVersion} and ${legacyVersion})\n`,
       )
+      await serveMcp({
+        input: environment.stdin ?? process.stdin,
+        server: remixcnServer({ cwd, version: environment.version, fetch: environment.fetch, websiteUrl: docs }),
+        write: environment.stdout,
+        log: environment.stderr,
+      })
+      return
+    }
 
     case 'init': {
       let result = await init(

@@ -12,6 +12,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, relative } from 'node:path'
+import { PassThrough } from 'node:stream'
 import { fileURLToPath } from 'node:url'
 
 import * as assert from 'remix/assert'
@@ -123,11 +124,52 @@ describe('remixcn', () => {
     assert.match(option.stderr, /Unknown option '--force'/)
   })
 
-  it('reserves mcp for the MCP server with exit code 9', async () => {
-    let result = await remixcn(['mcp'])
+  it('serves MCP on stdin and stdout for the app in --cwd, until its input ends', async () => {
+    let app = createApp()
+    let input = new PassThrough()
+    let running = remixcn(['mcp', '--cwd', app], { stdin: input })
 
-    assert.equal(result.code, 9)
-    assert.match(result.stderr, /later release/)
+    let meta = {
+      'io.modelcontextprotocol/protocolVersion': '2026-07-28',
+      'io.modelcontextprotocol/clientCapabilities': {},
+    }
+    input.end(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'server/discover', params: { _meta: meta } })}\n`)
+    let result = await running
+
+    assert.equal(result.code, 0)
+    let [response, ...rest] = result.stdout
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+    assert.deepEqual(rest, [])
+    assert.equal(response.id, 1)
+    assert.deepEqual(response.result.supportedVersions, ['2026-07-28'])
+    assert.deepEqual(response.result._meta['io.modelcontextprotocol/serverInfo'], {
+      name: 'remixcn',
+      title: 'RemixCN',
+      version: '1.2.3',
+      description: 'shadcn components for Remix V3',
+      websiteUrl: 'https://janhesters.github.io/remixcn/',
+    })
+    assert.match(
+      result.stderr,
+      new RegExp(`^remixcn mcp: serving RemixCN's tools for ${app.replaceAll('/', '\\/')} on stdio`),
+    )
+  })
+
+  it('prints how to add the MCP server to Claude Code, Codex, Cursor and VS Code', async () => {
+    let result = await remixcn(['help', 'mcp'])
+
+    assert.equal(result.code, 0)
+    assert.match(result.stdout, /^Usage: remixcn mcp \[options\]/)
+    for (let config of ['.mcp.json', '~/.codex/config.toml', '.cursor/mcp.json', '.vscode/mcp.json'])
+      assert.ok(result.stdout.includes(config), config)
+    assert.match(result.stdout, /"command": "npx", "args": \["-y", "remixcn", "mcp"\]/)
+    assert.match(result.stdout, /\[mcp_servers\.remixcn\]\n\s+command = "npx"\n\s+args = \["-y", "remixcn", "mcp"\]/)
+
+    let extra = await remixcn(['mcp', 'button'])
+    assert.equal(extra.code, 2)
+    assert.match(extra.stderr, /remixcn mcp takes no arguments/)
   })
 
   it('prints errors as JSON with --json', async () => {
