@@ -101,3 +101,12 @@ export function EllipsisIcon(handle: Handle<IconProps>) {
     </Icon>
   )
 }
+
+/** Points down, to the end of a list. Rotate it to point up. */
+export function ArrowDownIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <path d="M12 4.5v15M5.5 13l6.5 6.5 6.5-6.5" />
+    </Icon>
+  )
+}
