@@ -38,6 +38,15 @@ describe('icons', () => {
     }
   })
 
+  it('marks an icon that starts or ends a label, so a button can tighten the padding beside it', async () => {
+    let start = attributes(await renderToString(<CheckIcon data-icon="inline-start" />))
+    let end = attributes(await renderToString(<ChevronRightIcon data-icon="inline-end" />))
+
+    assert.equal(start.get('data-icon'), 'inline-start')
+    assert.equal(end.get('data-icon'), 'inline-end')
+    assert.equal(attributes(await renderToString(<CircleAlertIcon />)).has('data-icon'), false)
+  })
+
   it('wraps your own paths the same way', async () => {
     let html = await renderToString(
       <Icon>
