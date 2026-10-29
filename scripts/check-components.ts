@@ -8,7 +8,9 @@ import {
   checkCatalog,
   checkImport,
   checkRegistryFiles,
+  checkSourceHeader,
   findCssImports,
+  findFontFaces,
   findTailwindDirectives,
 } from './contracts.ts'
 import type { Catalog, PackageJson } from './contracts.ts'
@@ -38,6 +40,7 @@ function checkSource(file: string, imports: Map<string, string[]>, allowRelative
         (directive) => `${directive} is a Tailwind directive, which browser-reachable source must not use`,
       ),
     )
+    if (findFontFaces(css) > 0) problems.push('@font-face loads a font file; browser-reachable source uses system fonts')
   } else {
     problems = (imports.get(file) ?? []).flatMap((specifier) => checkImport(specifier, { allowRelative }) ?? [])
   }
@@ -53,9 +56,17 @@ let imports = readScriptImports(
   [...registryFiles, ...docsFiles].filter((file) => !file.endsWith('.css')),
 )
 
+function checkHeader(file: string): string[] {
+  let item = [...catalog.entries, ...catalog.helpers].find((entry) => entry.target === file)
+  if (!item) return []
+
+  return checkSourceHeader(readFileSync(join(root, file), 'utf8'), item.title).map((problem) => `${file}: ${problem}`)
+}
+
 let problems = [
   ...checkCatalog(catalog).map((problem) => `registry/catalog.json: ${problem}`),
   ...checkRegistryFiles(catalog, registryFiles),
+  ...registryFiles.flatMap(checkHeader),
   ...registryFiles.flatMap((file) => checkSource(file, imports, false)),
   ...docsFiles.flatMap((file) => checkSource(file, imports, true)),
 ]

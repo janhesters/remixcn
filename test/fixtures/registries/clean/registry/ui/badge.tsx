@@ -1,3 +1,7 @@
+// RemixCN Badge: https://janhesters.github.io/remixcn/
+// Copyright (c) 2026 Jan Hesters. MIT License.
+// Adapted from shadcn/ui (MIT, Copyright (c) 2023 shadcn).
+// License texts: https://github.com/janhesters/remixcn/blob/main/THIRD_PARTY_NOTICES.md
 import { css } from 'remix/component'
 import type { Handle } from 'remix/component'
 
