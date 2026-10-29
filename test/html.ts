@@ -42,3 +42,15 @@ export function text(html: string): string {
     .replaceAll('&#39;', "'")
     .replaceAll('&amp;', '&')
 }
+
+/** Returns the attributes of every tag with this data-slot, in document order. */
+export function slots(html: string, slot: string): Array<Map<string, string>> {
+  return tags(html)
+    .filter((tag) => tag.attributes.get('data-slot') === slot)
+    .map((tag) => tag.attributes)
+}
+
+/** Returns the tag name of the first element with this data-slot. */
+export function slotTag(html: string, slot: string): string | undefined {
+  return tags(html).find((tag) => tag.attributes.get('data-slot') === slot)?.name
+}
