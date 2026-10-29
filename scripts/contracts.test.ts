@@ -10,6 +10,7 @@ import {
   checkPackageMetadata,
   checkRegistryFiles,
   checkSourceHeader,
+  checkWorkflow,
   findCssImports,
   findFontFaces,
   findTailwindDirectives,
@@ -501,5 +502,73 @@ describe('checkBrowserPackage', () => {
     let pkg = { name: '@remixcn/docs', dependencies: { remix: '3.0.0', react: '19.2.0', tailwindcss: '4.1.0' } }
 
     assert.deepEqual(checkBrowserPackage(pkg), ['@remixcn/docs: dependencies may only list remix (react, tailwindcss)'])
+  })
+})
+
+describe('checkWorkflow', () => {
+  let sha = 'a'.repeat(40)
+  let workflow = `name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@${sha} # v7.0.1
+      - uses: actions/cache@${sha} # v6.1.0
+        with:
+          key: bun-\${{ hashFiles('bun.lock') }}
+      - run: bun run check test
+      - if: failure()
+        uses: actions/upload-artifact@${sha} # v7.0.2
+        with:
+          path: .diagnostics
+          retention-days: 7
+`
+
+  it('accepts a read-only workflow for pull requests and main with pinned actions', () => {
+    assert.deepEqual(checkWorkflow(workflow), [])
+  })
+
+  it('reports production triggers, write access, secrets, publishing, paid runners and unpinned actions', () => {
+    let risky = workflow
+      .replace('  push:\n    branches: [main]\n', '  push:\n  release:\n    types: [published]\n')
+      .replace('  contents: read\n', '  contents: write\n  id-token: write\n')
+      .replace('runs-on: ubuntu-24.04', 'runs-on: ubuntu-latest-16-cores')
+      .replace(`actions/checkout@${sha}`, 'actions/checkout@v7')
+      .replace(
+        "key: bun-${{ hashFiles('bun.lock') }}",
+        "key: bun-${{ hashFiles('bun.lock') }}\n          restore-keys: bun-",
+      )
+      .replace(
+        'run: bun run check test',
+        'run: npm publish\n        env:\n          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}\n        environment: production',
+      )
+      .replace('retention-days: 7', 'retention-days: 90')
+
+    assert.deepEqual(checkWorkflow(risky), [
+      'trigger "release": CI runs only for pull requests and pushes',
+      'push must run for main only, as "branches: [main]"',
+      'permissions must be "contents: read" only, and no job asks for write access ("contents: write", "id-token: write")',
+      'runs-on "ubuntu-latest-16-cores": use ubuntu-24.04, a standard hosted runner that is free for public repositories',
+      '"actions/checkout@v7": pin each action to a full commit SHA',
+      'restore-keys: caches restore their exact key only, so a cache from another lockfile never stands in',
+      'workflows read no secrets ("secrets.NPM_TOKEN")',
+      'workflows publish and deploy nothing ("npm publish", "environment:")',
+      'retention-days 90: keep diagnostics for 14 days at most',
+    ])
+  })
+
+  it('reports an artifact upload without a retention limit', () => {
+    assert.deepEqual(checkWorkflow(workflow.replace('          retention-days: 7\n', '')), [
+      'each upload-artifact step sets retention-days (1 upload, 0 limits)',
+    ])
   })
 })
