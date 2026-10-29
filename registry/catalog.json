@@ -991,7 +991,14 @@
       "docs": "https://ui.shadcn.com/docs/components/base/popover",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/popover-example.tsx",
       "behavior": "https://base-ui.com/react/components/popover.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "layer",
+        "focus-scope",
+        "modal",
+        "anchor-position"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
