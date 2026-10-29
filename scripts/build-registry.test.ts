@@ -19,11 +19,18 @@ function scratchDirectory() {
 }
 
 function build(workspace: string, out: string) {
-  return spawnSync(process.execPath, ['scripts/build-registry.ts', workspace, '--out', out], { cwd: root, encoding: 'utf8' })
+  return spawnSync(process.execPath, ['scripts/build-registry.ts', workspace, '--out', out], {
+    cwd: root,
+    encoding: 'utf8',
+  })
 }
 
 function readTree(directory: string) {
-  return new Map(readdirSync(directory).sort().map((name) => [name, readFileSync(join(directory, name), 'utf8')]))
+  return new Map(
+    readdirSync(directory)
+      .sort()
+      .map((name) => [name, readFileSync(join(directory, name), 'utf8')]),
+  )
 }
 
 /**
@@ -62,14 +69,18 @@ describe('build:registry', () => {
 
     assert.equal(result.status, 0, result.stderr)
     assert.match(result.stdout, /✓ Built 4 items: button, cx, licenses, theme/)
-    assert.deepEqual([...readTree(out).keys()], ['button.json', 'cx.json', 'licenses.json', 'registry.json', 'theme.json'])
+    assert.deepEqual(
+      [...readTree(out).keys()],
+      ['button.json', 'cx.json', 'licenses.json', 'registry.json', 'theme.json'],
+    )
 
     let theme = JSON.parse(readFileSync(join(out, 'theme.json'), 'utf8'))
     assert.equal(theme.files[0].content, readFileSync(join(fixture, 'registry/lib/theme.css'), 'utf8'))
     assert.deepEqual(theme.meta, {
       remix: '3.0.0',
       license: 'MIT',
-      source: 'https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/themes.ts',
+      source:
+        'https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/themes.ts',
     })
   })
 
@@ -113,7 +124,10 @@ describe('build:registry', () => {
     let result = build(fixture, out)
 
     assert.equal(result.status, 1)
-    assert.match(result.stderr, /site holds assets and index\.html, not just a registry build, so the build won't replace it/)
+    assert.match(
+      result.stderr,
+      /site holds assets and index\.html, not just a registry build, so the build won't replace it/,
+    )
     assert.deepEqual(readdirSync(out).sort(), ['assets', 'index.html'])
   })
 
@@ -132,11 +146,7 @@ describe('build:registry', () => {
       },
       /@lib\/cx\.ts: both cx and theme install a file there/,
     ],
-    [
-      'malformed JSON',
-      () => '{ "items": [ }',
-      /registry\.json is not valid JSON/,
-    ],
+    ['malformed JSON', () => '{ "items": [ }', /registry\.json is not valid JSON/],
     [
       "a registry.json that shadcn's schema rejects",
       (_workspace, registry) => {
@@ -175,7 +185,9 @@ describe('build:registry', () => {
         let licenses = item(registry, 'licenses')
         licenses.files = licenses.files.filter((file: { path: string }) => file.path !== missing)
       },
-      new RegExp(`licenses: ships LICENSE and THIRD_PARTY_NOTICES\\.md, the license texts every item installs, but misses ${missing.replace('.', '\\.')}`),
+      new RegExp(
+        `licenses: ships LICENSE and THIRD_PARTY_NOTICES\\.md, the license texts every item installs, but misses ${missing.replace('.', '\\.')}`,
+      ),
     ]),
     [
       'a missing file',

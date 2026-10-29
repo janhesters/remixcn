@@ -326,7 +326,9 @@ function checkReconciliation(catalog: Catalog): string[] {
 
   let docsPages = entries.length - reconciliation.sourceOnly.length
   if (docsPages !== reconciliation.docsPages) {
-    problems.push(`reconciliation: ${docsPages} entries have their own docs page, but docsPages says ${reconciliation.docsPages}`)
+    problems.push(
+      `reconciliation: ${docsPages} entries have their own docs page, but docsPages says ${reconciliation.docsPages}`,
+    )
   }
 
   for (let name of reconciliation.sourceOnly) {

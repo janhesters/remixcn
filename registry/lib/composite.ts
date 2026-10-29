@@ -150,7 +150,8 @@ function getDirection(host: HTMLElement, dir: Direction | undefined): Direction 
 function isTextField(element: Element) {
   return (
     element instanceof HTMLTextAreaElement ||
-    (element instanceof HTMLInputElement && !['button', 'checkbox', 'radio', 'submit', 'reset'].includes(element.type)) ||
+    (element instanceof HTMLInputElement &&
+      !['button', 'checkbox', 'radio', 'submit', 'reset'].includes(element.type)) ||
     (element instanceof HTMLElement && element.isContentEditable)
   )
 }
@@ -162,12 +163,21 @@ const modes = new Map<string, CompositeMode>()
 function claimMode(hostId: string, mode: CompositeMode) {
   let current = modes.get(hostId)
   if (current && current !== mode) {
-    throw new Error(`This element already uses ${current}. Use either roving focus or active descendant on a control, not both.`)
+    throw new Error(
+      `This element already uses ${current}. Use either roving focus or active descendant on a control, not both.`,
+    )
   }
   modes.set(hostId, mode)
 }
 
-const watchedAttributes = ['disabled', 'aria-disabled', 'data-disabled', 'aria-selected', 'aria-checked', 'aria-current']
+const watchedAttributes = [
+  'disabled',
+  'aria-disabled',
+  'data-disabled',
+  'aria-selected',
+  'aria-checked',
+  'aria-current',
+]
 
 const selectedItem = '[aria-selected="true"], [aria-checked="true"], [aria-current]:not([aria-current="false"])'
 

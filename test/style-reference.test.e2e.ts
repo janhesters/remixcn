@@ -105,7 +105,10 @@ describe('style reference', () => {
 
     await page.emulateMedia({ forcedColors: 'active' })
     assert.deepEqual(
-      await name.evaluate((element) => [getComputedStyle(element).outlineStyle, getComputedStyle(element).outlineWidth]),
+      await name.evaluate((element) => [
+        getComputedStyle(element).outlineStyle,
+        getComputedStyle(element).outlineWidth,
+      ]),
       ['solid', '2px'],
     )
     assert.equal(await computed(page, '[aria-labelledby="forms"] input[type="checkbox"]', 'appearance'), 'auto')
@@ -117,7 +120,10 @@ describe('style reference', () => {
     let email = page.getByLabel('Email').first()
 
     assert.equal(await email.getAttribute('aria-invalid'), 'true')
-    assert.equal(await email.evaluate((element) => getComputedStyle(element).borderTopColor), 'oklch(0.56 0.245 27.325)')
+    assert.equal(
+      await email.evaluate((element) => getComputedStyle(element).borderTopColor),
+      'oklch(0.56 0.245 27.325)',
+    )
 
     let message = page.locator(`#${await email.getAttribute('aria-describedby')}`)
     assert.equal(await message.innerText(), 'Enter an email address like name@example.com.')

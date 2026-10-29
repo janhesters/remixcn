@@ -39,14 +39,18 @@ else if (!readFileSync(bin, 'utf8').startsWith('#!/usr/bin/env node\n')) {
   problems.push(`packages/cli: ${pkg.bin?.remixcn} must start with #!/usr/bin/env node`)
 }
 
-let tests = readdirSync(join(cli, 'dist'), { recursive: true, encoding: 'utf8' }).filter((file) => file.includes('.test.'))
+let tests = readdirSync(join(cli, 'dist'), { recursive: true, encoding: 'utf8' }).filter((file) =>
+  file.includes('.test.'),
+)
 if (tests.length > 0) problems.push(`packages/cli/dist must not ship tests (${tests.join(', ')})`)
 
 if (problems.length > 0) fail(problems)
 
 let version = spawnSync(process.execPath, [bin, '--version'], { encoding: 'utf8' })
 if (version.status !== 0 || version.stdout !== `${pkg.version}\n`) {
-  fail([`remixcn --version printed ${JSON.stringify(version.stdout)} (exit ${version.status}), expected ${pkg.version}`])
+  fail([
+    `remixcn --version printed ${JSON.stringify(version.stdout)} (exit ${version.status}), expected ${pkg.version}`,
+  ])
 }
 
 process.stdout.write(`✓ ${packageFiles.join(', ').replace(/, ([^,]+)$/, ' and $1')} carry the approved metadata\n`)

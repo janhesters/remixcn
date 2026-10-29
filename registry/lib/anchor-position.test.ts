@@ -27,7 +27,12 @@ describe('computePosition', () => {
 
   it('places on each side and resolves inline sides by direction', () => {
     assert.deepEqual(place(anchor, { side: 'top' }), { x: 300, y: 90, side: 'top', align: 'center' })
-    assert.deepEqual(place(anchor, { side: 'right', align: 'start' }), { x: 420, y: 190, side: 'right', align: 'start' })
+    assert.deepEqual(place(anchor, { side: 'right', align: 'start' }), {
+      x: 420,
+      y: 190,
+      side: 'right',
+      align: 'start',
+    })
     assert.deepEqual(place(anchor, { side: 'left', align: 'end' }), { x: 180, y: 110, side: 'left', align: 'end' })
     assert.equal(place(anchor, { side: 'inline-start' }).side, 'left')
     assert.equal(place(anchor, { side: 'inline-start', dir: 'rtl' }).side, 'right')

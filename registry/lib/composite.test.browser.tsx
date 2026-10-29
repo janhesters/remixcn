@@ -244,7 +244,10 @@ describe('activeDescendant', () => {
       <div>
         <input
           role="combobox"
-          mix={activeDescendant({ items: () => $$('[role=option]') as NodeListOf<HTMLElement>, orientation: 'vertical' })}
+          mix={activeDescendant({
+            items: () => $$('[role=option]') as NodeListOf<HTMLElement>,
+            orientation: 'vertical',
+          })}
         />
         <ul role="listbox">
           <li role="option">Apple</li>

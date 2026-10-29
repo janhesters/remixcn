@@ -51,7 +51,11 @@ let browser = await chromium.launch()
 try {
   for (let shot of shots) {
     let page = await browser.newPage({ viewport: { width: shot.width, height: 900 } })
-    await page.emulateMedia({ colorScheme: shot.colorScheme, forcedColors: shot.forcedColors ?? 'none', reducedMotion: 'reduce' })
+    await page.emulateMedia({
+      colorScheme: shot.colorScheme,
+      forcedColors: shot.forcedColors ?? 'none',
+      reducedMotion: 'reduce',
+    })
     await page.goto(server.baseUrl)
     if (shot.fontSize) await page.evaluate((size) => (document.documentElement.style.fontSize = size), shot.fontSize)
 

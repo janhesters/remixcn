@@ -1,0 +1,7 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "ignorePatterns": ["test/fixtures/imports/**", "test/fixtures/registries/forbidden/**"]
+}

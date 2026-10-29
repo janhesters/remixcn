@@ -32,7 +32,9 @@ const out = resolve(values.out ?? join(root, 'dist/r'))
 
 function fail(problems: string[]): never {
   for (let problem of problems) process.stderr.write(`✗ ${problem}\n`)
-  process.stderr.write(`\n${problems.length} problem(s). Nothing was written. AGENTS.md describes the registry contracts.\n`)
+  process.stderr.write(
+    `\n${problems.length} problem(s). Nothing was written. AGENTS.md describes the registry contracts.\n`,
+  )
   process.exit(1)
 }
 
@@ -46,7 +48,8 @@ function checkSchema(file: string, schema: typeof registrySchema | typeof regist
   if (result.success) return []
 
   return result.error.issues.map(
-    (issue) => `${file} does not match shadcn's ${schema === registrySchema ? 'registry' : 'registry-item'} schema at ${issue.path.join('.') || 'the root'}: ${issue.message}`,
+    (issue) =>
+      `${file} does not match shadcn's ${schema === registrySchema ? 'registry' : 'registry-item'} schema at ${issue.path.join('.') || 'the root'}: ${issue.message}`,
   )
 }
 
@@ -64,8 +67,11 @@ function readFiles(registry: Registry) {
       let file = join(root, path)
       if (files.has(path) || checkSourcePath(path) !== undefined || !existsSync(file)) continue
 
-      if (realpathSync(file) === join(realRoot, path) && statSync(file).isFile()) files.set(path, readFileSync(file, 'utf8'))
-      else problems.push(`${item.name}: ${path} must be a file inside the workspace, not a link`)
+      if (realpathSync(file) === join(realRoot, path) && statSync(file).isFile()) {
+        files.set(path, readFileSync(file, 'utf8'))
+      } else {
+        problems.push(`${item.name}: ${path} must be a file inside the workspace, not a link`)
+      }
     }
   }
 

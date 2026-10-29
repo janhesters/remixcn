@@ -22,7 +22,8 @@ function makeScrollable(t: TestContext) {
 /** <main> with two sections, a popup inside the second, and an <aside>. */
 function page(t: TestContext) {
   let main = document.createElement('main')
-  main.innerHTML = '<section data-a><button>A</button></section><section data-b><div data-popup></div><p>B</p></section>'
+  main.innerHTML =
+    '<section data-a><button>A</button></section><section data-b><div data-popup></div><p>B</p></section>'
   let aside = document.createElement('aside')
   aside.setAttribute('inert', '')
   document.body.append(main, aside)
@@ -35,7 +36,10 @@ function page(t: TestContext) {
 }
 
 function inertNames() {
-  return [...document.querySelectorAll('[inert]')].map((element) => element.tagName.toLowerCase() + (element.getAttributeNames().find((name) => name.startsWith('data-')) ?? ''))
+  return [...document.querySelectorAll('[inert]')].map(
+    (element) =>
+      element.tagName.toLowerCase() + (element.getAttributeNames().find((name) => name.startsWith('data-')) ?? ''),
+  )
 }
 
 describe('lockScroll', () => {

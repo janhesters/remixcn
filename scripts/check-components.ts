@@ -40,7 +40,9 @@ function checkSource(file: string, imports: Map<string, string[]>, allowRelative
         (directive) => `${directive} is a Tailwind directive, which browser-reachable source must not use`,
       ),
     )
-    if (findFontFaces(css) > 0) problems.push('@font-face loads a font file; browser-reachable source uses system fonts')
+    if (findFontFaces(css) > 0) {
+      problems.push('@font-face loads a font file; browser-reachable source uses system fonts')
+    }
   } else {
     problems = (imports.get(file) ?? []).flatMap((specifier) => checkImport(specifier, { allowRelative }) ?? [])
   }

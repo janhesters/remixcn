@@ -1,0 +1,9 @@
+# Prettier formats code. Bun writes package.json and bun.lock, and the
+# catalog, JSON configs and Markdown keep their hand-written layout.
+*.json
+*.md
+bun.lock
+
+# Fixtures that keep unusual syntax on purpose.
+test/fixtures/imports/
+test/fixtures/registries/forbidden/
