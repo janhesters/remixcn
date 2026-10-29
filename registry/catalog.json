@@ -391,8 +391,10 @@
       "docs": "https://ui.shadcn.com/docs/components/base/code-block",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/code-block-example.tsx",
       "dependsOn": [
-        "button",
-        "use-highlighted-code"
+        "theme",
+        "styles",
+        "icons",
+        "button"
       ],
       "upstreamImports": [
         "class-variance-authority",
@@ -1350,7 +1352,8 @@
         "react",
         "shiki"
       ],
-      "target": "registry/lib/highlighter.ts"
+      "target": "registry/lib/highlighter.ts",
+      "note": "Not shipped: shadcn's highlighter loads Shiki, a package, and RemixCN source adds none. Run any highlighter you like, such as on the server, and pass its tokens to CodeBlockLine's tokens prop; splitTokenLines() in code-block.tsx splits them into lines. docs/components/code-block.md shows how."
     },
     {
       "name": "use-highlighted-code",
@@ -1364,7 +1367,8 @@
       "upstreamImports": [
         "react"
       ],
-      "target": "registry/lib/use-highlighted-code.ts"
+      "target": "registry/lib/use-highlighted-code.ts",
+      "note": "Not shipped: a React hook around the Shiki highlighter. Its native equivalent is CodeBlockLine's tokens prop with splitTokenLines() from code-block.tsx, which take the tokens of any highlighter you run. docs/components/code-block.md shows how."
     },
     {
       "name": "composite",
