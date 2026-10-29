@@ -134,6 +134,65 @@ describe('rovingFocus', () => {
     assert.equal(tabs[1].getAttribute('tabindex'), '-1')
   })
 
+  it('moves the tab stop back to the selected item when focus leaves, with resetOnLeave', async (t) => {
+    let { $$, cleanup } = render(
+      <div>
+        <div role="tablist" mix={rovingFocus({ items: '[role=tab]', orientation: 'horizontal', resetOnLeave: true })}>
+          <button role="tab" aria-selected="true" type="button">
+            One
+          </button>
+          <button role="tab" aria-selected="false" type="button">
+            Two
+          </button>
+        </div>
+        <input aria-label="Note" />
+      </div>,
+    )
+    t.after(cleanup)
+    let tabs = $$('[role=tab]') as NodeListOf<HTMLButtonElement>
+
+    tabs[0].focus()
+    press(tabs[0], 'ArrowRight')
+    assert.equal(tabs[1].getAttribute('tabindex'), '0')
+
+    ;($$('input')[0] as HTMLInputElement).focus()
+    assert.equal(tabs[0].getAttribute('tabindex'), '0')
+    assert.equal(tabs[1].getAttribute('tabindex'), '-1')
+  })
+
+  it('moves the tab stop with the selection while focus is outside, with resetOnLeave', async (t) => {
+    let { $$, cleanup } = render(
+      <div role="tablist" mix={rovingFocus({ items: '[role=tab]', orientation: 'horizontal', resetOnLeave: true })}>
+        <button role="tab" aria-selected="true" type="button">
+          One
+        </button>
+        <button role="tab" aria-selected="false" type="button">
+          Two
+        </button>
+        <button role="tab" aria-selected="false" type="button">
+          Three
+        </button>
+      </div>,
+    )
+    t.after(cleanup)
+    let tabs = $$('[role=tab]') as NodeListOf<HTMLButtonElement>
+
+    tabs[0].setAttribute('aria-selected', 'false')
+    tabs[1].setAttribute('aria-selected', 'true')
+    await new Promise((resolve) => setTimeout(resolve))
+    assert.deepEqual(
+      [...tabs].map((tab) => tab.getAttribute('tabindex')),
+      ['-1', '0', '-1'],
+    )
+
+    // Inside the group, the arrows still move the tab stop away from the selected item.
+    tabs[1].focus()
+    press(tabs[1], 'ArrowRight')
+    await new Promise((resolve) => setTimeout(resolve))
+    assert.equal(document.activeElement, tabs[2])
+    assert.equal(tabs[2].getAttribute('tabindex'), '0')
+  })
+
   it('moves the tab stop when the active item becomes disabled or is removed', async (t) => {
     let { $$, cleanup } = render(<Toolbar />)
     t.after(cleanup)
@@ -259,6 +318,48 @@ describe('rovingFocus', () => {
     assert.equal(focused(), 'Three')
     assert.equal(buttons[0].getAttribute('tabindex'), '-1', 'the outer group keeps Four as its tab stop')
     assert.equal(buttons[3].getAttribute('tabindex'), '0')
+  })
+
+  it('keeps focus in the group when the focused item is removed or disabled', async (t) => {
+    let { $$, cleanup } = render(<Toolbar />)
+    t.after(cleanup)
+    let buttons = $$('button') as NodeListOf<HTMLButtonElement>
+
+    buttons[3].focus()
+    buttons[3].remove()
+    await new Promise((resolve) => setTimeout(resolve))
+    assert.equal(focused(), 'Bold')
+    assert.equal(buttons[0].getAttribute('tabindex'), '0')
+
+    buttons[0].disabled = true
+    await new Promise((resolve) => setTimeout(resolve))
+    assert.equal(focused(), '⇤')
+    assert.equal(buttons[4].getAttribute('tabindex'), '0')
+  })
+
+  it('leaves focus alone when it left the group before an item changes', async (t) => {
+    let { $$, cleanup } = render(
+      <div>
+        <Toolbar />
+        <input aria-label="Note" />
+      </div>,
+    )
+    t.after(cleanup)
+    let buttons = $$('button') as NodeListOf<HTMLButtonElement>
+    let note = $$('input')[0] as HTMLInputElement
+
+    buttons[0].focus()
+    note.focus()
+    buttons[0].remove()
+    await new Promise((resolve) => setTimeout(resolve))
+    assert.equal(document.activeElement, note)
+
+    buttons[3].focus()
+    buttons[3].blur()
+    await new Promise((resolve) => setTimeout(resolve))
+    buttons[3].remove()
+    await new Promise((resolve) => setTimeout(resolve))
+    assert.equal(document.activeElement, document.body)
   })
 
   it('restores the original tabindex when the mixin goes away', async (t) => {
