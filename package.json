@@ -33,6 +33,7 @@
     "#remixcn/lib/*": "./registry/lib/*"
   },
   "scripts": {
+    "check": "node scripts/check.ts",
     "typecheck": "tsc --noEmit",
     "test": "remix test --type server",
     "test:browser": "remix test --type browser",

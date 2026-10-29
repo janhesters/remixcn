@@ -1,0 +1,9 @@
+{
+  "name": "lanes-empty",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check:format": "node -e \"process.stdout.write('formatted\\n')\"",
+    "test": "remix test --type server"
+  }
+}
