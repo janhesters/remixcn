@@ -17,6 +17,10 @@ function focused() {
   return document.activeElement?.textContent
 }
 
+function focusedText(element: Element) {
+  return element.textContent?.trim()
+}
+
 interface ToolbarProps {
   dir?: 'ltr' | 'rtl'
   typeahead?: boolean
@@ -142,6 +146,119 @@ describe('rovingFocus', () => {
     buttons[3].remove()
     await new Promise((resolve) => setTimeout(resolve))
     assert.equal(buttons[4].getAttribute('tabindex'), '0')
+  })
+
+  it('starts at the pressed item, as it does at a selected one', async (t) => {
+    let { $$, cleanup } = render(
+      <div role="group" mix={rovingFocus({ items: 'button' })}>
+        <button type="button" aria-pressed="false">
+          Bold
+        </button>
+        <button type="button" aria-pressed="true">
+          Italic
+        </button>
+      </div>,
+    )
+    t.after(cleanup)
+
+    assert.deepEqual(
+      [...$$('button')].map((button) => button.getAttribute('tabindex')),
+      ['-1', '0'],
+    )
+  })
+
+  it('skips hidden and inert items for the tab stop and the arrow keys', async (t) => {
+    let { $$, cleanup } = render(
+      <div role="toolbar" mix={rovingFocus({ items: 'button', orientation: 'horizontal' })}>
+        <button type="button" style={{ display: 'none' }}>
+          One
+        </button>
+        <button type="button">Two</button>
+        <button type="button" style={{ visibility: 'hidden' }}>
+          Three
+        </button>
+        <span inert>
+          <button type="button">Four</button>
+        </span>
+        <button type="button">Five</button>
+      </div>,
+    )
+    t.after(cleanup)
+    let buttons = $$('button') as NodeListOf<HTMLButtonElement>
+
+    assert.deepEqual(
+      [...buttons].map((button) => button.getAttribute('tabindex')),
+      ['-1', '0', '-1', '-1', '-1'],
+    )
+    buttons[1].focus()
+    press(buttons[1], 'ArrowRight')
+    assert.equal(focused(), 'Five')
+    press(buttons[4], 'ArrowRight')
+    assert.equal(focused(), 'Two')
+    press(buttons[1], 'End')
+    assert.equal(focused(), 'Five')
+  })
+
+  it('moves the tab stop off an item a style sheet hides before Tab moves focus', async (t) => {
+    let { $, $$, cleanup } = render(
+      <div>
+        <style>
+          {'.no-grid [data-view="grid"] { visibility: hidden } .no-list [data-view="list"] { display: none }'}
+        </style>
+        <div role="toolbar" mix={rovingFocus({ items: 'button' })}>
+          <button type="button" data-view="grid">
+            Grid
+          </button>
+          <button type="button" data-view="list">
+            List
+          </button>
+          <button type="button" data-view="table">
+            Table
+          </button>
+        </div>
+      </div>,
+    )
+    t.after(cleanup)
+    let wrapper = $('div') as HTMLElement
+    let tabStops = () => [...$$('button')].filter((button) => button.getAttribute('tabindex') === '0').map(focusedText)
+
+    // A class outside the group changes no attribute the group observes and no
+    // item's size, so the group checks its items when Tab is pressed.
+    wrapper.classList.add('no-grid')
+    press(document.body, 'Tab')
+    assert.deepEqual(tabStops(), ['List'])
+
+    wrapper.classList.add('no-list')
+    press(document.body, 'Tab')
+    assert.deepEqual(tabStops(), ['Table'])
+  })
+
+  it('leaves the items of a nested roving group to that group', async (t) => {
+    let { $$, cleanup } = render(
+      <div role="toolbar" mix={rovingFocus({ items: 'button', orientation: 'horizontal' })}>
+        <button type="button">One</button>
+        <div role="group" mix={rovingFocus({ items: 'button', orientation: 'horizontal' })}>
+          <button type="button">Two</button>
+          <button type="button">Three</button>
+        </div>
+        <button type="button">Four</button>
+      </div>,
+    )
+    t.after(cleanup)
+    let buttons = $$('button') as NodeListOf<HTMLButtonElement>
+
+    assert.deepEqual(
+      [...buttons].map((button) => button.getAttribute('tabindex')),
+      ['0', '0', '-1', '-1'],
+    )
+    buttons[0].focus()
+    press(buttons[0], 'ArrowRight')
+    assert.equal(focused(), 'Four')
+    buttons[1].focus()
+    press(buttons[1], 'ArrowRight')
+    assert.equal(focused(), 'Three')
+    assert.equal(buttons[0].getAttribute('tabindex'), '-1', 'the outer group keeps Four as its tab stop')
+    assert.equal(buttons[3].getAttribute('tabindex'), '0')
   })
 
   it('restores the original tabindex when the mixin goes away', async (t) => {
