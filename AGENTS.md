@@ -8,6 +8,7 @@ RemixCN ports the shadcn/ui component catalog to Remix 3. Users copy each compon
 bun install --frozen-lockfile
 bun run typecheck          # tsc --noEmit over the whole workspace
 bun run test               # server tests: remix test --type server
+bun run test:browser       # component and helper tests in Chromium: remix test --type browser
 bun run test:e2e           # browser tests in Playwright's Chromium: remix test --type e2e
 bun run check:components   # catalog and browser-reachable source contracts
 bun run check:build        # builds packages/cli, checks and runs the remixcn executable
@@ -46,7 +47,7 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | `scripts/` | The contract checks behind `check:components` and `check:build`, and the registry build. `contracts.ts` holds their rules, `registry.ts` the registry's, `build-registry.ts` runs the build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages |
 | `test/` | Workspace-wide contract tests, and the registry tests that serve a build with `static-server.ts` |
 
-Tests sit beside the code they test as `*.test.ts`. Browser tests will use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects. `test/style-reference.test.e2e.ts` drives the style reference in Chromium.
+Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Playwright's Chromium. `test/style-reference.test.e2e.ts` drives the style reference. The installer doesn't copy test files.
 
 ## Source-copy model
 
@@ -146,7 +147,7 @@ The style reference's Overrides section shows each case, and its browser test ch
 
 `registry/catalog.json` reconciles the 64 files in shadcn/ui's `apps/v4/registry/bases/base/ui` at the pinned commit with the 66 Base pages of the Components docs. It adds the Data Table, Date Picker, and Typography recipes. Sonner is a dependency-free entry compatible with Toast: it keeps Sonner's `Toaster` and `toast()` names on top of RemixCN's Toast.
 
-Each entry has a `source` link at the pinned commit, a `docs` link, its `batch`, what it `dependsOn`, the `upstreamImports` the port replaces, and its `target`. A dependency lands in the same batch or an earlier one. Batches 1 to 8 order the follow-up work. Separate AI Elements patterns and the Blocks collection are listed under `outOfScope`, not as entries.
+Each entry has a `source` link at the pinned commit (a helper that ports Base UI or Remix behavior links their pinned file instead), a `docs` link, its `batch`, what it `dependsOn`, the `upstreamImports` the port replaces, and its `target`. A dependency lands in the same batch or an earlier one. Batches 1 to 8 order the follow-up work. Separate AI Elements patterns and the Blocks collection are listed under `outOfScope`, not as entries.
 
 Change the catalog when a ticket changes an entry. `checkCatalog` in `scripts/contracts.ts` keeps it consistent.
 
@@ -166,6 +167,20 @@ Each item:
 The build checks everything before it writes. It fails, and leaves the previous output as it was, on invalid JSON, anything shadcn's schema rejects, a dependency cycle, a name or target used twice, a path or target that leaves its directory, a link, a test or any file outside `registry/ui`, `registry/lib`, `registry/examples` and the license texts, a missing file, a `licenses` item without one of its two texts, an import from an item the importer doesn't list, an npm or Node import, and a Tailwind directive. It never replaces an output folder that holds anything but JSON files. Items, dependencies and keys come in a fixed order, and newlines are LF, so the same source gives the same bytes.
 
 `test/registry.test.ts` serves a fixture build under `/remixcn/r/` and checks it with shadcn's schema, validator, MCP server and CLI. It also installs a component into the consumer fixture, typechecks it, and compiles it with Remix's asset server. The README's Registry section describes what that test proves, so keep the two in step.
+
+## Shared behavior helpers
+
+Overlays, menus, and selection components build their behavior from the helpers in `registry/lib`, not from their own copies. Each exports plain functions for any DOM and a `createMixin` mixin for the `mix` prop. The mixins run only in the browser, take an `open` option, and undo their changes when the popup closes or unmounts.
+
+| Helper | Gives |
+| --- | --- |
+| `layer.ts` | The layer stack: topmost Escape, outside presses, nested and parallel layers (`dismissableLayer`, `openLayer`) |
+| `focus-scope.ts` | Initial and return focus, with a fallback when the trigger is gone or disabled (`focusScope`, `createFocusScope`) |
+| `modal.ts` | Scroll lock and inert surroundings for modal popups that aren't native dialogs (`modal`, `lockScroll`, `inertOthers`) |
+| `composite.ts` | Roving focus or active descendant, with orientation, RTL, Home and End, typeahead, and disabled items (`rovingFocus`, `activeDescendant`) |
+| `anchor-position.ts` | Placement next to an element or point: CSS anchor positioning, with a measured fallback (`anchorPosition`, `positionFloating`) |
+
+Prefer native `<dialog>` and `popover` features and add a helper for what they lack. Pick roving focus or active descendant per control, never both.
 
 ## Accepted decisions
 

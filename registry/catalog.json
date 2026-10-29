@@ -1351,6 +1351,67 @@
         "react"
       ],
       "target": "registry/lib/use-highlighted-code.ts"
+    },
+    {
+      "name": "composite",
+      "title": "Composite navigation",
+      "kind": "helper",
+      "batch": 3,
+      "source": "https://github.com/mui/base-ui/blob/06cf9a0064231a1393cd43d86439bbc52255fa5a/packages/react/src/internals/composite/root/CompositeRoot.tsx",
+      "behavior": "https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/#kbd_general_within",
+      "dependsOn": [],
+      "upstreamImports": [
+        "react"
+      ],
+      "target": "registry/lib/composite.ts"
+    },
+    {
+      "name": "layer",
+      "title": "Dismissable layer",
+      "kind": "helper",
+      "batch": 4,
+      "source": "https://github.com/mui/base-ui/blob/06cf9a0064231a1393cd43d86439bbc52255fa5a/packages/react/src/utils/popups/interactions/useDismiss.ts",
+      "dependsOn": [],
+      "upstreamImports": [
+        "react"
+      ],
+      "target": "registry/lib/layer.ts"
+    },
+    {
+      "name": "focus-scope",
+      "title": "Focus scope",
+      "kind": "helper",
+      "batch": 4,
+      "source": "https://github.com/mui/base-ui/blob/06cf9a0064231a1393cd43d86439bbc52255fa5a/packages/react/src/utils/popups/focus/FloatingFocusManager.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@floating-ui/utils",
+        "react"
+      ],
+      "target": "registry/lib/focus-scope.ts"
+    },
+    {
+      "name": "modal",
+      "title": "Modal inertness and scroll lock",
+      "kind": "helper",
+      "batch": 4,
+      "source": "https://github.com/remix-run/remix/blob/6ab529634e35cac4eff786b048800831d1c5cf99/packages/ui/src/lib/scroll-lock.ts",
+      "dependsOn": [],
+      "upstreamImports": [],
+      "target": "registry/lib/modal.ts"
+    },
+    {
+      "name": "anchor-position",
+      "title": "Anchor positioning",
+      "kind": "helper",
+      "batch": 4,
+      "source": "https://github.com/mui/base-ui/blob/06cf9a0064231a1393cd43d86439bbc52255fa5a/packages/react/src/utils/popups/positioning/usePositioner.tsx",
+      "dependsOn": [],
+      "upstreamImports": [
+        "@floating-ui/react-dom",
+        "react"
+      ],
+      "target": "registry/lib/anchor-position.ts"
     }
   ]
 }
