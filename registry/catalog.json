@@ -280,7 +280,8 @@
       "docs": "https://ui.shadcn.com/docs/components/base/button-group",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/button-group-example.tsx",
       "dependsOn": [
-        "separator"
+        "theme",
+        "styles"
       ],
       "upstreamImports": [
         "@base-ui/react",
