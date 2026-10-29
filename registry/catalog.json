@@ -400,13 +400,18 @@
       "docs": "https://ui.shadcn.com/docs/components/base/checkbox",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/checkbox-example.tsx",
       "behavior": "https://base-ui.com/react/components/checkbox.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "icons",
+        "styles",
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "icon-placeholder"
       ],
-      "target": "registry/ui/checkbox.tsx"
+      "target": "registry/ui/checkbox.tsx",
+      "exampleTarget": "registry/examples/checkbox-example.tsx"
     },
     {
       "name": "code-block",
@@ -982,12 +987,16 @@
       "docs": "https://ui.shadcn.com/docs/components/base/radio-group",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/radio-group-example.tsx",
       "behavior": "https://base-ui.com/react/components/radio-group.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "styles",
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/radio-group.tsx"
+      "target": "registry/ui/radio-group.tsx",
+      "exampleTarget": "registry/examples/radio-group-example.tsx"
     },
     {
       "name": "resizable",
@@ -1203,12 +1212,16 @@
       "docs": "https://ui.shadcn.com/docs/components/base/switch",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/switch-example.tsx",
       "behavior": "https://base-ui.com/react/components/switch.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "styles",
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn"
       ],
-      "target": "registry/ui/switch.tsx"
+      "target": "registry/ui/switch.tsx",
+      "exampleTarget": "registry/examples/switch-example.tsx"
     },
     {
       "name": "table",
@@ -1286,13 +1299,17 @@
       "docs": "https://ui.shadcn.com/docs/components/base/toggle",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/toggle-example.tsx",
       "behavior": "https://base-ui.com/react/components/toggle.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "styles",
+        "theme"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "class-variance-authority",
         "cn"
       ],
-      "target": "registry/ui/toggle.tsx"
+      "target": "registry/ui/toggle.tsx",
+      "exampleTarget": "registry/examples/toggle-example.tsx"
     },
     {
       "name": "toggle-group",
@@ -1304,6 +1321,9 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/toggle-group-example.tsx",
       "behavior": "https://base-ui.com/react/components/toggle-group.md",
       "dependsOn": [
+        "composite",
+        "styles",
+        "theme",
         "toggle"
       ],
       "upstreamImports": [
@@ -1312,7 +1332,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/toggle-group.tsx"
+      "target": "registry/ui/toggle-group.tsx",
+      "exampleTarget": "registry/examples/toggle-group-example.tsx"
     },
     {
       "name": "tooltip",

@@ -61,7 +61,9 @@
     "dialog-examples": "node --import remix/node-tsx test/fixtures/dialog/server.tsx",
     "capture:dialog-examples": "node --import remix/node-tsx test/fixtures/dialog/capture.ts",
     "message-scroller-examples": "node --import remix/node-tsx test/fixtures/message-scroller/server.tsx",
-    "capture:message-scroller-examples": "node --import remix/node-tsx test/fixtures/message-scroller/capture.ts"
+    "capture:message-scroller-examples": "node --import remix/node-tsx test/fixtures/message-scroller/capture.ts",
+    "controls": "node --import remix/node-tsx test/fixtures/controls/server.tsx",
+    "capture:controls": "node --import remix/node-tsx test/fixtures/controls/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
