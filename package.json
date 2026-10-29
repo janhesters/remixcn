@@ -63,7 +63,9 @@
     "message-scroller-examples": "node --import remix/node-tsx test/fixtures/message-scroller/server.tsx",
     "capture:message-scroller-examples": "node --import remix/node-tsx test/fixtures/message-scroller/capture.ts",
     "controls": "node --import remix/node-tsx test/fixtures/controls/server.tsx",
-    "capture:controls": "node --import remix/node-tsx test/fixtures/controls/capture.ts"
+    "capture:controls": "node --import remix/node-tsx test/fixtures/controls/capture.ts",
+    "carousel-examples": "node --import remix/node-tsx test/fixtures/carousel/server.tsx",
+    "capture:carousel-examples": "node --import remix/node-tsx test/fixtures/carousel/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
