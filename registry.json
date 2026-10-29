@@ -86,6 +86,14 @@
       "files": [{ "path": "registry/ui/card.tsx", "type": "registry:ui", "target": "@ui/card.tsx" }]
     },
     {
+      "name": "checkbox",
+      "type": "registry:ui",
+      "title": "Checkbox",
+      "description": "A native checkbox in shadcn's style, with a mixed state for partial selections.",
+      "registryDependencies": ["@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/checkbox.tsx", "type": "registry:ui", "target": "@ui/checkbox.tsx" }]
+    },
+    {
       "name": "code-block",
       "type": "registry:ui",
       "title": "Code Block",
@@ -152,6 +160,14 @@
       "files": [{ "path": "registry/ui/progress.tsx", "type": "registry:ui", "target": "@ui/progress.tsx" }]
     },
     {
+      "name": "radio-group",
+      "type": "registry:ui",
+      "title": "Radio Group",
+      "description": "A group of native radios with one name, so the browser moves the selection with the arrow keys.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/radio-group.tsx", "type": "registry:ui", "target": "@ui/radio-group.tsx" }]
+    },
+    {
       "name": "resizable",
       "type": "registry:ui",
       "title": "Resizable",
@@ -208,12 +224,44 @@
       "files": [{ "path": "registry/ui/spinner.tsx", "type": "registry:ui", "target": "@ui/spinner.tsx" }]
     },
     {
+      "name": "switch",
+      "type": "registry:ui",
+      "title": "Switch",
+      "description": "A native checkbox with the switch role, drawn as a track and a thumb in two sizes.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/switch.tsx", "type": "registry:ui", "target": "@ui/switch.tsx" }]
+    },
+    {
+      "name": "toggle",
+      "type": "registry:ui",
+      "title": "Toggle",
+      "description": "A native button that turns on and off, with a literal aria-pressed, in two variants and three sizes.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/toggle.tsx", "type": "registry:ui", "target": "@ui/toggle.tsx" }]
+    },
+    {
+      "name": "toggle-group",
+      "type": "registry:ui",
+      "title": "Toggle Group",
+      "description": "Toggles with one value in single or multiple mode, as one tab stop with arrow-key focus, horizontal or vertical.",
+      "registryDependencies": ["@remixcn/composite", "@remixcn/styles", "@remixcn/theme", "@remixcn/toggle"],
+      "files": [{ "path": "registry/ui/toggle-group.tsx", "type": "registry:ui", "target": "@ui/toggle-group.tsx" }]
+    },
+    {
       "name": "typography",
       "type": "registry:component",
       "title": "Typography",
       "description": "Styles for headings, paragraphs, quotes, lists, inline code, links and tables, as mixins for native elements.",
       "registryDependencies": ["@remixcn/theme"],
       "files": [{ "path": "registry/examples/typography.tsx", "type": "registry:component", "target": "@components/typography.tsx" }]
+    },
+    {
+      "name": "composite",
+      "type": "registry:lib",
+      "title": "Composite navigation",
+      "description": "Keyboard navigation for toolbars, menus, tabs and lists: roving focus or active descendant, with orientation, right-to-left text, Home and End, typeahead, and disabled, hidden and nested items.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/composite.ts", "type": "registry:lib", "target": "@lib/composite.ts" }]
     },
     {
       "name": "focus-scope",
