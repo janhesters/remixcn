@@ -134,6 +134,16 @@
       "files": [{ "path": "registry/ui/kbd.tsx", "type": "registry:ui", "target": "@ui/kbd.tsx" }]
     },
     {
+      "name": "message-scroller",
+      "type": "registry:ui",
+      "title": "Message Scroller",
+      "description": "A chat transcript in a native scroll container that opens at the end or the last turn, follows replies while you stay at the end, starts new turns near the top, keeps your place when content changes, and jumps to any message.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [
+        { "path": "registry/ui/message-scroller.tsx", "type": "registry:ui", "target": "@ui/message-scroller.tsx" }
+      ]
+    },
+    {
       "name": "progress",
       "type": "registry:ui",
       "title": "Progress",
