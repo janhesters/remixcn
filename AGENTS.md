@@ -39,7 +39,7 @@ bun run message-scroller-examples  # serves the Message Scroller examples at htt
 bun run capture:message-scroller-examples  # rewrites the screenshots in docs/images/message-scroller/
 ```
 
-The browser lanes need Playwright's browsers: `bunx playwright install chromium firefox webkit`. On Ubuntu and Debian, add `--with-deps` for their system libraries. WebKit needs Ubuntu's libraries, so elsewhere run `--project chromium` or `--project firefox`, and CI runs WebKit. `capture:style-reference` takes its screenshots in Chromium only.
+The browser lanes need Playwright's browsers: `bunx playwright install chromium firefox webkit`. On Ubuntu and Debian, add `--with-deps` for their system libraries. WebKit needs Ubuntu's libraries, so elsewhere run `--project chromium` or `--project firefox`, and CI runs WebKit. `capture:style-reference` takes its screenshots in Chromium only. `test:browser` runs with `--playwrightConfig ./playwright.browser.config.ts`, which adds only a 1280 by 4000 window to the shared config: remix test's runner lists a row per finished test file and suite above the frame that runs next, and WebKit throttles a frame below the window until the lane stalls. `test/browser-lane.test.ts` keeps the two configs in step.
 
 Use Node 24.3.0 or later (`engines` in every `package.json`). CI runs the oldest supported version, 24.3.0, and the newest LTS release, both pinned in `supportedNode` in `scripts/lanes.ts`. Bun is pinned in the root `packageManager` field. `remix` stays pinned to `3.0.0`, and `bun.lock` stays committed. Development tools are pinned to exact versions in the root `devDependencies`.
 
