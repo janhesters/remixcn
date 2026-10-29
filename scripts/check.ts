@@ -11,12 +11,15 @@ import { parseArgs } from 'node:util'
 
 import { laneMatrix, lanes, planLanes, readPassCount, supportedNode } from './lanes.ts'
 import type { Lane, LanePlan } from './lanes.ts'
+import { waitForExit } from './processes.ts'
 import { listWorkspaceFiles } from './workspace.ts'
 
 const root = process.cwd()
 const marker = 'REMIXCN_CHECK_LANE'
 /** How long a lane's output may stay open after the lane exited and its leftovers were stopped. */
 const outputGraceMs = 2_000
+/** How long a stopped leftover may take to exit. SIGKILL only asks the system to end it. */
+const stopGraceMs = 5_000
 
 let { values: options, positionals: requested } = parseArgs({
   allowPositionals: true,
@@ -105,8 +108,15 @@ async function stopLeftovers(value: string): Promise<string | undefined> {
       // It exited on its own in the meantime.
     }
   }
+  // Report a process as stopped only once it has exited.
+  let pids = leftovers.map(({ pid }) => pid)
+  let survivors = await waitForExit(pids, stopGraceMs)
   let count = leftovers.length === 1 ? '1 process' : `${leftovers.length} processes`
-  return `left ${count} running, now stopped: ${leftovers.map(({ pid, command }) => `${pid} ${command}`).join('; ')}`
+  let list = leftovers.map(({ pid, command }) => `${pid} ${command}`).join('; ')
+  if (survivors.length > 0) {
+    return `left ${count} running, and ${survivors.join(', ')} still runs after SIGKILL: ${list}`
+  }
+  return `left ${count} running, now stopped: ${list}`
 }
 
 async function runLane(lane: Lane): Promise<string | undefined> {

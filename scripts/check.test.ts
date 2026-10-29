@@ -8,6 +8,8 @@ import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 import type { TestContext } from 'remix/test'
 
+import { isRunning } from './processes.ts'
+
 const check = fileURLToPath(new URL('check.ts', import.meta.url))
 const fixtures = fileURLToPath(new URL('../test/fixtures/lanes/', import.meta.url))
 
@@ -26,15 +28,6 @@ function scratchDirectory(t: { after: (fn: () => void) => void }) {
   let directory = mkdtempSync(join(tmpdir(), 'remixcn-check-'))
   t.after(() => rmSync(directory, { recursive: true, force: true }))
   return directory
-}
-
-function isRunning(pid: number) {
-  try {
-    process.kill(pid, 0)
-    return true
-  } catch {
-    return false
-  }
 }
 
 /** Reads the pid a leak fixture prints, and stops that process after the test if the runner didn't. */
