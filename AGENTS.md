@@ -6,11 +6,17 @@ RemixCN ports the shadcn/ui component catalog to Remix 3. Users copy each compon
 
 ```sh
 bun install --frozen-lockfile
-bun run typecheck          # tsc --noEmit over the whole workspace
+bun run check              # every built lane, in order, then a summary of passed, failed and not built yet
+bun run check test e2e     # only the named lanes; add --project chromium to pick one browser
+bun run format             # rewrites code with Prettier
+bun run check:format       # Prettier check only, the format lane
+bun run lint               # oxlint correctness rules
+bun run typecheck          # tsc --noEmit over the workspace and test/fixtures/consumer-app
 bun run test               # server tests: remix test --type server
-bun run test:browser       # component and helper tests in Chromium: remix test --type browser
-bun run test:e2e           # browser tests in Playwright's Chromium: remix test --type e2e
+bun run test:browser       # component and helper tests in Chromium, Firefox and WebKit
+bun run test:e2e           # end-to-end tests against local servers, in the same browsers
 bun run check:components   # catalog and browser-reachable source contracts
+bun run check:secrets      # no credentials in the files git tracks or would add
 bun run check:build        # builds packages/cli, checks and runs the remixcn executable
 bun run build              # builds packages/cli/dist only
 bun run build:registry     # checks registry.json, then writes dist/r/registry.json and dist/r/<name>.json
@@ -18,9 +24,9 @@ bun run style-reference    # serves the style reference at http://localhost:4400
 bun run capture:style-reference  # rewrites the screenshots in docs/images/style-reference/
 ```
 
-Browser tests and captures need Playwright's Chromium. Install it once with `bunx playwright install chromium` when it's missing.
+The browser lanes need Playwright's browsers: `bunx playwright install chromium firefox webkit`. On Ubuntu and Debian, add `--with-deps` for their system libraries. WebKit needs Ubuntu's libraries, so elsewhere run `--project chromium` or `--project firefox`, and CI runs WebKit. `capture:style-reference` takes its screenshots in Chromium only.
 
-Use Node 24.3.0 or later (`engines` in every `package.json`). `remix` stays pinned to `3.0.0`, and `bun.lock` stays committed. Development tools are pinned to exact versions in the root `devDependencies`.
+Use Node 24.3.0 or later (`engines` in every `package.json`). CI runs the oldest supported version, 24.3.0, and the newest LTS release, both pinned in `supportedNode` in `scripts/lanes.ts`. Bun is pinned in the root `packageManager` field. `remix` stays pinned to `3.0.0`, and `bun.lock` stays committed. Development tools are pinned to exact versions in the root `devDependencies`.
 
 ## Read the installed docs
 
@@ -42,12 +48,13 @@ Read `.agents/skills/remix/SKILL.md` for the Remix mental model. It comes unchan
 | `registry/examples/<name>.tsx` | Copyable examples and the recipes: Data Table, Date Picker, and Typography |
 | `packages/cli/` | The `remixcn` npm package and executable. `src/bin.ts` is the entry. The build emits `dist/bin.js`, which `bin` points to. The local MCP server will start from the same executable |
 | `apps/docs/` | The site (C-979, C-981) |
-| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, and `style-reference/` is the style reference page |
+| `test/fixtures/` | Synthetic projects for tool tests: `consumer-app/` is a Remix 3.0.0 app to install into, which the end-to-end tests serve, `registries/` hold small registries that keep or break the contracts (`installable/` is a component with a helper, tokens and license texts), `imports/` holds the import forms the checks must read, `lanes/` hold workspaces whose lanes must fail, and `style-reference/` is the style reference page |
 | `docs/images/` | Screenshots of synthetic pages for UI reviews, such as `style-reference/` |
-| `scripts/` | The contract checks behind `check:components` and `check:build`, and the registry build. `contracts.ts` holds their rules, `registry.ts` the registry's, `build-registry.ts` runs the build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages |
-| `test/` | Workspace-wide contract tests, and the registry tests that serve a build with `static-server.ts` |
+| `scripts/` | The checks and the registry build. `lanes.ts` lists the check lanes and `check.ts` runs them. `contracts.ts` holds the rules of `check:components`, `check:build` and the CI workflow, `registry.ts` the registry's, `secrets.ts` those of `check:secrets`, `build-registry.ts` runs the registry build, `typescript.ts` reads imports through `tsc`, and `workspace.ts` lists the workspace packages and files |
+| `test/` | Workspace-wide contract tests, the registry tests that serve a build with `static-server.ts`, and shared test helpers, such as `accessibility.ts` for axe-core |
+| `.github/workflows/ci.yml` | CI for pull requests and main |
 
-Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Playwright's Chromium. `test/style-reference.test.e2e.ts` drives the style reference. The installer doesn't copy test files.
+Tests sit beside the code they test as `*.test.ts`. Browser tests use `*.test.browser.tsx` and end-to-end tests `*.test.e2e.ts`, as `remix test` expects; both run in Chromium, Firefox and WebKit. `test/style-reference.test.e2e.ts` drives the style reference. The installer doesn't copy test files.
 
 ## Source-copy model
 
@@ -132,7 +139,26 @@ The style reference's Overrides section shows each case, and its browser test ch
 
 - Components: none. `remix` comes from the user's app.
 - CLI and MCP server: Node and Web built-ins only. `packages/cli/package.json` keeps `dependencies` empty and lists no peer or optional dependencies. `check:build` enforces it.
-- Development only, pinned exactly in the root `devDependencies`: TypeScript, `@types/node`, and `remix` for typechecks and tests, Playwright for browser tests and screenshots, and `shadcn` 4.23.0, the version at the pinned shadcn commit, whose schema, validator, MCP server and CLI check the registry. Formatting and accessibility test tools may join them when a ticket needs them. Registry source and `packages/cli` never import them.
+- Development only, pinned exactly in the root `devDependencies`: TypeScript, `@types/node`, and `remix` for typechecks and tests, Prettier and oxlint for formatting and lint, Playwright for the browser lanes and screenshots, `@axe-core/playwright` for accessibility checks, and `shadcn` 4.23.0, the version at the pinned shadcn commit, whose schema, validator, MCP server and CLI check the registry. A new tool joins them, pinned exactly, when a ticket needs it. Registry source and `packages/cli` never import them.
+
+## Check lanes and CI
+
+`scripts/lanes.ts` lists the check lanes. Each lane runs one root package script and can run alone, so a component author runs only what their change touches.
+
+- A lane is built once its script exists. A test lane also needs a matching test file. Until then it reports `○ not built yet` with the reason, never `✓`.
+- A built test lane that passes no tests fails, because an empty or fully skipped suite proves nothing.
+- The registry lane runs `build:registry` (#4). The site lane turns on when `build:site` lands with the static site (#34). Use that script name.
+- `check.ts` gives each lane's processes a marker. On Linux, it stops any process that outlives its lane and fails the lane. On every system, a lane fails when its output stays open after it exits, because a process it started still holds it.
+
+`.github/workflows/ci.yml` runs for every pull request and every push to main. A plan job lists the built lanes, and each runs as its own job: browser lanes once per Playwright project, and `test` and `build` on both supported Node versions. Unbuilt lanes appear as notices and in the run summary. `test/ci.test.ts` and `checkWorkflow` keep the workflow within these limits:
+
+- It triggers only on pull requests and pushes to main, and has only `contents: read` permission.
+- It pins every action to a commit SHA and runs on `ubuntu-24.04`, a standard hosted runner that is free for public repositories.
+- It reads no secrets and publishes or deploys nothing.
+- Caches hold only downloads: Bun's packages keyed by `bun.lock`, and browsers keyed by the Playwright version. They have no fallback keys, so they can't hide a lockfile or source change.
+- A failed job uploads its lane logs from `.diagnostics/` only after `check:secrets` finds no credentials in them. It reads every file, binary or not. GitHub keeps them for 7 days.
+
+Browser and end-to-end tests use invented data and local servers. `t.serve` closes the server and browser after each test. `test/accessibility.ts` runs axe-core's WCAG 2.2 A and AA rules on a page.
 
 ## Names and metadata (C-976)
 
@@ -209,4 +235,4 @@ Every later UI PR, such as a component, the gallery, or the site, still needs sc
 
 ## Builds
 
-`packages/cli/dist/` and `dist/r/` are the only build outputs, and git ignores both. `check:build` rebuilds the first, and `build:registry` the second.
+`packages/cli/dist/` and `dist/r/` are the only build outputs, and git ignores both. `check:build` rebuilds the first, and `build:registry` the second. `bun run check --diagnostics .diagnostics` writes each lane's log to `.diagnostics/`, which git ignores too.
