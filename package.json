@@ -53,7 +53,9 @@
     "layout": "node --import remix/node-tsx test/fixtures/layout/server.tsx",
     "capture:layout": "node --import remix/node-tsx test/fixtures/layout/capture.ts",
     "code-block-examples": "node --import remix/node-tsx test/fixtures/code-block/server.tsx",
-    "capture:code-block-examples": "node --import remix/node-tsx test/fixtures/code-block/capture.ts"
+    "capture:code-block-examples": "node --import remix/node-tsx test/fixtures/code-block/capture.ts",
+    "slider-examples": "node --import remix/node-tsx test/fixtures/slider/server.tsx",
+    "capture:slider-examples": "node --import remix/node-tsx test/fixtures/slider/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
