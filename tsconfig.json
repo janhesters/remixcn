@@ -15,5 +15,11 @@
     "jsxImportSource": "remix/component",
     "noEmit": true
   },
-  "exclude": ["**/node_modules", "**/dist", "test/fixtures"]
+  "exclude": [
+    "**/node_modules",
+    "**/dist",
+    "test/fixtures/consumer-app",
+    "test/fixtures/imports",
+    "test/fixtures/registries"
+  ]
 }
