@@ -553,6 +553,12 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/dialog-example.tsx",
       "behavior": "https://base-ui.com/react/components/dialog.md",
       "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
+        "layer",
+        "focus-scope",
+        "modal",
         "button"
       ],
       "upstreamImports": [
