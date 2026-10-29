@@ -12,6 +12,38 @@
         { "path": "LICENSE", "type": "registry:file", "target": "@lib/remixcn/LICENSE" },
         { "path": "THIRD_PARTY_NOTICES.md", "type": "registry:file", "target": "@lib/remixcn/THIRD_PARTY_NOTICES.md" }
       ]
+    },
+    {
+      "name": "button",
+      "type": "registry:ui",
+      "title": "Button",
+      "description": "A native button in six variants and eight sizes, and buttonVariants() for links that look like buttons.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/button.tsx", "type": "registry:ui", "target": "@ui/button.tsx" }]
+    },
+    {
+      "name": "button-group",
+      "type": "registry:ui",
+      "title": "Button Group",
+      "description": "Joins buttons, inputs, text and separators into one control, in a row or a column.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/button-group.tsx", "type": "registry:ui", "target": "@ui/button-group.tsx" }]
+    },
+    {
+      "name": "styles",
+      "type": "registry:lib",
+      "title": "Style conventions",
+      "description": "Style objects for css(): focus ring, invalid and disabled states, hidden text, transitions, right-to-left mirroring and button group joins.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/styles.ts", "type": "registry:lib", "target": "@lib/styles.ts" }]
+    },
+    {
+      "name": "theme",
+      "type": "registry:style",
+      "title": "Theme",
+      "description": "The cascade layer order, shadcn's Neutral colors as light and dark tokens, the type, space, radius, shadow and motion tokens, and a small reset.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/theme.css", "type": "registry:file", "target": "@lib/theme.css" }]
     }
   ]
 }
