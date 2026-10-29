@@ -17,7 +17,9 @@ import type { MixinFactory } from 'remix/component'
 // The floating element gets the resolved `data-side` and `data-align`,
 // `data-anchor-hidden` while its anchor is detached or scrolled out of view,
 // and the CSS variables `--anchor-width`, `--anchor-height`,
-// `--available-width`, `--available-height` and `--transform-origin`.
+// `--available-width`, `--available-height`, `--transform-origin`, and
+// `--anchor-center-x` and `--anchor-center-y`: where the anchor's center lies
+// inside the floating element's box, for an arrow that points at it.
 
 export type Side = 'top' | 'bottom' | 'left' | 'right' | 'inline-start' | 'inline-end'
 export type PhysicalSide = 'top' | 'bottom' | 'left' | 'right'
@@ -523,7 +525,12 @@ export function positionFloating(
             let unshifted = placed(candidate)
             return Math.abs(unshifted.x - rect.x) <= tolerance && Math.abs(unshifted.y - rect.y) <= tolerance
           })
-      return align && { ...placed(align), x: rect.x, y: rect.y }
+      if (!align) return undefined
+      // The browser must put it where this helper would for that side and alignment.
+      // Firefox misplaces right-to-left placements, often still inside the bounds.
+      let expected = placed(align)
+      if (Math.abs(expected.x - rect.x) > tolerance || Math.abs(expected.y - rect.y) > tolerance) return undefined
+      return { ...expected, x: rect.x, y: rect.y }
     }
 
     let browserPosition = canUseCss ? readBrowserPlacement() : undefined
@@ -548,6 +555,8 @@ export function positionFloating(
     floatingStyles.style('--available-width', `${position.availableWidth}px`)
     floatingStyles.style('--available-height', `${position.availableHeight}px`)
     floatingStyles.style('--transform-origin', origin)
+    floatingStyles.style('--anchor-center-x', `${originX}px`)
+    floatingStyles.style('--anchor-center-y', `${originY}px`)
   }
 
   function schedule() {
