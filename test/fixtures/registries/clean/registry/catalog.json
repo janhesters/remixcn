@@ -1,0 +1,34 @@
+{
+  "name": "RemixCN fixture",
+  "namespace": "@remixcn",
+  "homepage": "https://janhesters.github.io/remixcn/",
+  "upstream": {
+    "shadcn": {
+      "repository": "https://github.com/shadcn-ui/ui",
+      "commit": "96da9cc7f1aa10580a3741664e2a77c721206c00"
+    }
+  },
+  "reconciliation": {
+    "sourceFiles": 1,
+    "docsPages": 1,
+    "docsOnlyRecipes": [],
+    "sourceOnly": [],
+    "registryWithoutSource": []
+  },
+  "batches": [{ "id": 1, "title": "Core primitives", "description": "A synthetic batch." }],
+  "outOfScope": [],
+  "entries": [
+    {
+      "name": "badge",
+      "title": "Badge",
+      "kind": "component",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/badge.tsx",
+      "docs": "https://ui.shadcn.com/docs/components/base/badge",
+      "dependsOn": [],
+      "upstreamImports": ["@base-ui/react", "class-variance-authority", "cn"],
+      "target": "registry/ui/badge.tsx"
+    }
+  ],
+  "helpers": []
+}

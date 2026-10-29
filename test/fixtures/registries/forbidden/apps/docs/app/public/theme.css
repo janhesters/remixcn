@@ -1,0 +1,5 @@
+@import "tailwindcss";
+
+.badge {
+  @apply rounded px-2;
+}
