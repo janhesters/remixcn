@@ -68,6 +68,60 @@ npx remixcn view button
 
 `list` and `search` read every registry in `components.json` plus `@remixcn`, or the registries you name. They take `-q, --query`, `-t, --type` (such as `ui` or `ui,lib`), `-l, --limit`, `-o, --offset`, and `--json`. `view` prints the items as JSON, as the registry serves them.
 
+## MCP server
+
+`remixcn mcp` lets an AI client find RemixCN items and the command that installs them. It reads the registries in `components.json`, and `@remixcn`, and speaks MCP on stdin and stdout: version 2026-07-28, and 2025-11-25 for clients that start with `initialize`.
+
+Add it to your client in the app's root. `remixcn` changes no client config itself.
+
+Claude Code, in `.mcp.json`, and Cursor, in `.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "remixcn": { "command": "npx", "args": ["-y", "remixcn", "mcp"] }
+  }
+}
+```
+
+VS Code, in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "remixcn": { "command": "npx", "args": ["-y", "remixcn", "mcp"] }
+  }
+}
+```
+
+Codex, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.remixcn]
+command = "npx"
+args = ["-y", "remixcn", "mcp"]
+```
+
+A client that starts the server outside the app passes the app's directory: `"args": ["-y", "remixcn", "mcp", "--cwd", "/path/to/app"]`. `remixcn help mcp` prints these examples.
+
+The tools have the names and arguments of shadcn's MCP server:
+
+| Tool | Returns |
+| --- | --- |
+| `get_project_registries` | The registries in `components.json` |
+| `list_items_in_registries` | Items by registry and type, with `limit` and `offset`, and the add command for each |
+| `search_items_in_registries` | Items whose name, title or description holds every word of `query` |
+| `view_items_in_registries` | Each item's metadata and the full source of its files |
+| `get_item_examples_from_registries` | Recipes, then components, that match `query`, with their full source |
+| `get_add_command_for_items` | The `npx remixcn add` command for the items, quoted for the shell |
+| `get_audit_checklist` | What to check once the components are in the app |
+
+- The tools only read `components.json`, registry indexes and items, with the limits of `add`. They write no file, run no command and open no port. `get_add_command_for_items` returns the command, and the client decides whether to run it.
+- An item is a name, `@namespace/name` or an item URL; a registry is a namespace or a `registry.json` URL. The tools read no local file a client names.
+- No item name can add a shell command: the server checks every item before it builds the command, and quotes each argument for POSIX shells and PowerShell.
+- Registry text is data. Titles, descriptions and the errors that quote a registry show on one line, and source inside a code fence it can't close. The server tells the client not to follow instructions in it.
+- A message to the server may be up to 1 MB, and so may each response, counted whole. A request's id is a whole number or a string of up to 256 bytes. The client can cancel a call, which stops its requests. The server stops when its input closes. Stdout carries only MCP messages, and diagnostics go to stderr.
+
 ## Build a registry
 
 ```sh
@@ -98,7 +152,7 @@ npx remixcn build [registry.json] --output dist/r
 
 It follows shadcn's `components.json`, without the Tailwind and React-style settings shadcn's schema requires. `components.schema.json` in this package is the schema. The aliases resolve through `package.json` imports or `tsconfig.json` paths, such as `"ui": "~/ui/public/components/ui"` with `"paths": { "~/*": ["./app/*"] }`. Keep them under `app/**/public/` so the browser can load the files.
 
-shadcn's MCP server reads the `registries` map, so `npx shadcn@latest mcp` lists and searches RemixCN items. shadcn's `add` needs a Tailwind setup and keeps the `#remixcn/` imports, so use `remixcn add` in a Remix app.
+shadcn's MCP server reads the `registries` map too, so `npx shadcn@latest mcp` also lists and searches RemixCN items. shadcn's `add` needs a Tailwind setup and keeps the `#remixcn/` imports, so use `remixcn add` in a Remix app.
 
 ## Exit codes
 
@@ -113,7 +167,7 @@ shadcn's MCP server reads the `registries` map, so `npx shadcn@latest mcp` lists
 | 6 | `UNSAFE_PATH` | A file would land outside the app, through a link, or twice |
 | 7 | `CONFLICT` | Files or settings differ, and nothing was written. Pass `--overwrite` |
 | 8 | `WRITE` | A write failed, and remixcn undid the change |
-| 9 | `UNAVAILABLE` | The command arrives in a later release, such as `mcp` |
+| 9 | `UNAVAILABLE` | Reserved for a command that arrives in a later release |
 
 With `--json`, a failure prints `{ "error": { "code", "exitCode", "message", "details" } }` on stdout.
 
