@@ -35,6 +35,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "remix test --type server",
+    "test:browser": "remix test --type browser",
     "test:e2e": "remix test --type e2e",
     "check:components": "node scripts/check-components.ts",
     "build": "bun run --filter remixcn build",

@@ -257,8 +257,15 @@ function checkItem(item: CatalogItem, catalog: Catalog, byName: Map<string, Cata
   let problems: string[] = []
   let { shadcn } = catalog.upstream
 
-  if (!item.source.startsWith(`${shadcn.repository}/blob/${shadcn.commit}/`)) {
-    problems.push(`${item.name}: source must link a file at shadcn commit ${shadcn.commit}`)
+  // Components and recipes port shadcn/ui files. Helpers may also port the
+  // behavior of another pinned upstream, such as Base UI or Remix.
+  let pinned = item.kind === 'helper' ? Object.values(catalog.upstream) : [shadcn]
+  if (!pinned.some(({ repository, commit }) => item.source.startsWith(`${repository}/blob/${commit}/`))) {
+    problems.push(
+      item.kind === 'helper'
+        ? `${item.name}: source must link a file at a pinned upstream commit`
+        : `${item.name}: source must link a file at shadcn commit ${shadcn.commit}`,
+    )
   }
 
   if (item.kind !== 'helper' && !item.docs?.startsWith('https://ui.shadcn.com/docs/components/')) {
