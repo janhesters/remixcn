@@ -96,8 +96,11 @@ export function findTypeaheadMatch(
 
 const typeaheadTimeout = 500
 
-/** Collects typed characters into a query that resets after a pause. */
-function createTypeahead() {
+/**
+ * Collects typed characters into a query that resets after a pause of half a
+ * second, for a widget that matches items itself, such as a closed select.
+ */
+export function createTypeahead() {
   let query = ''
   let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -108,6 +111,8 @@ function createTypeahead() {
 
   return {
     reset,
+    /** Whether a query is still collecting, so a space belongs to it. */
+    typing: () => query !== '',
     /** Adds the key to the query and returns it, or returns `undefined` when the key doesn't type. */
     type(event: KeyboardEvent): string | undefined {
       if (event.key.length !== 1 || event.ctrlKey || event.metaKey || event.altKey) return undefined

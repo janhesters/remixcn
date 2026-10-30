@@ -1,7 +1,7 @@
 import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 
-import { findTypeaheadMatch, getNextIndex } from '#remixcn/lib/composite.ts'
+import { createTypeahead, findTypeaheadMatch, getNextIndex } from '#remixcn/lib/composite.ts'
 
 const none = [false, false, false, false]
 
@@ -73,5 +73,34 @@ describe('findTypeaheadMatch', () => {
     assert.equal(findTypeaheadMatch(labels, 'b', 0, [false, true, false, false, false]), 2)
     assert.equal(findTypeaheadMatch(labels, 'z', 0), -1)
     assert.equal(findTypeaheadMatch(labels, '', 0), -1)
+  })
+})
+
+describe('createTypeahead', () => {
+  let key = (key: string, init: Partial<KeyboardEvent> = {}) => ({ key, ...init }) as KeyboardEvent
+
+  it('collects typed characters into a query that a pause clears', (t) => {
+    let timers = t.useFakeTimers()
+    let typeahead = createTypeahead()
+
+    assert.equal(typeahead.type(key('b')), 'b')
+    assert.equal(typeahead.type(key('l')), 'bl')
+    assert.equal(typeahead.typing(), true)
+    timers.advance(500)
+    assert.equal(typeahead.typing(), false)
+    assert.equal(typeahead.type(key('c')), 'c')
+    typeahead.reset()
+    assert.equal(typeahead.type(key('d')), 'd')
+  })
+
+  it('leaves keys that type no text, and a space that would start the query', () => {
+    let typeahead = createTypeahead()
+
+    assert.equal(typeahead.type(key('ArrowDown')), undefined)
+    assert.equal(typeahead.type(key('a', { ctrlKey: true })), undefined)
+    assert.equal(typeahead.type(key(' ')), undefined)
+    assert.equal(typeahead.type(key('n')), 'n')
+    assert.equal(typeahead.type(key(' ')), 'n ')
+    typeahead.reset()
   })
 })
