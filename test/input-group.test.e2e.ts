@@ -1,23 +1,30 @@
 import * as assert from 'remix/assert'
 import { createTestServer } from 'remix/node-fetch-server/test'
-import { describe, it } from 'remix/test'
+import { describe } from 'remix/test'
 import type { TestContext } from 'remix/test'
 
 import { contrastRatio } from '../scripts/color.ts'
 import { findAccessibilityViolations } from './accessibility.ts'
 import { createInputGroupExamples } from './fixtures/input-group/server.tsx'
+import { createHold } from './held-entry.ts'
+import type { Hold } from './held-entry.ts'
 import { tags } from './html.ts'
 import { paintColors, toRgba } from './paint.ts'
+import { phase, probe, watchPage } from './phases.ts'
+
+// Each test records its phases, so one that fails or never finishes says where it was.
+const it = probe('input-group')
 
 interface OpenOptions {
   // off: the browser runs no script. never: scripting is on, but the page's scripts never load.
   javaScript?: 'on' | 'off' | 'never'
-  // Holds the page's entry module, and with it hydration, until this settles.
-  hold?: Promise<void>
+  // Holds the page's entry module, and with it hydration, until its release().
+  hold?: Hold
 }
 
 // Pages open with reduced motion, so transitions take 0s and every read sees the final style.
 async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {}) {
+  phase(t, 'open: start')
   let examples = await createInputGroupExamples()
   t.after(() => void examples.close())
 
@@ -28,6 +35,8 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
     t.after(() => context.close())
     page = await context.newPage()
   }
+  // A page without JavaScript never answers the watchdog's checks.
+  if (javaScript !== 'off') watchPage(t, page)
 
   let errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
@@ -37,16 +46,15 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
       route.request().resourceType() === 'script' ? route.abort() : route.continue(),
     )
   }
-  if (hold) {
-    await page.route('**/entry.ts*', async (route) => {
-      await hold
-      await route.continue()
-    })
-  }
+  if (hold) await hold.attach(page, '**/entry.ts*')
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
   // A held entry module also holds the load event, so such a page is read once it commits.
   await page.goto('/', { waitUntil: hold ? 'commit' : 'load' })
-  if (javaScript === 'on' && !hold) await page.locator('html[data-ready]').waitFor({ state: 'attached' })
+  phase(t, 'open: navigated')
+  if (javaScript === 'on' && !hold) {
+    await page.locator('html[data-ready]').waitFor({ state: 'attached' })
+    phase(t, 'open: hydrated')
+  }
   return { page, server, errors }
 }
 
@@ -571,15 +579,19 @@ describe('Input OTP', () => {
   })
 
   it('keeps a code typed before the page hydrates', async (t) => {
-    let release: () => void = () => {}
-    let { page, errors } = await open(t, { hold: new Promise<void>((resolve) => (release = resolve)) })
+    // Created before anything awaits, so its teardown settles the held entry even if the test fails first.
+    let hold = createHold(t, { record: (step) => phase(t, step) })
+    let { page, errors } = await open(t, { hold })
 
     await page.locator('#input-otp-demo-digits').click()
     await page.keyboard.type('1234')
+    phase(t, 'typed before hydration')
     assert.equal(await page.locator('html[data-ready]').count(), 0, 'the page has not hydrated yet')
-    release()
+    hold.release()
     await page.locator('html[data-ready]').waitFor({ state: 'attached' })
+    phase(t, 'hydrated')
     await page.waitForFunction(() => !document.querySelector('#input-otp-demo-digits')?.hasAttribute('data-pending'))
+    phase(t, 'pending input adopted')
 
     assert.equal(await page.locator('#input-otp-demo-digits').inputValue(), '1234')
     assert.equal(await slots(page, 'input-otp-demo-digits'), '1|2|3|4||')
