@@ -1679,6 +1679,20 @@
         "react-dom"
       ],
       "target": "registry/lib/hover-intent.ts"
+    },
+    {
+      "name": "civil-date",
+      "title": "Civil dates",
+      "kind": "helper",
+      "batch": 6,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/ui/calendar.tsx",
+      "behavior": "https://howardhinnant.github.io/date_algorithms.html",
+      "dependsOn": [],
+      "upstreamImports": [
+        "date-fns"
+      ],
+      "target": "registry/lib/civil-date.ts",
+      "note": "Replaces the date-fns arithmetic behind react-day-picker: YYYY-MM-DD days counted in the Gregorian calendar with integers, so no Date parses a string and no host time zone moves a day. Labels, weekday order and digits come from Intl."
     }
   ]
 }
