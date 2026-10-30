@@ -405,6 +405,9 @@ export function InputOTP(handle: Handle<InputOTPProps, InputOTPContext>) {
   let current = ''
   // The raw text while an input method composes, shown as typed until it commits.
   let composing: string | undefined
+  // Set while a committed composition waits to be cleaned up.
+  let commitTimer: ReturnType<typeof setTimeout> | undefined
+  handle.signal.addEventListener('abort', () => clearTimeout(commitTimer), { once: true })
   let input: HTMLInputElement | undefined
   let box: HTMLElement | undefined
   let running = false
@@ -562,6 +565,10 @@ export function InputOTP(handle: Handle<InputOTPProps, InputOTPContext>) {
 
   function onInput(event: Event) {
     if (!input || ownEvents.has(event)) return
+    // Firefox ends a composition with compositionend and then this input
+    // event. The input method is done by then, so the commit is cleaned up at
+    // once, before anything else can read the text it left.
+    if (commitTimer !== undefined && !(event as InputEvent).isComposing) return finishCommit()
     if (composing !== undefined || (event as InputEvent).isComposing) {
       composing = input.value.slice(0, maxLength())
       void handle.update()
@@ -577,8 +584,9 @@ export function InputOTP(handle: Handle<InputOTPProps, InputOTPContext>) {
   }
 
   // An edit while the input method ends its composition can disturb it, so
-  // the committed text is cleaned up in the next task. Until then the slots
-  // keep showing it, and no render writes the old code back over it.
+  // the committed text is cleaned up in the next task, or in the input event
+  // Firefox sends after compositionend, whichever comes first. Until then the
+  // slots keep showing it, and no render writes the old code back over it.
   function onCompositionEnd() {
     if (!input) return
     let raw = input.value
@@ -588,15 +596,19 @@ export function InputOTP(handle: Handle<InputOTPProps, InputOTPContext>) {
       return change(next, 'input')
     }
     composing = raw.slice(0, maxLength())
-    let timer = setTimeout(() => {
-      if (handle.signal.aborted || !input) return
-      composing = undefined
-      let value = input.value
-      let clean = sanitize(value)
-      if (clean === value) change(clean, 'input')
-      else rewrite(clean, 'input')
-    })
-    handle.signal.addEventListener('abort', () => clearTimeout(timer), { once: true })
+    clearTimeout(commitTimer)
+    commitTimer = setTimeout(finishCommit)
+  }
+
+  function finishCommit() {
+    clearTimeout(commitTimer)
+    commitTimer = undefined
+    if (handle.signal.aborted || !input) return
+    composing = undefined
+    let value = input.value
+    let clean = sanitize(value)
+    if (clean === value) change(clean, 'input')
+    else rewrite(clean, 'input')
   }
 
   function onPaste(event: ClipboardEvent) {

@@ -14,10 +14,12 @@ interface OpenOptions {
   javaScript?: 'on' | 'off' | 'never'
   // Holds the page's entry module, and with it hydration, until this settles.
   hold?: Promise<void>
+  // Runs in the page before its own scripts.
+  init?: () => void
 }
 
 // Pages open with reduced motion, so transitions take 0s and every read sees the final style.
-async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {}) {
+async function open(t: TestContext, { javaScript = 'on', hold, init }: OpenOptions = {}) {
   let examples = await createInputGroupExamples()
   t.after(() => void examples.close())
 
@@ -43,6 +45,7 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
       await route.continue()
     })
   }
+  if (init) await page.addInitScript(init)
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
   // A held entry module also holds the load event, so such a page is read once it commits.
   await page.goto('/', { waitUntil: hold ? 'commit' : 'load' })
@@ -51,6 +54,19 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
 }
 
 type Page = Awaited<ReturnType<typeof open>>['page']
+
+/**
+ * Makes every timer a compositionend listener starts wait a second, as on a
+ * busy machine, so a read right after the composition comes first.
+ */
+function holdCommitTimers() {
+  let ending = false
+  window.addEventListener('compositionend', () => (ending = true), true)
+  window.addEventListener('compositionend', () => (ending = false))
+  let setTimeout_ = window.setTimeout.bind(window)
+  window.setTimeout = ((handler: TimerHandler, timeout?: number, ...rest: unknown[]) =>
+    setTimeout_(handler, ending ? 1000 : timeout, ...rest)) as typeof window.setTimeout
+}
 
 function example(page: Page, id: string) {
   return page.locator(`[data-example="${id}"]`)
@@ -394,6 +410,19 @@ describe('Input OTP', () => {
 
     await page.keyboard.type('7')
     assert.equal(await input.inputValue(), '123457', 'typing replaces it, so the length caps the code')
+  })
+
+  it('filters a character an input method commits before the next read, also when timers run late', async (t) => {
+    // In Firefox, Playwright types a character a US keyboard lacks, such as ３,
+    // as an input method's commit. The code used to clean it up only in a timer,
+    // which the read right after typing could beat on a busy machine (PR #72).
+    let { page } = await open(t, { init: holdCommitTimers })
+    let input = page.locator('#input-otp-demo-digits')
+
+    await input.click()
+    await page.keyboard.type('1a2-３')
+    let typed = await input.inputValue()
+    assert.equal(typed, '123', `the commit is clean once typing returns, not ${typed}`)
   })
 
   it('steps through the slots with the arrow keys, replaces the selected character and deletes with Backspace', async (t) => {

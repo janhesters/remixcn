@@ -541,6 +541,32 @@ describe('InputOTP in the browser', () => {
     assert.deepEqual(events.changes, [['12', 'input']])
   })
 
+  it("filters a commit in the input event Firefox sends after compositionend, in that event's own task", async (t) => {
+    let events = recorder()
+    let { container, act } = mount(t, <div mix={events.mix}>{code({ pattern: REGEXP_ONLY_DIGITS })}</div>)
+    let input = otpInput(container)
+    await act(() => {
+      input.focus()
+      typeText(input, '12')
+    })
+
+    // Firefox's order, as Playwright types a character a US keyboard lacks: the
+    // composition ends with the text in the input, then one more input event.
+    input.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true, data: '' }))
+    input.setRangeText('３', 2, 2, 'end')
+    input.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: '３' }))
+    input.dispatchEvent(
+      new InputEvent('input', { bubbles: true, isComposing: false, inputType: 'insertCompositionText', data: '３' }),
+    )
+    assert.equal(input.value, '123', 'clean before any other task can read it')
+
+    await act(() => new Promise((resolve) => setTimeout(resolve, 10)))
+    assert.equal(input.value, '123')
+    assert.equal(shown(container), '1|2|3|||')
+    assert.deepEqual(events.changes.at(-1), ['123', 'input'])
+    assert.equal(events.changes.filter(([value]) => value === '123').length, 1, 'and only once')
+  })
+
   it('returns to its starting code when its form resets', async (t) => {
     let events = recorder()
     let { container, act } = mount(t, <form mix={events.mix}>{code({ name: 'code', defaultValue: '0042' })}</form>)
