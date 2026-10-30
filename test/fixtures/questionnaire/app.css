@@ -1,0 +1,10 @@
+/*
+ * The fixture app's own stylesheet. Its rules sit in the app layer, which
+ * theme.css orders after rmx, so they beat every component's css().
+ */
+@layer app {
+  .brand {
+    --primary: light-dark(oklch(0.488 0.217 264.4), oklch(0.809 0.105 251.8));
+    --ring: var(--primary);
+  }
+}
