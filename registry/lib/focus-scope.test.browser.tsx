@@ -270,6 +270,45 @@ describe('createFocusScope', () => {
     assert.equal(document.activeElement, trigger)
   })
 
+  it('leaves focus where the user moved it before a late first frame, but still overrides the browser', async (t) => {
+    let { popup } = setup(t, '<button>First</button><button>Second</button><button>Third</button>')
+    let [first, second, third] = popup.querySelectorAll('button')
+
+    // The browser puts focus inside, as a native dialog does, and the scope's choice wins.
+    let release = createFocusScope(popup, { initialFocus: () => second })
+    first.focus()
+    await nextFrame()
+    assert.equal(focused(), 'Second')
+    release()
+    await settle()
+
+    // A key the user presses inside before the first frame keeps their focus.
+    release = createFocusScope(popup, { initialFocus: () => second })
+    first.focus()
+    first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }))
+    third.focus()
+    await nextFrame()
+    assert.equal(focused(), 'Third')
+    release()
+    await settle()
+
+    // So does a press of the pointer, but not a key the user still holds down from opening it.
+    release = createFocusScope(popup, { initialFocus: () => second })
+    first.focus()
+    first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', repeat: true, bubbles: true, cancelable: true }))
+    await nextFrame()
+    assert.equal(focused(), 'Second', 'a held key repeats without the user moving focus')
+    release()
+    await settle()
+
+    release = createFocusScope(popup, { initialFocus: () => second })
+    third.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+    third.focus()
+    await nextFrame()
+    assert.equal(focused(), 'Third')
+    release()
+  })
+
   it('skips initial focus when released before the next frame', async (t) => {
     let { popup } = setup(t)
     let release = createFocusScope(popup)
