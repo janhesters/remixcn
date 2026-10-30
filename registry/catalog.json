@@ -1483,7 +1483,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/trace.tsx"
+      "target": "registry/ui/trace.tsx",
+      "exampleTarget": "registry/examples/trace-example.tsx"
     },
     {
       "name": "typography",

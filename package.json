@@ -83,7 +83,9 @@
     "disclosure-examples": "node --import remix/node-tsx test/fixtures/disclosure/server.tsx",
     "capture:disclosure-examples": "node --import remix/node-tsx test/fixtures/disclosure/capture.ts",
     "toast-examples": "node --import remix/node-tsx test/fixtures/toast/server.tsx",
-    "capture:toast-examples": "node --import remix/node-tsx test/fixtures/toast/capture.ts"
+    "capture:toast-examples": "node --import remix/node-tsx test/fixtures/toast/capture.ts",
+    "trace-examples": "node --import remix/node-tsx test/fixtures/trace/server.tsx",
+    "capture:trace-examples": "node --import remix/node-tsx test/fixtures/trace/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
