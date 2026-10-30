@@ -1,0 +1,28 @@
+diff --git a/dist/app/client/entry.js b/dist/app/client/entry.js
+index ca5dca612b71f77188b75c2191fbea94a6341eda..cb6bbeac64b669f59c880485715c9c38dcf46771 100644
+--- a/dist/app/client/entry.js
++++ b/dist/app/client/entry.js
+@@ -175,6 +175,9 @@ function runInIframe(testFile, only) {
+         iframe.width = Math.max(parentBody?.scrollWidth ?? 0, 800).toString();
+         iframe.height = Math.max(Math.round((parentBody?.scrollHeight ?? 0) / 2), 400).toString();
+         document.body.appendChild(iframe);
++        // RemixCN patch: keep the running file's frame in the window as the
++        // results above it grow. Engines throttle animation frames outside it.
++        iframe.scrollIntoView({ block: 'start', inline: 'nearest' });
+         function onMessage(event) {
+             if (event.source !== iframe.contentWindow)
+                 return;
+diff --git a/src/app/client/entry.ts b/src/app/client/entry.ts
+index 36e671a959f3ddb206a2c394faa278a497d6a64a..0fe4f81a9946170ca7b3a0da450d2433529db5af 100644
+--- a/src/app/client/entry.ts
++++ b/src/app/client/entry.ts
+@@ -197,6 +197,9 @@ function runInIframe(
+     iframe.width = Math.max(parentBody?.scrollWidth ?? 0, 800).toString()
+     iframe.height = Math.max(Math.round((parentBody?.scrollHeight ?? 0) / 2), 400).toString()
+     document.body.appendChild(iframe)
++    // RemixCN patch: keep the running file's frame in the window as the
++    // results above it grow. Engines throttle animation frames outside it.
++    iframe.scrollIntoView({ block: 'start', inline: 'nearest' })
+ 
+     function onMessage(event: MessageEvent) {
+       if (event.source !== iframe.contentWindow) return

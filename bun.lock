@@ -30,6 +30,9 @@
       },
     },
   },
+  "patchedDependencies": {
+    "@remix-run/test@1.0.0": "patches/@remix-run%2Ftest@1.0.0.patch",
+  },
   "packages": {
     "@axe-core/playwright": ["@axe-core/playwright@4.14.0", "", { "dependencies": { "axe-core": "~4.14.0" }, "peerDependencies": { "playwright-core": ">= 1.0.0" } }, "sha512-SGUhG5PIHd2eMdpgBF2PyQLOhX+qyDR2PT4cmoS4Qk2ak+jX/rrSvst9l0PGv5WTHolKpUMvVmoHpr4cZgf1RQ=="],
 
