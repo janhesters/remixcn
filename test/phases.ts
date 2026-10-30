@@ -1,13 +1,15 @@
 // Named phase records for end-to-end tests, so a test that fails or never
-// finishes says where it was, down to the browser operation it waited on. Each
-// record is appended at once, so it survives a lane that check stops at its
+// finishes says where it was, down to the browser operation or the cleanup it
+// waited on. Each record is appended at once from the test's own process, so it
+// survives a page that stopped answering and a lane that check stops at its
 // deadline. When check runs a lane with --diagnostics, the records go to
-// phases-<file>.log in that folder, and a failed test's browser trace to
+// phases-<file>.log in that folder, and a failed test's browser traces to
 // traces/, which CI checks for credentials and uploads after a failed lane. A
-// failed test's error also names the last phase it reached.
+// failed test's error also names the last phase it reached and the operations
+// still pending.
 import { execFileSync } from 'node:child_process'
 import { appendFileSync, mkdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, relative } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 
 import type { BrowserContext, Page } from 'playwright'
@@ -20,10 +22,15 @@ type Options = Exclude<Parameters<typeof runnerIt>[1], TestFn>
 interface Recorder {
   file: string
   test: string
-  /** The last phase recorded. */
+  /** The last phase recorded. Status records, such as the watchdog's, leave it as it is. */
   last: string
+  /** The browser operations that started and haven't settled yet, by number. */
+  pending: Map<number, string>
   failed: boolean
+  /** Records a phase of the test. */
   record(phase: string): void
+  /** Records a status, such as a page event or the watchdog's, without changing the last phase. */
+  note(status: string): void
 }
 
 const recorders = new WeakMap<TestContext, Recorder>()
@@ -32,6 +39,35 @@ const directory = () => process.env.REMIXCN_DIAGNOSTICS
 /** Records a phase of the running test. Outside a probed test it does nothing. */
 export function phase(t: TestContext, name: string) {
   recorders.get(t)?.record(name)
+}
+
+function note(t: TestContext, status: string) {
+  recorders.get(t)?.note(status)
+}
+
+/** The operations still pending, as a record's suffix, or nothing when none is. */
+function pendingOf(recorder: Recorder | undefined) {
+  let pending = [...(recorder?.pending.values() ?? [])]
+  return pending.length > 0 ? `; pending: ${pending.join(', ')}` : ''
+}
+
+/** Longest value an assertion's record shows. */
+const valueLimit = 4_000
+
+function show(value: unknown) {
+  let text: string
+  try {
+    text = JSON.stringify(value) ?? String(value)
+  } catch {
+    text = String(value)
+  }
+  return text.length > valueLimit ? `${text.slice(0, valueLimit)}…` : text
+}
+
+/** An assertion's actual and expected values, which a message such as "Objects not deeply equal" leaves out. */
+function assertionValues(error: unknown) {
+  if (!(error instanceof Error) || !('actual' in error) || !('expected' in error)) return ''
+  return `\nactual: ${show(error.actual)}\nexpected: ${show(error.expected)}`
 }
 
 function firstLine(error: unknown) {
@@ -84,6 +120,9 @@ function follow(t: TestContext, value: unknown, label: string): unknown {
   return recordActions(t, value, className(value) === 'Locator' && !own.startsWith('[object') ? own : label)
 }
 
+/** Numbers each recorded operation, so two of the same call stay apart while pending. */
+let actions = 0
+
 /**
  * Wraps a Playwright page, frame, locator, keyboard, mouse or touchscreen, so
  * each operation that waits on the browser records its start, and its end or
@@ -101,10 +140,19 @@ export function recordActions<T extends object>(t: TestContext, target: T, label
         let call = `${label}.${key}(${args.map(describeArgument).join(', ')})`
         let result = method.apply(object, args)
         if (!(result instanceof Promise)) return follow(t, result, call)
+        let recorder = recorders.get(t)
+        let number = (actions += 1)
+        recorder?.pending.set(number, call)
         phase(t, `action: ${call} start`)
         result.then(
-          () => phase(t, `action: ${call} done`),
-          (error: unknown) => phase(t, `action: ${call} failed: ${firstLine(error)}`),
+          () => {
+            recorder?.pending.delete(number)
+            phase(t, `action: ${call} done`)
+          },
+          (error: unknown) => {
+            recorder?.pending.delete(number)
+            phase(t, `action: ${call} failed: ${firstLine(error)}`)
+          },
         )
         return result.then((resolved) => follow(t, resolved, call))
       }
@@ -124,7 +172,7 @@ const answerMs = 2_000
  * operations recorded, as `recordActions` does: use that page in the test.
  */
 export function watchPage(t: TestContext, page: Page, { label = 'page', watchdog = true } = {}): Page {
-  let record = (name: string) => phase(t, `${label}: ${name}`)
+  let record = (name: string) => note(t, `${label}: ${name}`)
   let browser = page.context().browser()
   record(`opened in ${browser?.browserType().name() ?? 'an unknown engine'} ${browser?.version() ?? ''}`.trim())
   page.on(
@@ -145,19 +193,29 @@ export function watchPage(t: TestContext, page: Page, { label = 'page', watchdog
     let silent = false
     let watch = async () => {
       while (!stopped && !page.isClosed()) {
-        let answered = await Promise.race([
-          page.evaluate(() => true).catch(() => true),
-          delay(answerMs, false, { ref: false }),
+        let answer = await Promise.race([
+          page
+            .evaluate(() => true)
+            .then(
+              () => 'answered',
+              () => 'failed',
+            ),
+          delay(answerMs, 'silent', { ref: false }),
         ])
-        if (stopped) return
-        if (!answered && !silent) record(`main thread hasn't answered for ${answerMs / 1000} s`)
-        if (answered && silent) record('main thread answers again')
-        silent = !answered
+        if (stopped || page.isClosed()) return
+        // A check that failed, such as on a page that closes or navigates, says nothing about its main thread.
+        if (answer !== 'failed') {
+          if (answer === 'silent' && !silent) {
+            record(`main thread hasn't answered for ${answerMs / 1000} s${pendingOf(recorders.get(t))}`)
+          }
+          if (answer === 'answered' && silent) record('main thread answers again')
+          silent = answer === 'silent'
+        }
         await delay(answerMs, undefined, { ref: false })
       }
     }
     void watch()
-    t.after(() => {
+    t.after(function stopWatchdog() {
       stopped = true
     })
   }
@@ -172,27 +230,30 @@ function slug(text: string) {
     .slice(0, 80)
 }
 
-/**
- * Traces the test's browser context, and keeps the trace of a failed test in
- * the diagnostics folder's traces/. Call it before anything else registers a
- * cleanup, such as before t.serve(), so its teardown stops the trace before
- * the context closes. A trace holds every browser operation with its timing
- * and DOM snapshots, but not the test's own assertions, which the phase log
- * and the lane's log keep.
- */
 /** How long stopping a trace may take, as long as a navigation may. */
 const traceStopMs = 10_000
 
-export function traceOnFailure(t: TestContext) {
+/**
+ * Traces one browser context of the test, and keeps the trace of a failed test
+ * in the diagnostics folder's traces/, named by the test and the `label`. Call
+ * it before anything registers the context's cleanup, such as before
+ * t.serve() or before the context's close, so its teardown stops the trace
+ * before the context closes. Trace each context a test exercises with its own
+ * label. A trace holds every browser operation with its timing and DOM
+ * snapshots, but not the test's own assertions, which the phase log and the
+ * lane's log keep.
+ */
+export function traceOnFailure(t: TestContext, { label = 'page' } = {}) {
   let context: BrowserContext | undefined
-  t.after(async () => {
+  let record = (name: string) => phase(t, `trace (${label}): ${name}`)
+  t.after(async function stopTrace() {
     let recorder = recorders.get(t)
     if (!context || !recorder) return
     let folder = directory()
     let engine = context.browser()?.browserType().name() ?? 'browser'
     let path =
       recorder.failed && folder
-        ? join(folder, 'traces', `${recorder.file}--${slug(recorder.test)}--${engine}.zip`)
+        ? join(folder, 'traces', `${recorder.file}--${slug(recorder.test)}--${label}--${engine}.zip`)
         : undefined
     try {
       if (path) mkdirSync(join(folder!, 'traces'), { recursive: true })
@@ -201,10 +262,10 @@ export function traceOnFailure(t: TestContext) {
         context.tracing.stop(path ? { path } : {}).then(() => true),
         delay(traceStopMs, false, { ref: false }),
       ])
-      if (!stopped) phase(t, `trace not saved: stopping it took longer than ${traceStopMs / 1000} s`)
-      else if (path) phase(t, `trace saved to traces/${path.split('/').at(-1)}`)
+      if (!stopped) record(`not saved: stopping it took longer than ${traceStopMs / 1000} s`)
+      else if (path) record(`saved to traces/${path.split('/').at(-1)}`)
     } catch (error) {
-      phase(t, `trace not saved: ${firstLine(error)}`)
+      record(`not saved: ${firstLine(error)}`)
     }
   })
   return {
@@ -212,16 +273,68 @@ export function traceOnFailure(t: TestContext) {
     async start(page: Page) {
       if (!directory()) return
       context = page.context()
-      await context.tracing.start({ title: recorders.get(t)?.test, screenshots: true, snapshots: true })
+      let title = `${recorders.get(t)?.test ?? 'test'} (${label})`
+      await context.tracing.start({ title, screenshots: true, snapshots: true })
     },
   }
 }
 
+/** Where a cleanup was registered: the file and line of the call to t.after. */
+function registeredAt(stack: string | undefined) {
+  let frame = stack?.split('\n')[2] ?? ''
+  let match = /\(?(?:file:\/\/)?([^()\s?]+?)(?:\?[^:()\s]*)?:(\d+)(?::\d+)*\)?$/.exec(frame.trim())
+  return match ? `${relative(process.cwd(), match[1])}:${match[2]}` : 'an unknown place'
+}
+
+/**
+ * The test's context, with each cleanup recorded by its number and identity
+ * when it starts and when it ends or fails: the function's name, if it has
+ * one, and where it was registered. t.serve() registers the runner's own
+ * cleanup, which closes its page and server, so that one is recorded too.
+ */
+function recordCleanups(t: TestContext, recorder: Recorder): TestContext {
+  let count = 0
+  let run = async (name: string, fn: () => unknown) => {
+    recorder.record(`${name}: start`)
+    try {
+      await fn()
+      recorder.record(`${name}: done`)
+    } catch (error) {
+      recorder.record(`${name}: failed: ${firstLine(error)}`)
+      throw error
+    }
+  }
+  return new Proxy(t, {
+    get(target, key) {
+      if (key === 'after') {
+        return (fn: () => unknown) => {
+          let place = registeredAt(new Error().stack)
+          let name = `cleanup ${(count += 1)} (${fn.name ? `${fn.name}, ` : ''}registered at ${place})`
+          target.after(() => run(name, fn))
+        }
+      }
+      if (key === 'serve') {
+        return async (server: Parameters<TestContext['serve']>[0]) => {
+          let name = `cleanup ${(count += 1)} (t.serve's own, which closes its page and server)`
+          let served = false
+          // The runner registers its cleanup as t.serve() returns, so it runs between these two.
+          target.after(() => served && recorder.record(`${name}: start`))
+          let page = await target.serve(server)
+          served = true
+          target.after(() => recorder.record(`${name}: done`))
+          return page
+        }
+      }
+      return Reflect.get(target, key, target)
+    },
+  })
+}
+
 /**
  * Wraps remix test's `it` for one test file, so each test records its start,
- * its end or its error with the assertion's full output, and its teardown, and
- * a failure names its last phase. The log starts with the revision, the Node
- * version and the command.
+ * its end or its error with the assertion's full output and the operations
+ * still pending, each cleanup, and its teardown, and a failure names its last
+ * phase. The log starts with the revision, the Node version and the command.
  */
 export function probe(file: string): typeof runnerIt {
   let folder = directory()
@@ -242,27 +355,34 @@ export function probe(file: string): typeof runnerIt {
   let wrap =
     (name: string, fn: TestFn): TestFn =>
     async (t) => {
+      let line = (text: string) => write(`${new Date().toISOString()} ${file} > ${name}: ${text}`)
       let recorder: Recorder = {
         file,
         test: name,
         last: 'test start',
+        pending: new Map(),
         failed: false,
         record(phase_) {
           recorder.last = phase_
-          write(`${new Date().toISOString()} ${file} > ${name}: ${phase_}`)
+          line(phase_)
         },
+        note: line,
       }
+      let probed = recordCleanups(t, recorder)
       recorders.set(t, recorder)
+      recorders.set(probed, recorder)
       recorder.record('test start')
       try {
-        await fn(t)
+        await fn(probed)
         recorder.record('test end')
       } catch (error) {
         recorder.failed = true
         let message = error instanceof Error ? error.message : String(error)
         let last = recorder.last
-        recorder.record(`failed in phase "${last}": ${message.replaceAll('\n', '\n    ')}`)
-        if (error instanceof Error) error.message = `${message}\n[last phase: ${last}]`
+        let pending = pendingOf(recorder)
+        let output = `${message}${assertionValues(error)}`
+        recorder.record(`failed in phase "${last}"${pending}: ${output.replaceAll('\n', '\n    ')}`)
+        if (error instanceof Error) error.message = `${message}\n[last phase: ${last}${pending}]`
         throw error
       } finally {
         // Registered last, so it runs after the test's own cleanups.

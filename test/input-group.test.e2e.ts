@@ -28,7 +28,7 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
   // First, so its teardown keeps a failed test's trace before the page closes.
   let trace = traceOnFailure(t)
   let examples = await createInputGroupExamples()
-  t.after(() => void examples.close())
+  t.after(() => examples.close())
 
   let server = await createTestServer(examples.fetch)
   let page = await t.serve(server)
@@ -221,12 +221,15 @@ describe('Input Group and Input OTP examples', () => {
   it('pass them before the scripts run too', async (t) => {
     // axe runs as a script, so the server HTML is checked with the page's own modules held back.
     let { page } = await open(t)
+    // Before the context's close, so its teardown keeps a failed test's trace of this context too.
+    let trace = traceOnFailure(t, { label: 'before' })
     let held = await page
       .context()
       .browser()!
       .newContext({ baseURL: new URL(page.url()).origin })
     t.after(() => held.close())
     let before = watchPage(t, await held.newPage(), { label: 'before' })
+    await trace.start(before)
     await before.route('**/assets/**', (route) =>
       route.request().resourceType() === 'stylesheet' ? route.continue() : route.abort(),
     )
