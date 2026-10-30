@@ -39,7 +39,7 @@
     "lint": "oxlint --deny-warnings",
     "typecheck": "tsc --noEmit && tsc --noEmit -p test/fixtures/consumer-app",
     "test": "remix test --type server",
-    "test:browser": "remix test --type browser --playwrightConfig ./playwright.browser.config.ts",
+    "test:browser": "remix test --type browser",
     "test:e2e": "remix test --type e2e",
     "check:components": "node scripts/check-components.ts",
     "check:secrets": "node scripts/check-secrets.ts",
