@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -100,7 +100,14 @@ async function stopLeftovers(value: string): Promise<string | undefined> {
     leftovers = findMarkedProcesses(value)
   }
   if (leftovers.length === 0) return undefined
+  let { count, list, survivors } = await stopProcesses(leftovers)
+  if (survivors.length > 0)
+    return `left ${count} running, and ${survivors.join(', ')} still runs after SIGKILL: ${list}`
+  return `left ${count} running, now stopped: ${list}`
+}
 
+/** Stops the processes with SIGKILL, and lists them and the ones still running once that had time to work. */
+async function stopProcesses(leftovers: Array<{ pid: number; command: string }>) {
   for (let { pid } of leftovers) {
     try {
       process.kill(pid, 'SIGKILL')
@@ -113,10 +120,18 @@ async function stopLeftovers(value: string): Promise<string | undefined> {
   let survivors = await waitForExit(pids, stopGraceMs)
   let count = leftovers.length === 1 ? '1 process' : `${leftovers.length} processes`
   let list = leftovers.map(({ pid, command }) => `${pid} ${command}`).join('; ')
-  if (survivors.length > 0) {
-    return `left ${count} running, and ${survivors.join(', ')} still runs after SIGKILL: ${list}`
-  }
-  return `left ${count} running, now stopped: ${list}`
+  return { count, list, survivors }
+}
+
+/** The lane's deadline in milliseconds, which REMIXCN_LANE_DEADLINE_MS shortens for check's own tests. */
+function deadlineOf(lane: Lane): number | undefined {
+  if (lane.deadlineMinutes === undefined) return undefined
+  let injected = Number(process.env.REMIXCN_LANE_DEADLINE_MS)
+  return injected > 0 ? injected : lane.deadlineMinutes * 60_000
+}
+
+function describeDuration(ms: number) {
+  return ms % 60_000 === 0 ? `${ms / 60_000} min` : `${ms / 1000} s`
 }
 
 async function runLane(lane: Lane): Promise<string | undefined> {
@@ -131,6 +146,8 @@ async function runLane(lane: Lane): Promise<string | undefined> {
 
   let env: NodeJS.ProcessEnv = { ...process.env, [marker]: id }
   if (process.stdout.isTTY && !('NO_COLOR' in env)) env.FORCE_COLOR ??= '1'
+  // Tests that keep their own records, such as phase logs, write them next to the lane's log.
+  if (options.diagnostics) env.REMIXCN_DIAGNOSTICS = resolve(options.diagnostics)
 
   let args = ['run', lane.script, ...(project ? ['--project', project] : [])]
   let child = spawn('bun', args, { cwd: root, env, stdio: ['inherit', 'pipe', 'pipe'] })
@@ -146,10 +163,37 @@ async function runLane(lane: Lane): Promise<string | undefined> {
     })
   }
   let closed = new Promise<boolean>((resolve) => child.on('close', () => resolve(true)))
+
+  // Past its deadline, the lane and every process it started stop, and the lane fails.
+  let deadline = deadlineOf(lane)
+  let overrun: Promise<string> | undefined
+  let late = (ms: number) => `ran past its deadline of ${describeDuration(ms)}`
+  let timer =
+    deadline === undefined
+      ? undefined
+      : setTimeout(() => {
+          let note = `\n${lane.name} ${late(deadline)}, so check stops it.\n`
+          process.stderr.write(note)
+          if (log) appendFileSync(log, note)
+          overrun = stopProcesses(findMarkedProcesses(id)).then(({ count, list, survivors }) =>
+            survivors.length > 0
+              ? `${late(deadline)}; check stopped ${count}, but ${survivors.join(', ')} still runs: ${list}`
+              : `${late(deadline)}; check stopped ${count}: ${list}`,
+          )
+        }, deadline)
+
   let code = await new Promise<number | null>((resolve, reject) => {
     child.on('error', reject)
     child.on('exit', resolve)
   })
+  clearTimeout(timer)
+  if (overrun) {
+    let stopped = await overrun
+    await Promise.race([closed, delay(outputGraceMs, false, { ref: false })])
+    child.stdout.destroy()
+    child.stderr.destroy()
+    return stopped
+  }
 
   // A leftover process may hold the lane's output open, so cleanup starts once
   // the lane exits. Stopping it closes the output. If something the cleanup

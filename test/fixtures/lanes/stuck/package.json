@@ -1,0 +1,8 @@
+{
+  "name": "lanes-stuck",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:e2e": "node stuck.ts"
+  }
+}

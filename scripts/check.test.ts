@@ -117,6 +117,35 @@ describe('check', () => {
     assert.match(readFileSync(join(diagnostics, 'format.log'), 'utf8'), /^formatted$/m)
   })
 
+  it(
+    'stops a lane that runs past its deadline, with every process it started, and keeps its log',
+    { skip: process.platform !== 'linux', timeout: 60_000 },
+    (t) => {
+      let diagnostics = scratchDirectory(t)
+      let started = performance.now()
+
+      let { status, stdout } = runCheck('stuck', ['e2e', '--diagnostics', diagnostics], {
+        REMIXCN_LANE_DEADLINE_MS: '1000',
+      })
+      let pids = (/^stuck (\d+) (\d+)$/m.exec(stdout) ?? []).slice(1).map(Number)
+      t.after(() => {
+        for (let pid of pids) if (pid > 0 && isRunning(pid)) process.kill(pid, 'SIGKILL')
+      })
+
+      assert.equal(status, 1)
+      assert.match(
+        stdout,
+        /^ {2}✗ e2e: ran past its deadline of 1 s; check stopped 3 processes: \d+ bun run test:e2e; /m,
+      )
+      assert.equal(pids.length, 2, stdout)
+      for (let pid of pids) assert.ok(!isRunning(pid), `process ${pid} still runs`)
+      assert.ok(performance.now() - started < 20_000, 'stopped soon after the deadline')
+      let log = readFileSync(join(diagnostics, 'e2e.log'), 'utf8')
+      assert.match(log, /^stuck \d+ \d+$/m)
+      assert.match(log, /^e2e ran past its deadline of 1 s, so check stops it\.$/m)
+    },
+  )
+
   it('rejects a lane it does not know', () => {
     let { status, output } = runCheck('empty', ['docs'])
 
