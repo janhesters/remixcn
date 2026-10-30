@@ -59,6 +59,10 @@ async function openFrom(
     await trigger.click()
   }
   await page.waitForFunction(() => document.activeElement?.closest('dialog[open]'))
+  // The focus scope moves focus on the dialog's first frame, which WebKit
+  // delays on a page it throttles. Wait for it, so each test starts from the
+  // dialog's initial focus, not from where the browser put focus first.
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
   assert.equal(await openDialog(page).getAttribute('data-slot'), slot, `${section} › ${title} › ${name}`)
   return trigger
 }
@@ -268,6 +272,7 @@ describe('Alert Dialog examples', () => {
     await trigger.focus()
     await page.keyboard.down('Enter')
     await page.waitForFunction(() => document.activeElement?.closest('dialog[open]'))
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
     assert.deepEqual(await focus(page), { name: 'Cancel', tag: 'button', inside: true })
     await page.keyboard.down('Enter')
     await page.keyboard.down('Enter')
