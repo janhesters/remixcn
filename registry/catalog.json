@@ -338,10 +338,15 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/calendar-example.tsx",
       "behavior": "https://react-day-picker.js.org",
       "dependsOn": [
-        "button"
+        "theme",
+        "styles",
+        "icons",
+        "button",
+        "civil-date"
       ],
       "upstreamImports": [
         "cn",
+        "date-fns",
         "icon-placeholder",
         "react",
         "react-day-picker"
