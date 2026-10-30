@@ -21,29 +21,36 @@ async function importConfig(file: string): Promise<PlaywrightConfig> {
 }
 
 // remix test's browser runner lists a row for every finished test file and
-// suite above the frame of the file that runs next. In Playwright's default
-// 1280 by 720 window the later frames end up below the window, where WebKit
-// throttles their animation frames until the lane stalls at its 90-second
-// progress timeout (PR #46, CI run 57). The browser lane keeps them in view.
-describe('browser lane', () => {
-  it('runs the component tests in a tall window, with every other setting of the shared config', async () => {
+// suite above the frame of the file that runs next. The patched runner scrolls
+// that frame into the window (patches/@remix-run%2Ftest@1.0.0.patch, PR #62),
+// so both lanes share one config in Playwright's default 1280 by 720 window.
+describe('browser lanes', () => {
+  it('runs the browser and end-to-end tests through the shared config', () => {
     let scripts = readJson('package.json').scripts as Record<string, string>
-    assert.equal(scripts['test:browser'], 'remix test --type browser --playwrightConfig ./playwright.browser.config.ts')
+    assert.equal(scripts['test:browser'], 'remix test --type browser')
     assert.equal(scripts['test:e2e'], 'remix test --type e2e')
     assert.equal(readJson('remix.json').test.playwright.configFile, './playwright.config.ts')
-
-    let base = await importConfig('playwright.config.ts')
-    let tall = await importConfig('playwright.browser.config.ts')
-    let { viewport, ...use } = tall.use ?? {}
-    assert.deepEqual(tall.projects, base.projects)
-    assert.deepEqual(use, base.use)
-    assert.equal(viewport?.width, 1280)
-    assert.ok((viewport?.height ?? 0) >= 4000, `viewport height ${viewport?.height}`)
   })
 
-  it('leaves the end-to-end tests in the default window', async () => {
-    let base = await importConfig('playwright.config.ts')
+  it('runs in Chromium, Firefox and WebKit', async () => {
+    let config = await importConfig('playwright.config.ts')
 
-    assert.equal(base.use?.viewport, undefined)
+    assert.deepEqual(
+      config.projects?.map((project) => [project.name, project.use?.browserName]),
+      [
+        ['chromium', 'chromium'],
+        ['firefox', 'firefox'],
+        ['webkit', 'webkit'],
+      ],
+    )
+  })
+
+  it('runs in the default window', async () => {
+    let config = await importConfig('playwright.config.ts')
+
+    assert.equal(config.use?.viewport, undefined)
+    for (let project of config.projects ?? []) {
+      assert.equal(project.use?.viewport, undefined, `${project.name} viewport`)
+    }
   })
 })
