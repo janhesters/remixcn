@@ -75,7 +75,9 @@
     "command-examples": "node --import remix/node-tsx test/fixtures/command/server.tsx",
     "capture:command-examples": "node --import remix/node-tsx test/fixtures/command/capture.ts",
     "questionnaire-examples": "node --import remix/node-tsx test/fixtures/questionnaire/server.tsx",
-    "capture:questionnaire-examples": "node --import remix/node-tsx test/fixtures/questionnaire/capture.ts"
+    "capture:questionnaire-examples": "node --import remix/node-tsx test/fixtures/questionnaire/capture.ts",
+    "input-group-examples": "node --import remix/node-tsx test/fixtures/input-group/server.tsx",
+    "capture:input-group-examples": "node --import remix/node-tsx test/fixtures/input-group/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"

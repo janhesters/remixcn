@@ -750,7 +750,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/input-group.tsx"
+      "target": "registry/ui/input-group.tsx",
+      "exampleTarget": "registry/examples/input-group-example.tsx"
     },
     {
       "name": "input-otp",
@@ -773,7 +774,8 @@
         "input-otp",
         "react"
       ],
-      "target": "registry/ui/input-otp.tsx"
+      "target": "registry/ui/input-otp.tsx",
+      "exampleTarget": "registry/examples/input-otp-example.tsx"
     },
     {
       "name": "item",
