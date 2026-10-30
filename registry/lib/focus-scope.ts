@@ -151,8 +151,24 @@ export function createFocusScope(container: HTMLElement, options: FocusScopeOpti
   }
   container.addEventListener('keydown', wrapTab)
 
+  // The first frame can come late, such as in a page the browser throttles.
+  // A key or a pointer press inside before it means the user moved focus
+  // already, so the initial focus leaves it there. A key the user still holds
+  // from opening the popup only repeats, so it doesn't count.
+  let interacted = false
+  function noteInteraction(event: Event) {
+    if (!(event instanceof KeyboardEvent && event.repeat)) interacted = true
+  }
+  function stopNoting() {
+    container.removeEventListener('keydown', noteInteraction, true)
+    container.removeEventListener('pointerdown', noteInteraction, true)
+  }
+  container.addEventListener('keydown', noteInteraction, true)
+  container.addEventListener('pointerdown', noteInteraction, true)
+
   let frame = view.requestAnimationFrame(() => {
-    if (options.initialFocus === false) return
+    stopNoting()
+    if (options.initialFocus === false || interacted) return
     let explicit = resolve(options.initialFocus)
     let active = getFocused(document)
     if (!explicit && active && container.contains(active)) return
@@ -184,6 +200,7 @@ export function createFocusScope(container: HTMLElement, options: FocusScopeOpti
     if (released) return
     released = true
     view.cancelAnimationFrame(frame)
+    stopNoting()
     container.removeEventListener('keydown', wrapTab)
     if (addedTabIndex) container.removeAttribute('tabindex')
     if (current.returnFocus === false) return
