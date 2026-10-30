@@ -505,7 +505,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/command.tsx"
+      "target": "registry/ui/command.tsx",
+      "exampleTarget": "registry/examples/command-example.tsx"
     },
     {
       "name": "context-menu",

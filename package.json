@@ -71,7 +71,8 @@
     "field-examples": "node --import remix/node-tsx test/fixtures/field/server.tsx",
     "capture:field-examples": "node --import remix/node-tsx test/fixtures/field/capture.ts",
     "drawer-examples": "node --import remix/node-tsx test/fixtures/drawer/server.tsx",
-    "capture:drawer-examples": "node --import remix/node-tsx test/fixtures/drawer/capture.ts"
+    "capture:drawer-examples": "node --import remix/node-tsx test/fixtures/drawer/capture.ts",
+    "command-examples": "node --import remix/node-tsx test/fixtures/command/server.tsx"
   },
   "engines": {
     "node": ">=24.3.0"
