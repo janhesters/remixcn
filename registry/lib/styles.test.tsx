@@ -3,7 +3,7 @@ import { renderToString } from 'remix/component/server'
 import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 
-import { disabledState, focusRing, invalidState, mergeStyles, transition, visuallyHidden } from './styles.ts'
+import { disabledState, focusRing, invalidState, mergeStyles, shimmer, transition, visuallyHidden } from './styles.ts'
 
 describe('mergeStyles', () => {
   it('merges nested selectors and lets later declarations win', () => {
@@ -37,6 +37,39 @@ describe('transition', () => {
       transitionDuration: 'var(--duration-fast)',
       transitionTimingFunction: 'var(--ease-out)',
     })
+  })
+})
+
+describe('shimmer', () => {
+  it('sweeps a highlight across the text, and keeps plain text for reduced motion and forced colors', () => {
+    let styles = shimmer()
+
+    assert.equal(styles.backgroundClip, 'text')
+    assert.equal(styles.WebkitTextFillColor, 'transparent')
+    // The highlight sits between two text colors that both reach 4.5:1, so the sweep does too.
+    assert.equal(
+      styles['--remixcn-shimmer-highlight'],
+      'var(--shimmer-color, color-mix(in oklab, var(--foreground), var(--muted-foreground)))',
+    )
+    assert.match(String(styles.backgroundImage), /var\(--remixcn-shimmer-highlight\) 50%/)
+    assert.match(String(styles.animation), /^remixcn-shimmer /)
+    assert.deepEqual(styles['&:dir(rtl)'], { animationDirection: 'reverse' })
+    for (let query of ['@media (prefers-reduced-motion: reduce)', '@media (forced-colors: active)']) {
+      assert.deepEqual(styles[query], {
+        '&': { animation: 'none', backgroundImage: 'none', WebkitTextFillColor: 'currentColor' },
+      })
+    }
+    assert.ok(styles['@keyframes remixcn-shimmer'])
+  })
+
+  it('applies only while another selector matches, such as a state on an ancestor', () => {
+    let selector = ':where([data-state="uploading"]) &'
+    let styles = shimmer(selector)
+
+    assert.equal((styles[selector] as Record<string, unknown>).backgroundClip, 'text')
+    assert.deepEqual(styles[`${selector}:dir(rtl)`], { animationDirection: 'reverse' })
+    assert.deepEqual(Object.keys(styles['@media (prefers-reduced-motion: reduce)'] as object), [selector])
+    assert.equal(styles.backgroundClip, undefined)
   })
 })
 
