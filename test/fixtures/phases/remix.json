@@ -1,0 +1,8 @@
+{
+  "$schema": "../../../node_modules/remix/schema/remix.json",
+  "test": {
+    "files": ["*.test.e2e.ts"],
+    "e2eFiles": ["*.test.e2e.ts"],
+    "type": ["e2e"]
+  }
+}

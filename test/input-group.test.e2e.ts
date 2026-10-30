@@ -10,7 +10,7 @@ import { createHold } from './held-entry.ts'
 import type { Hold } from './held-entry.ts'
 import { tags } from './html.ts'
 import { paintColors, toRgba } from './paint.ts'
-import { phase, probe, watchPage } from './phases.ts'
+import { phase, probe, traceOnFailure, watchPage } from './phases.ts'
 
 // Each test records its phases, so one that fails or never finishes says where it was.
 const it = probe('input-group')
@@ -25,6 +25,8 @@ interface OpenOptions {
 // Pages open with reduced motion, so transitions take 0s and every read sees the final style.
 async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {}) {
   phase(t, 'open: start')
+  // First, so its teardown keeps a failed test's trace before the page closes.
+  let trace = traceOnFailure(t)
   let examples = await createInputGroupExamples()
   t.after(() => void examples.close())
 
@@ -36,7 +38,8 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
     page = await context.newPage()
   }
   // A page without JavaScript never answers the watchdog's checks.
-  if (javaScript !== 'off') watchPage(t, page)
+  page = watchPage(t, page, { watchdog: javaScript !== 'off' })
+  await trace.start(page)
 
   let errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
@@ -223,7 +226,7 @@ describe('Input Group and Input OTP examples', () => {
       .browser()!
       .newContext({ baseURL: new URL(page.url()).origin })
     t.after(() => held.close())
-    let before = await held.newPage()
+    let before = watchPage(t, await held.newPage(), { label: 'before' })
     await before.route('**/assets/**', (route) =>
       route.request().resourceType() === 'stylesheet' ? route.continue() : route.abort(),
     )
