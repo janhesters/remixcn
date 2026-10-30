@@ -13,8 +13,8 @@ import { isRunning } from './processes.ts'
 const check = fileURLToPath(new URL('check.ts', import.meta.url))
 const fixtures = fileURLToPath(new URL('../test/fixtures/lanes/', import.meta.url))
 
-function runCheck(fixture: string, args: string[], env: Record<string, string> = {}) {
-  let result = spawnSync(process.execPath, [check, ...args], {
+function runCheck(fixture: string, args: string[], env: Record<string, string> = {}, node: string[] = []) {
+  let result = spawnSync(process.execPath, [...node, check, ...args], {
     cwd: join(fixtures, fixture),
     encoding: 'utf8',
     env: { ...process.env, GITHUB_ACTIONS: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '', ...env },
@@ -143,6 +143,30 @@ describe('check', () => {
       let log = readFileSync(join(diagnostics, 'e2e.log'), 'utf8')
       assert.match(log, /^stuck \d+ \d+$/m)
       assert.match(log, /^e2e ran past its deadline of 1 s, so check stops it\.$/m)
+    },
+  )
+
+  it(
+    'stops a lane past its deadline on a system where it cannot list the processes the lane started',
+    { skip: process.platform === 'win32', timeout: 60_000 },
+    (t) => {
+      let started = performance.now()
+
+      let { status, stdout } = runCheck('stuck', ['e2e'], { REMIXCN_LANE_DEADLINE_MS: '1000' }, [
+        '--import',
+        join(fixtures, 'no-proc.ts'),
+      ])
+      let pids = (/^stuck (\d+) (\d+)$/m.exec(stdout) ?? []).slice(1).map(Number)
+      t.after(() => {
+        for (let pid of pids) if (pid > 0 && isRunning(pid)) process.kill(pid, 'SIGKILL')
+      })
+
+      assert.equal(status, 1, stdout)
+      assert.match(
+        stdout,
+        /^ {2}✗ e2e: ran past its deadline of 1 s; check stopped its process \d+, but can't list the processes it started here, so they may still run$/m,
+      )
+      assert.ok(performance.now() - started < 20_000, 'finished soon after the deadline')
     },
   )
 

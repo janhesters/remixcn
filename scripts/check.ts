@@ -15,6 +15,8 @@ import { waitForExit } from './processes.ts'
 import { listWorkspaceFiles } from './workspace.ts'
 
 const root = process.cwd()
+/** What a lane's wait ends with once its deadline passed. */
+const overrun = Symbol('overrun')
 const marker = 'REMIXCN_CHECK_LANE'
 /** How long a lane's output may stay open after the lane exited and its leftovers were stopped. */
 const outputGraceMs = 2_000
@@ -164,36 +166,54 @@ async function runLane(lane: Lane): Promise<string | undefined> {
   }
   let closed = new Promise<boolean>((resolve) => child.on('close', () => resolve(true)))
 
-  // Past its deadline, the lane and every process it started stop, and the lane fails.
-  let deadline = deadlineOf(lane)
-  let overrun: Promise<string> | undefined
-  let late = (ms: number) => `ran past its deadline of ${describeDuration(ms)}`
-  let timer =
-    deadline === undefined
-      ? undefined
-      : setTimeout(() => {
-          let note = `\n${lane.name} ${late(deadline)}, so check stops it.\n`
-          process.stderr.write(note)
-          if (log) appendFileSync(log, note)
-          overrun = stopProcesses(findMarkedProcesses(id)).then(({ count, list, survivors }) =>
-            survivors.length > 0
-              ? `${late(deadline)}; check stopped ${count}, but ${survivors.join(', ')} still runs: ${list}`
-              : `${late(deadline)}; check stopped ${count}: ${list}`,
-          )
-        }, deadline)
-
-  let code = await new Promise<number | null>((resolve, reject) => {
+  let exited = new Promise<number | null>((resolve, reject) => {
     child.on('error', reject)
     child.on('exit', resolve)
   })
-  clearTimeout(timer)
-  if (overrun) {
-    let stopped = await overrun
+
+  // Past its deadline, the lane stops with every process it started, and fails.
+  let deadline = deadlineOf(lane)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let passed =
+    deadline === undefined
+      ? undefined
+      : new Promise<typeof overrun>((resolve) => {
+          timer = setTimeout(() => resolve(overrun), deadline)
+        })
+
+  async function stopOverrun(ms: number): Promise<string> {
+    let late = `ran past its deadline of ${describeDuration(ms)}`
+    let note = `\n${lane.name} ${late}, so check stops it.\n`
+    process.stderr.write(note)
+    if (log) appendFileSync(log, note)
+
+    let marked = findMarkedProcesses(id)
+    // The lane's own process, which needs no process list to find, such as where /proc is missing.
+    child.kill('SIGKILL')
+    let stopped = marked.length > 0 ? await stopProcesses(marked) : undefined
+    let ended = await Promise.race([
+      exited.then(
+        () => true,
+        () => true,
+      ),
+      delay(stopGraceMs, false, { ref: false }),
+    ])
     await Promise.race([closed, delay(outputGraceMs, false, { ref: false })])
     child.stdout.destroy()
     child.stderr.destroy()
-    return stopped
+
+    if (!ended) return `${late}, and its process ${child.pid} still runs after SIGKILL`
+    if (!stopped)
+      return `${late}; check stopped its process ${child.pid}, but can't list the processes it started here, so they may still run`
+    let { count, list, survivors } = stopped
+    if (survivors.length > 0) return `${late}; check stopped ${count}, but ${survivors.join(', ')} still runs: ${list}`
+    return `${late}; check stopped ${count}: ${list}`
   }
+
+  let code = await (passed ? Promise.race([exited, passed]) : exited)
+  clearTimeout(timer)
+  // Only a lane with a deadline can reach it.
+  if (code === overrun) return stopOverrun(deadline ?? 0)
 
   // A leftover process may hold the lane's output open, so cleanup starts once
   // the lane exits. Stopping it closes the output. If something the cleanup
