@@ -1240,7 +1240,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/sidebar.tsx"
+      "target": "registry/ui/sidebar.tsx",
+      "exampleTarget": "registry/examples/sidebar-example.tsx"
     },
     {
       "name": "skeleton",
