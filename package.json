@@ -95,7 +95,9 @@
     "calendar-examples": "node --import remix/node-tsx test/fixtures/calendar/server.tsx",
     "capture:calendar-examples": "node --import remix/node-tsx test/fixtures/calendar/capture.ts",
     "sidebar-examples": "node --import remix/node-tsx test/fixtures/sidebar/server.tsx",
-    "capture:sidebar-examples": "node --import remix/node-tsx test/fixtures/sidebar/capture.ts"
+    "capture:sidebar-examples": "node --import remix/node-tsx test/fixtures/sidebar/capture.ts",
+    "combobox-examples": "node --import remix/node-tsx test/fixtures/combobox/server.tsx",
+    "capture:combobox-examples": "node --import remix/node-tsx test/fixtures/combobox/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"

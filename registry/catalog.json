@@ -487,6 +487,15 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/combobox-example.tsx",
       "behavior": "https://base-ui.com/react/components/combobox.md",
       "dependsOn": [
+        "theme",
+        "styles",
+        "aria",
+        "icons",
+        "composite",
+        "layer",
+        "focus-scope",
+        "modal",
+        "anchor-position",
         "button",
         "input-group"
       ],
@@ -496,7 +505,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/combobox.tsx"
+      "target": "registry/ui/combobox.tsx",
+      "exampleTarget": "registry/examples/combobox-example.tsx"
     },
     {
       "name": "command",

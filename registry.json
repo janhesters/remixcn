@@ -156,6 +156,26 @@
       "files": [{ "path": "registry/ui/collapsible.tsx", "type": "registry:ui", "target": "@ui/collapsible.tsx" }]
     },
     {
+      "name": "combobox",
+      "type": "registry:ui",
+      "title": "Combobox",
+      "description": "A text input that filters a list of items, with one value or several as chips, keys that keep focus in the input, results you load, and a native select that holds the form value and works without JavaScript.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/aria",
+        "@remixcn/button",
+        "@remixcn/composite",
+        "@remixcn/focus-scope",
+        "@remixcn/icons",
+        "@remixcn/input-group",
+        "@remixcn/layer",
+        "@remixcn/modal",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/combobox.tsx", "type": "registry:ui", "target": "@ui/combobox.tsx" }]
+    },
+    {
       "name": "command",
       "type": "registry:ui",
       "title": "Command",

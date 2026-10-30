@@ -611,6 +611,51 @@ describe('activeDescendant', () => {
     assert.deepEqual(highlighted, [options[0], options[1]], 'the next key starts from the highlight the owner rendered')
   })
 
+  it('steps from the item the owner names as current, before its render shows it', async (t) => {
+    let current: HTMLElement | null = null
+    let highlighted: HTMLElement[] = []
+    let { $, $$, cleanup } = render(
+      <div>
+        <input
+          role="combobox"
+          mix={activeDescendant({
+            items: () => $$('[role=option]') as NodeListOf<HTMLElement>,
+            orientation: 'vertical',
+            current: () => current,
+            highlight: (item) => {
+              highlighted.push(item)
+              current = item
+            },
+          })}
+        />
+        <ul role="listbox">
+          <li role="option" id="apple">
+            Apple
+          </li>
+          <li role="option" id="banana">
+            Banana
+          </li>
+          <li role="option" id="cherry">
+            Cherry
+          </li>
+        </ul>
+      </div>,
+    )
+    t.after(cleanup)
+    let input = $('input') as HTMLInputElement
+    let options = $$('[role=option]')
+    input.focus()
+
+    // Two keys before any render writes aria-activedescendant.
+    press(input, 'ArrowDown')
+    press(input, 'ArrowDown')
+    assert.deepEqual(
+      highlighted.map((item) => item.id),
+      [options[0].id, options[1].id],
+    )
+    assert.equal(input.hasAttribute('aria-activedescendant'), false)
+  })
+
   it('lets pointer hover and filtering set the highlight, and clears it on removal', async (t) => {
     let { $, $$, act, root, cleanup } = render(<Listbox />)
     t.after(cleanup)
