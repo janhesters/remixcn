@@ -81,6 +81,16 @@
     padding: calc(var(--spacing) * 8) calc(var(--spacing) * 6) calc(var(--spacing) * 16);
   }
 
+  /* A landing page's own sections, with more room between them. */
+  [data-docs-landing] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 20);
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: calc(var(--spacing) * 8) calc(var(--spacing) * 6) calc(var(--spacing) * 20);
+  }
+
   [data-docs-content] {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -175,14 +185,23 @@
         "body";
     }
 
-    [data-docs-page] {
+    [data-docs-page],
+    [data-docs-landing] {
       padding-inline: calc(var(--spacing) * 4);
+    }
+
+    [data-docs-landing] {
+      gap: calc(var(--spacing) * 14);
     }
   }
 
-  /* There, the navigation sits in the menu, which a skip link can't open. */
+  /*
+   * There, the navigation sits in the menu, which a skip link can't open, and
+   * the header keeps only GitHub: the menu lists the docs and the components.
+   */
   @media (width < 48rem) and (scripting: enabled) {
-    [data-docs-skip-links] a[href="#docs-navigation"] {
+    [data-docs-skip-links] a[href="#docs-navigation"],
+    [data-docs-main-nav] [data-docs-in-menu] {
       display: none;
     }
   }

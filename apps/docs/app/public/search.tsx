@@ -33,7 +33,9 @@ const triggerStyles = css({
   minWidth: 0,
   color: 'var(--muted-foreground)',
   fontWeight: 400,
-  '@media (width >= 40rem)': { width: '16rem' },
+  // From 40rem, it takes the header's free room up to 16rem, and shrinks to
+  // 9rem before the header wraps, such as beside the sidebar and the links.
+  '@media (width >= 40rem)': { flex: '100 1 0%', minWidth: '9rem', maxWidth: '16rem' },
   '@media (scripting: none)': { display: 'none' },
 })
 const labelStyles = css({

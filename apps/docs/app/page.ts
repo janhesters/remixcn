@@ -23,5 +23,10 @@ export interface DocsPage {
   keywords?: string[]
   /** The page's sections in order. Each renders its heading with `<Section>`, and the table of contents links to them. */
   sections: SectionInfo[]
+  /**
+   * A landing page, such as the home page: its content renders its own
+   * heading and summary, and it shows no breadcrumbs or table of contents.
+   */
+  landing?: boolean
   Content: (handle: Handle) => () => RemixNode
 }
