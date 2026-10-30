@@ -59,7 +59,7 @@ Holds the open state and renders no element.
 | `disablePointerDismissal` | `boolean` | `false` | Keeps it open on presses outside, and, when it isn't modal, when focus leaves it |
 | `role` | `'dialog' \| 'alertdialog'` | `'dialog'` | Alert Dialog sets `alertdialog` |
 
-`details` holds `reason`, the `event` and the `trigger` that opened the dialog. The reasons are Base UI's `trigger-press`, `close-press`, `outside-press`, `escape-key` and `focus-out`, plus `close-request` (a close request that isn't Escape, such as the Android back gesture), `parent-dismissed` (the dialog around it closed), `action-press` (an `AlertDialogAction`) and `none` (the page closed the native dialog itself, such as a form with `method="dialog"`).
+`details` holds `reason`, the `event` and the `trigger` that opened the dialog. The reasons are Base UI's `trigger-press`, `close-press`, `outside-press`, `escape-key` and `focus-out`, plus `close-request` (a close request that isn't Escape, such as the Android back gesture), `parent-dismissed` (the dialog around it closed), `action-press` (an `AlertDialogAction`), `swipe` (a Drawer swiped closed) and `none` (the page closed the native dialog itself, such as a form with `method="dialog"`).
 
 ### `DialogTrigger`
 
