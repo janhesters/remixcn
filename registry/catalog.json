@@ -1013,7 +1013,12 @@
       "docs": "https://ui.shadcn.com/docs/components/base/questionnaire",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/questionnaire-example.tsx",
       "dependsOn": [
-        "button"
+        "theme",
+        "styles",
+        "icons",
+        "button",
+        "input",
+        "spinner"
       ],
       "upstreamImports": [
         "@shadcn/react",
@@ -1021,7 +1026,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/questionnaire.tsx"
+      "target": "registry/ui/questionnaire.tsx",
+      "exampleTarget": "registry/examples/questionnaire-example.tsx"
     },
     {
       "name": "radio-group",

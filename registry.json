@@ -248,6 +248,14 @@
       "files": [{ "path": "registry/ui/progress.tsx", "type": "registry:ui", "target": "@ui/progress.tsx" }]
     },
     {
+      "name": "questionnaire",
+      "type": "registry:ui",
+      "title": "Questionnaire",
+      "description": "One question at a time in a native form: radios, checkboxes and a freeform answer, with progress, checks, keys, and a snapshot of every answer on submit.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/icons", "@remixcn/input", "@remixcn/spinner", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/questionnaire.tsx", "type": "registry:ui", "target": "@ui/questionnaire.tsx" }]
+    },
+    {
       "name": "radio-group",
       "type": "registry:ui",
       "title": "Radio Group",
