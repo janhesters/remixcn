@@ -52,8 +52,9 @@ Groups the parts and holds whether the tooltip is open. It renders no element.
 | `delay` | `number` | the provider's `delay` | Milliseconds before it opens on hover. Keyboard focus opens it at once |
 | `closeDelay` | `number` | the provider's `closeDelay` | Milliseconds before it closes once the pointer has left |
 | `closeOnClick` | `boolean` | `true` | Whether a click closes it until the pointer or focus comes back |
+| `describe` | `boolean` | `true` | Whether the trigger's `aria-describedby` points at the tooltip. Turn it off when the tooltip only shows the trigger's own name, as a sidebar collapsed to icons does, so screen readers don't hear it twice |
 
-`tooltipTrigger({ delay, closeDelay, closeOnClick })` makes any focusable element the trigger, such as a link or a Button that stays focusable while disabled: `<Button disabled focusableWhenDisabled mix={tooltipTrigger()}>`. It adds the tooltip's id to the element's `aria-describedby`, keeping yours, and renders `data-popup-open` while open. `disabled` on `TooltipTrigger` disables the native button; disable the tooltip with `Tooltip`'s `disabled`.
+`tooltipTrigger({ delay, closeDelay, closeOnClick, describe })` makes any focusable element the trigger, such as a link or a Button that stays focusable while disabled: `<Button disabled focusableWhenDisabled mix={tooltipTrigger()}>`. It adds the tooltip's id to the element's `aria-describedby`, keeping yours, and renders `data-popup-open` while open. `disabled` on `TooltipTrigger` disables the native button; disable the tooltip with `Tooltip`'s `disabled`.
 
 ### `TooltipContent`
 
@@ -89,7 +90,7 @@ Dispatched on the content before the tooltip opens or closes, with `open`, `reas
 | `data-popup-open`, `data-trigger-disabled` | Same | |
 | `TooltipContent` on `Portal`, `Positioner`, `Popup` and `Arrow` | `TooltipContent`, a native popover with its arrow | Same placement props and defaults as shadcn |
 | Arrow's position from Floating UI | `--anchor-center-x` and `--anchor-center-y` from `anchor-position.ts` | It points at the trigger's center, 10px from the corners. `data-uncentered` isn't ported |
-| `aria-describedby` while open | `aria-describedby` at all times | The hidden text still describes the trigger |
+| `aria-describedby` while open | `aria-describedby` at all times | The hidden text still describes the trigger. `describe: false` leaves it out for a tooltip that repeats the trigger's name |
 | Classes in `style-vega.css` | Same measures and colors, and the tighter end padding around a Kbd | An outline in `CanvasText` draws the edge in forced colors, where the arrow hides |
 | Fade and zoom | A fade in | As in Popover |
 | Docs: Side, With Keyboard Shortcut, Disabled Button, RTL | `TooltipSides`, `TooltipWithKeyboard`, `TooltipDisabled`, the fixture's right-to-left section | `TooltipWithKeyboard` shows the shortcut with Kbd |
@@ -100,7 +101,7 @@ Dispatched on the content before the tooltip opens or closes, with `open`, `reas
 
 Automated, in Chromium, Firefox and WebKit:
 
-- The trigger's `aria-describedby` names the tooltip's text in the server HTML, with and without JavaScript, keeping the caller's own descriptions, and follows the content's `id` as it changes, also inside your own component; the content has `role="tooltip"` and a hidden arrow.
+- The trigger's `aria-describedby` names the tooltip's text in the server HTML, with and without JavaScript, keeping the caller's own descriptions and only those with `describe: false`, and follows the content's `id` as it changes, also inside your own component; the content has `role="tooltip"` and a hidden arrow.
 - Hover opens it after its delay, not when the pointer leaves first; keyboard focus opens it at once, also while a hover delay runs; Escape closes it with focus kept, and it reopens only when focus or the pointer comes back.
 - The pointer can cross to the tooltip and rest on it, unless it isn't hoverable; a click on the trigger and a press elsewhere close it.
 - The provider opens the next tooltip at once and closes the one before.
