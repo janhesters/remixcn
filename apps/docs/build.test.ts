@@ -123,6 +123,38 @@ describe('the site build', () => {
     }
   })
 
+  it('leads the home page with the phrase, the setup commands and its links to the components and the docs', () => {
+    let html = read('index.html')
+    let main = /<main\b[\s\S]*<\/main>/.exec(html)?.[0] ?? ''
+
+    assert.match(main, /<h1\b[^>]*>shadcn components for Remix V3<\/h1>/)
+    assert.ok(main.indexOf('npx remixcn init\nnpx remixcn add button') > main.indexOf('</h1>'))
+    let links = [...main.matchAll(/<a\s[^>]*?\bhref="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(([, link, text]) => [
+      text,
+      link,
+    ])
+    assert.deepEqual(links.slice(0, 2), [
+      ['Browse components', href('docs/components/')],
+      ['Read the docs', href('docs/')],
+    ])
+    assert.ok(links.some(([, link]) => link === href('docs/cli/')))
+    assert.ok(links.some(([, link]) => link === href('docs/mcp/')))
+    assert.ok(links.some(([, link]) => link === href('docs/licenses/')))
+  })
+
+  it("renders the home page's showcase inert, with its note, and with no form that sends anywhere", () => {
+    let html = read('index.html')
+    let showcase = /<div data-docs-showcase=""[^>]*>/.exec(html)?.[0]
+    let canvas = /<div data-docs-showcase-canvas=""[^>]*>/.exec(html)?.[0]
+
+    assert.match(showcase ?? '', /\sdata-pending=""/)
+    assert.match(canvas ?? '', /\sinert(?:=""|\s|>)/)
+    assert.equal(html.match(/The showcase runs with JavaScript\./g)?.length, 1)
+    let forms = html.match(/<form\b[^>]*>/g) ?? []
+    assert.equal(forms.length, 1)
+    assert.doesNotMatch(forms[0]!, /\b(?:action|method)=/)
+  })
+
   it("shows the examples' source as text", () => {
     let html = read('docs/components/button/index.html')
     assert.match(html, /&lt;form action=\{action\} method="post" mix=\{stackStyles\}&gt;/)
