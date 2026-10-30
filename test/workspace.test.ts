@@ -55,6 +55,19 @@ describe('workspace', () => {
     for (let file of packageFiles) assert.equal(readJson(file).engines.node, '>=24.3.0', file)
   })
 
+  it('patches the browser test runner at the version bun.lock pins, in its served file and its source', () => {
+    let lock = readLockfile()
+    let [runner] = lock.packages['@remix-run/test']
+    let patches = { [runner]: `patches/${runner.replace('/', '%2F')}.patch` }
+
+    assert.deepEqual(readJson('package.json').patchedDependencies, patches)
+    assert.deepEqual(lock.patchedDependencies, patches)
+    assert.deepEqual(
+      [...read(patches[runner]).matchAll(/^\+\+\+ b\/(.+)$/gm)].map(([, file]) => file),
+      ['dist/app/client/entry.js', 'src/app/client/entry.ts'],
+    )
+  })
+
   it('pins every development tool to an exact version', () => {
     for (let [name, version] of Object.entries<string>(readJson('package.json').devDependencies)) {
       assert.match(version, /^\d+\.\d+\.\d+$/, name)

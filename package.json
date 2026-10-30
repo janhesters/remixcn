@@ -83,5 +83,8 @@
     "remix": "3.0.0",
     "shadcn": "4.23.0",
     "typescript": "7.0.2"
+  },
+  "patchedDependencies": {
+    "@remix-run/test@1.0.0": "patches/@remix-run%2Ftest@1.0.0.patch"
   }
 }
