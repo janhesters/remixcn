@@ -74,6 +74,55 @@ export function transition(...properties: string[]): Styles {
   }
 }
 
+/**
+ * Sweeps a highlight across text that is still in progress, such as a file
+ * name while it uploads or a status while a reply streams. The text keeps
+ * 4.5:1 through the sweep on the page and on cards, and stays still for
+ * reduced motion and plain in forced colors. Pass a selector, such as
+ * ':where([data-state="uploading"]) &', to shimmer only while it matches.
+ * --shimmer-color, --shimmer-duration and --shimmer-spread change the
+ * highlight, the time of one sweep and its width.
+ */
+export function shimmer(selector = '&'): Styles {
+  let spread = 'var(--shimmer-spread, calc(3ch + 40px))'
+  // shadcn fades the text to a faint highlight, which drops it far below
+  // 4.5:1. The highlight here sits halfway between --foreground and
+  // --muted-foreground, which both reach 4.5:1 on the page and on cards, so
+  // the whole sweep does too: it lightens dark text and darkens muted text.
+  // Set --shimmer-color for text on another surface, such as a filled bubble.
+  let highlight = 'var(--shimmer-color, color-mix(in oklab, var(--foreground), var(--muted-foreground)))'
+  let edge = 'color-mix(in oklab, var(--remixcn-shimmer-highlight), currentColor 50%)'
+  let sweep: Styles = {
+    '--remixcn-shimmer-highlight': highlight,
+    backgroundImage: `linear-gradient(110deg, currentColor calc(50% - ${spread}), ${edge} calc(50% - ${spread} * 0.5), var(--remixcn-shimmer-highlight) 50%, ${edge} calc(50% + ${spread} * 0.5), currentColor calc(50% + ${spread}))`,
+    backgroundRepeat: 'no-repeat',
+    backgroundSize: `calc(200% + ${spread} * 2) 100%`,
+    backgroundPosition: '0 0',
+    backgroundClip: 'text',
+    WebkitBackgroundClip: 'text',
+    WebkitTextFillColor: 'transparent',
+    animation: 'remixcn-shimmer var(--shimmer-duration, 2s) linear infinite',
+  }
+  let plain: Styles = { animation: 'none', backgroundImage: 'none', WebkitTextFillColor: 'currentColor' }
+
+  return mergeStyles(
+    selector === '&' ? sweep : nested(selector, sweep),
+    nested(`${selector}:dir(rtl)`, { animationDirection: 'reverse' }),
+    {
+      '@media (prefers-reduced-motion: reduce)': nested(selector, plain),
+      // Forced colors keep the text color but may drop the gradient, which would leave the text clear.
+      '@media (forced-colors: active)': nested(selector, plain),
+      '@keyframes remixcn-shimmer': { from: { backgroundPosition: '100% 0' }, to: { backgroundPosition: '0 0' } },
+    },
+  )
+}
+
+function nested(selector: string, styles: Styles): Styles {
+  let wrapped: Styles = {}
+  wrapped[selector] = styles
+  return wrapped
+}
+
 /** Mirrors a directional icon, such as a chevron that points onward, in right-to-left text. */
 export const mirrorInRtl: Styles = {
   '&:dir(rtl)': { transform: 'scaleX(-1)' },
