@@ -13,6 +13,7 @@ import {
   EllipsisIcon,
   Icon,
   MinusIcon,
+  SearchIcon,
   XIcon,
 } from './icons.tsx'
 
@@ -50,6 +51,7 @@ describe('icons', () => {
       <EllipsisIcon />,
       <XIcon />,
       <MinusIcon />,
+      <SearchIcon />,
     ]) {
       let svg = attributes(await renderToString(icon))
 

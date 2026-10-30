@@ -137,3 +137,13 @@ export function ArrowDownIcon(handle: Handle<IconProps>) {
     </Icon>
   )
 }
+
+/** A magnifying glass, for a search field. */
+export function SearchIcon(handle: Handle<IconProps>) {
+  return () => (
+    <Icon label={handle.props.label} data-icon={handle.props['data-icon']}>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m20 20-4.75-4.75" />
+    </Icon>
+  )
+}
