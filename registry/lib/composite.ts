@@ -380,6 +380,24 @@ export interface ActiveDescendantOptions extends NavigationOptions {
   typeahead?: boolean
   /** Whether disabled items can be highlighted (defaults to `false`). */
   disabledItemsFocusable?: boolean
+  /**
+   * Whether Home and End move the highlight to the first and last item
+   * (defaults to `true`, but `false` on a text field, where they move the caret).
+   */
+  homeAndEnd?: boolean
+  /**
+   * Maps a key press to the navigation key it stands for, such as Ctrl+N to
+   * `'ArrowDown'`, also with a modifier held. Return `undefined` to leave the
+   * press as it is.
+   */
+  keyAliases?: (event: KeyboardEvent) => string | undefined
+  /**
+   * Moves the highlight to the item yourself, such as by rendering it from
+   * your own state, in place of `highlightItem()`. The mixin then writes
+   * nothing, and reads the current item from the host's
+   * `aria-activedescendant`, so render it there.
+   */
+  highlight?: (item: HTMLElement) => void
   /** Called when the highlighted item changes through the keyboard. */
   onActiveChange?: (item: HTMLElement) => void
 }
@@ -388,7 +406,8 @@ export interface ActiveDescendantOptions extends NavigationOptions {
  * Active descendant: DOM focus stays on the host, and the arrow keys, Home, End
  * and typeahead move a highlight between the items through
  * `aria-activedescendant`. On a text field, such as a combobox input, Home, End
- * and typing keep editing the text. Removing the mixin clears the highlight.
+ * and typing keep editing the text, unless `homeAndEnd` asks for them.
+ * Removing the mixin clears the highlight.
  */
 export const activeDescendant: MixinFactory<HTMLElement, [options: ActiveDescendantOptions]> = createMixin<
   HTMLElement,
@@ -409,18 +428,24 @@ export const activeDescendant: MixinFactory<HTMLElement, [options: ActiveDescend
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey || !host) return
+      // Keys that pick a character in an input method belong to it (229 in older browsers).
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229 || !host) return
+      let alias = options.keyAliases?.(event)
+      if (alias === undefined && (event.ctrlKey || event.metaKey || event.altKey)) return
+      let key = alias ?? event.key
 
       let textField = isTextField(host)
-      if (textField && (event.key === 'Home' || event.key === 'End')) return
+      let { homeAndEnd = !textField } = options
+      // An alias is a key of its own, so only the real Home and End stay with the caret.
+      if (alias === undefined && !homeAndEnd && (key === 'Home' || key === 'End')) return
 
       let items = getItems()
       let highlighted = getActiveDescendant(host)
       let current = highlighted ? items.indexOf(highlighted) : -1
       let disabled = items.map(isSkipped)
-      let next = getNextIndex(event.key, current, disabled, { ...options, dir: getDirection(host, options.dir) })
+      let next = getNextIndex(key, current, disabled, { ...options, dir: getDirection(host, options.dir) })
 
-      if (next === undefined && !textField && options.typeahead !== false) {
+      if (next === undefined && alias === undefined && !textField && options.typeahead !== false) {
         let query = typeahead.type(event)
         if (query === undefined) return
         next = findTypeaheadMatch(items.map(getLabel), query, current, disabled)
@@ -430,7 +455,8 @@ export const activeDescendant: MixinFactory<HTMLElement, [options: ActiveDescend
 
       event.preventDefault()
       if (next === current) return
-      highlightItem(host, items[next])
+      if (options.highlight) options.highlight(items[next])
+      else highlightItem(host, items[next])
       options.onActiveChange?.(items[next])
     }
 
@@ -444,7 +470,8 @@ export const activeDescendant: MixinFactory<HTMLElement, [options: ActiveDescend
       modes.delete(handle.id)
       if (host) {
         host.removeEventListener('keydown', onKeyDown)
-        highlightItem(host, null)
+        // An owner that renders the highlight clears its own.
+        if (!options.highlight) highlightItem(host, null)
       }
       host = null
     })
