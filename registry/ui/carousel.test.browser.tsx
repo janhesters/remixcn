@@ -127,6 +127,17 @@ function status(root: HTMLElement) {
   return part(root, 'carousel-status').textContent ?? ''
 }
 
+/**
+ * A touch event with one finger at x and y. Firefox has no TouchEvent on a
+ * desktop, so it's a plain event that carries the touches the carousel reads.
+ */
+function touch(target: HTMLElement, type: 'touchstart' | 'touchmove', x: number, y: number) {
+  let event = new Event(type, { bubbles: true, cancelable: true })
+  Object.defineProperty(event, 'touches', { value: [{ clientX: x, clientY: y }] })
+  target.dispatchEvent(event)
+  return event
+}
+
 function key(target: HTMLElement, name: string, init: KeyboardEventInit = {}) {
   let event = new KeyboardEvent('keydown', { key: name, bubbles: true, cancelable: true, ...init })
   target.dispatchEvent(event)
@@ -852,6 +863,164 @@ describe('Carousel autoplay in the browser', () => {
     assert.ok(carousel.events.slice(1).every((event) => event.reason === 'autoplay'))
     // Automatic changes aren't announced.
     assert.equal(status(carousel.root), '')
+  })
+
+  it('keeps its own scroll through wheels and swipes that scroll the page, or that a slide cancels', async (t) => {
+    let carousel = setup(t, { autoplay: { delay: 1000 } })
+    await carousel.ready()
+    let slide = part(carousel.container, 'carousel-item', 1)
+    for (let type of ['wheel', 'touchmove']) slide.addEventListener(type, (event) => event.preventDefault())
+
+    // While the rotation scrolls, a trackpad and a finger move mostly up and down, so the page scrolls.
+    await until(() => carousel.api.selectedIndex === 1, 'never advanced')
+    carousel.viewport.dispatchEvent(new WheelEvent('wheel', { deltaX: 4, deltaY: 100, bubbles: true }))
+    // The finger's first, tiny move is sideways; it counts only once it went as far as a drag.
+    touch(carousel.viewport, 'touchstart', 150, 60)
+    touch(carousel.viewport, 'touchmove', 153, 59)
+    touch(carousel.viewport, 'touchmove', 156, 20)
+    // A slide cancels a wheel and a swipe along the carousel, so nothing scrolls.
+    slide.dispatchEvent(new WheelEvent('wheel', { deltaX: -300, bubbles: true, cancelable: true }))
+    touch(slide, 'touchstart', 150, 40)
+    touch(slide, 'touchmove', 190, 40)
+
+    await carousel.settled(snap(1))
+    assert.equal(status(carousel.root), '')
+    assert.deepEqual(
+      carousel.events.slice(1).map(({ index, reason }) => [index, reason]),
+      [[1, 'autoplay']],
+    )
+  })
+
+  it('gives its own scroll to whatever moves it past its target or back', async (t) => {
+    // A browser may pass a wheel on to the carousel although a box in a slide
+    // contains it, or hand it to the running scroll. The carousel can't see
+    // that from the wheel, but its own scroll only moves toward its target.
+    let carousel = setup(t, { autoplay: { delay: 1000 } })
+    await carousel.ready()
+
+    // Past the target: the rotation to the second slide goes on to the third.
+    await until(() => carousel.viewport.scrollLeft > 0, 'never advanced')
+    carousel.viewport.scrollLeft = snap(2)
+    await carousel.settled(snap(2))
+    assert.equal(status(carousel.root), 'Slide 3 of 3')
+
+    // Back: the rotation to the first slide, after the last, turns back to the last.
+    await until(() => carousel.viewport.scrollLeft < snap(2) - 20, 'never advanced again', 3000)
+    carousel.viewport.scrollLeft = snap(2)
+    await carousel.settled(snap(2))
+    assert.deepEqual(
+      carousel.events.slice(1).map(({ reason }) => reason),
+      ['autoplay', 'user', 'autoplay', 'user'],
+    )
+  })
+
+  it('leaves a wheel or swipe to a scroll container in a slide until it passes the gesture on', async (t) => {
+    // Strips in the first slide that scroll sideways, such as code blocks. The
+    // contained ones keep gestures at their ends, also when their content fits
+    // or they hide their overflow; a strip that hides its overflow otherwise
+    // never scrolls by hand.
+    let strip = css({ width: '100px', height: '30px', overflowX: 'auto' })
+    let contained = css({ overscrollBehaviorX: 'contain' })
+    let hidden = css({ overflowX: 'hidden' })
+    let line = css({ width: '400px', height: '20px' })
+    let short = css({ width: '50px', height: '20px' })
+    let carousel = setup(t, { autoplay: { delay: 1000 } }, 3, (index) =>
+      index === 0 ? (
+        <>
+          <div data-strip="free" mix={strip}>
+            <div mix={line} />
+          </div>
+          <div data-strip="contained" mix={[strip, contained]}>
+            <div mix={line} />
+          </div>
+          <div data-strip="rtl" dir="rtl" mix={strip}>
+            <div mix={line} />
+          </div>
+          <div data-strip="fits" mix={[strip, contained]}>
+            <div mix={short} />
+          </div>
+          <div data-strip="hidden" mix={[strip, hidden, contained]}>
+            <div mix={line} />
+          </div>
+          <div data-strip="hidden-free" mix={[strip, hidden]}>
+            <div mix={line} />
+          </div>
+        </>
+      ) : null,
+    )
+    await carousel.ready()
+    let named = (name: string) => carousel.root.querySelector<HTMLElement>(`[data-strip="${name}"]`)!
+    let free = named('free')
+    let kept = named('contained')
+    let rtl = named('rtl')
+    kept.scrollLeft = 300
+
+    // While the rotation scrolls, the free strip can still move right, the
+    // right-to-left one left, and the contained ones stopped at their end,
+    // fit their content or hide their overflow: each keeps its gesture.
+    await until(() => carousel.api.selectedIndex === 1, 'never advanced')
+    free.dispatchEvent(new WheelEvent('wheel', { deltaX: 50, bubbles: true }))
+    touch(free, 'touchstart', 150, 40)
+    touch(free, 'touchmove', 120, 40)
+    kept.dispatchEvent(new WheelEvent('wheel', { deltaX: 50, bubbles: true }))
+    rtl.dispatchEvent(new WheelEvent('wheel', { deltaX: -50, bubbles: true }))
+    named('fits').dispatchEvent(new WheelEvent('wheel', { deltaX: 50, bubbles: true }))
+    named('hidden').dispatchEvent(new WheelEvent('wheel', { deltaX: 50, bubbles: true }))
+    await carousel.settled(snap(1))
+    assert.equal(status(carousel.root), '')
+    assert.deepEqual(
+      carousel.events.slice(1).map(({ index, reason }) => [index, reason]),
+      [[1, 'autoplay']],
+    )
+
+    // At its start, the free strip passes a wheel left on to the carousel,
+    // whose next rotation it takes over. WebKit scrolls the strip even for a
+    // script's wheel, so it goes back to its start first.
+    await until(() => carousel.api.selectedIndex === 2, 'never advanced twice', 3000)
+    free.scrollLeft = 0
+    free.dispatchEvent(new WheelEvent('wheel', { deltaX: -50, bubbles: true }))
+    await carousel.settled(snap(2))
+    assert.equal(status(carousel.root), 'Slide 3 of 3')
+    let reasons = carousel.events.slice(2).map(({ reason }) => reason)
+    assert.ok(reasons[0] === 'autoplay' && reasons.slice(1).every((reason) => reason === 'user'), reasons.join())
+
+    // A strip that hides its overflow without containing it passes a wheel on
+    // too, so the rotation back to the first slide becomes the user's.
+    await until(() => carousel.api.selectedIndex === 0, 'never went back to the first slide', 3000)
+    named('hidden-free').dispatchEvent(new WheelEvent('wheel', { deltaX: 50, bubbles: true }))
+    await carousel.settled(0)
+    assert.equal(status(carousel.root), 'Slide 1 of 3')
+  })
+
+  it('gives its own scroll to a finger that moves along it, and announces where it rests', async (t) => {
+    let carousel = setup(t, { autoplay: { delay: 1000 } })
+    await carousel.ready()
+
+    // A move shorter than a drag's leaves the way open; the next one goes back along the carousel.
+    await until(() => carousel.api.selectedIndex === 1, 'never advanced')
+    touch(carousel.viewport, 'touchstart', 150, 40)
+    touch(carousel.viewport, 'touchmove', 154, 42)
+    touch(carousel.viewport, 'touchmove', 180, 44)
+    carousel.viewport.scrollLeft = 0
+    await carousel.settled(0)
+    assert.equal(status(carousel.root), 'Slide 1 of 3')
+
+    // A finger that comes past the middle may leave the scroll going where the
+    // rotation sent it, as WebKit's wheels sometimes do. That slide is the user's now.
+    await until(() => carousel.viewport.scrollLeft > snap(1) / 2, 'never advanced again', 3000)
+    assert.ok(carousel.viewport.scrollLeft < snap(1) - 1, 'the rotation arrived before the finger moved')
+    touch(carousel.viewport, 'touchstart', 150, 40)
+    touch(carousel.viewport, 'touchmove', 130, 40)
+    await carousel.settled(snap(1))
+    assert.equal(status(carousel.root), 'Slide 2 of 3')
+    assert.deepEqual(
+      carousel.events.slice(1).map(({ index, reason }) => [index, reason]),
+      [
+        [1, 'autoplay'],
+        [0, 'user'],
+        [1, 'autoplay'],
+      ],
+    )
   })
 
   it('pauses while the mouse is over it or focus is inside, and on a hidden page', async (t) => {
