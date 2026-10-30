@@ -39,7 +39,7 @@ Groups the parts and holds whether the menu is open. It renders no element. It t
 
 `ContextMenuTrigger` is the area, a `<div>` that takes every `div` prop and `mix`. `contextMenuTrigger()` makes any element the area, such as a table row: `<tr tabIndex={0} mix={contextMenuTrigger()}>`.
 
-- A right click opens the menu at the pointer, instead of the browser's menu, with focus on the menu.
+- A right click opens the menu at the pointer, instead of the browser's menu, with focus on the menu. A `contextmenu` listener of yours that calls `preventDefault()` before it, such as on an ancestor in the capture phase, keeps the menu closed.
 - Shift+F10 and the Context Menu key open it below the start of the focused element in the area, at its first item. Make the area or something in it focusable, as with `tabIndex={0}`.
 - A touch held still for half a second opens it at the finger. A touch that moves more than 10 pixels, scrolls the page or ends sooner is an ordinary touch, so the page scrolls and a tap follows a link; the tap that ends a held touch is swallowed.
 
@@ -94,7 +94,7 @@ Automated, in Chromium, Firefox and WebKit (`bun run test`, `test:browser`, `tes
 - Shift+F10 and the Context Menu key open it below the focused element at its first item, and Escape returns focus there. The `contextmenu` event a browser sends after those keys changes nothing.
 - A right click elsewhere in the area moves the menu; one outside closes it and leaves the browser's menu.
 - A held touch opens it at the finger and swallows the tap that ends it; a touch that moves, scrolls or ends early doesn't, and a tap follows a link. The held touch runs through Chromium's real touch input in the end-to-end tests, and through pointer events in every engine in the browser tests.
-- A disabled context menu leaves the browser's menu alone.
+- A disabled context menu leaves the browser's menu alone, and a right click a listener canceled first opens nothing and leaves no modal layer.
 - The keys, submenus and items behave as in [Dropdown Menu](dropdown-menu.md#accessibility-checks), and axe-core finds no WCAG 2.2 A or AA violation with one open.
 
 Not checked, so not claimed:

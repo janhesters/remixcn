@@ -183,6 +183,19 @@ export function NavigationMenu(handle: Handle<NavigationMenuProps, RootApi>) {
   }
   handle.context.set(api)
 
+  /** The value of this menu's item whose panel the browser opened natively, before the menu ran. */
+  function nativelyOpen() {
+    let root = api.element
+    let panel = [...(root?.querySelectorAll('[data-slot="navigation-menu-content"]:popover-open') ?? [])].find(
+      (content) => content.closest('[data-slot="navigation-menu"]') === root,
+    )
+    if (!panel || !root) return undefined
+    let trigger = [...root.querySelectorAll<HTMLElement>('[data-slot="navigation-menu-trigger"]')].find(
+      (button) => button.getAttribute('aria-controls') === panel.id,
+    )
+    return trigger?.dataset.value
+  }
+
   /** Which way the button of `next` lies from the button of `previous`, on screen. */
   function directionBetween(previous: string, next: string) {
     let triggers = api.element
@@ -210,6 +223,8 @@ export function NavigationMenu(handle: Handle<NavigationMenuProps, RootApi>) {
     } = handle.props
     if (!api.running) {
       handle.queueTask(() => {
+        // A panel the browser already opened natively stays open, now below its button.
+        if (handle.props.value === undefined) uncontrolled = nativelyOpen() ?? uncontrolled
         api.running = true
         void handle.update()
       })

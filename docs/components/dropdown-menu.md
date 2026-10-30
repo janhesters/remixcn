@@ -51,7 +51,7 @@ Groups the parts and holds whether the menu is open. It renders no element.
 | `open` | `boolean` | | Whether it's open, for a menu you control. Update it from `MenuOpenChangeEvent` |
 | `defaultOpen` | `boolean` | `false` | Whether it starts open. A menu open from the start leaves focus where it is |
 | `modal` | `boolean` | `true` | Whether the page waits while it's open: it can't be scrolled, and a press outside only closes the menu. A menu opened on hover is never modal |
-| `disabled` | `boolean` | `false` | Keeps the menu closed and its trigger disabled |
+| `disabled` | `boolean` | `false` | Disables its trigger and closes the menu, which stays closed once enabled again |
 | `orientation` | `'vertical' \| 'horizontal'` | `'vertical'` | The arrows that move between the items: Up and Down, or Left and Right |
 | `loopFocus` | `boolean` | `true` | Whether the arrows wrap from the last item to the first |
 | `highlightItemOnHover` | `boolean` | `true` | Whether the pointer highlights the item under it |
@@ -60,7 +60,7 @@ Groups the parts and holds whether the menu is open. It renders no element.
 
 `DropdownMenuTrigger` is a native `<button type="button">`. It takes every button prop, `mix`, and `openOnHover` (`false`), `delay` (`100`) and `closeDelay` (`0`), which open the menu while the pointer rests on it. Give it a Button's look with `mix={buttonVariants({ variant: 'outline' })}`.
 
-`dropdownMenuTrigger(options)` makes any element the trigger and keeps the element's own `data-slot`. A click opens the menu with focus on the menu itself; Enter and Space open it at the first item, Arrow Down at the first and Arrow Up at the last. The trigger renders `aria-haspopup="menu"`, `aria-controls`, `aria-expanded` once the menu runs, `data-popup-open` while open, and an `id` the menu's `aria-labelledby` points at (yours, if you give one).
+`dropdownMenuTrigger(options)` makes any element the trigger and keeps the element's own `data-slot`. A click opens the menu with focus on the menu itself; Enter and Space open it at the first item, Arrow Down at the first and Arrow Up at the last. A trigger you disable, with `disabled` or `aria-disabled="true"`, opens nothing, also on hover. The trigger renders `aria-haspopup="menu"`, `aria-controls`, `aria-expanded` once the menu runs, `data-popup-open` while open, and an `id` the menu's `aria-labelledby` points at (yours, if you give one).
 
 ### `DropdownMenuContent` and `DropdownMenuSubContent`
 
@@ -144,7 +144,7 @@ The types `DropdownMenuProps`, `DropdownMenuTriggerProps`, `DropdownMenuTriggerO
 ## Composition
 
 - **Without JavaScript.** Until the menu runs, the trigger opens it natively with `popovertarget`. The browser shows it in the middle of the screen, Escape or a press elsewhere closes it, and its link items work. The other items, the keys and submenus need the script. A menu the browser opened before the script ran stays open and moves below its trigger.
-- **Keys.** Arrow Down and Up move between the items, past disabled and hidden ones, wrapping unless `loopFocus` is `false`; Home and End jump to the ends; letters jump to the next item that starts with them. Arrow Right opens a submenu at its first item and Arrow Left closes it, swapped in right-to-left text. Escape closes only the topmost menu, unless the submenu has `closeParentOnEsc`. Tab and Shift+Tab close every menu and move focus to the element after or before the trigger, as from a native select. The menu moves focus itself, since Firefox skips its own move once focus changed during the key.
+- **Keys.** Arrow Down and Up move between the items (Arrow Right and Left in a horizontal menu, mirrored in right-to-left text), past disabled and hidden ones, wrapping unless `loopFocus` is `false`; from the menu itself, after a pointer opened it, they start at the first or last item. Home and End jump to the ends; letters jump to the next item that starts with them. Arrow Right opens a submenu at its first item and Arrow Left closes it, swapped in right-to-left text. Escape closes only the topmost menu, unless the submenu has `closeParentOnEsc`. Tab and Shift+Tab close every menu and move focus to the element after or before the trigger, as from a native select. The menu moves focus itself, since Firefox skips its own move once focus changed during the key.
 - **Pointer.** The pointer highlights the item under it by focusing it, and leaving the items clears the highlight while the menu keeps focus for the keys. A submenu opens after the pointer rests on its item for 100ms, stays open while the pointer crosses to it, and closes when the pointer highlights another item.
 - **Modal.** By default, the rest of the page is inert and doesn't scroll while the menu is open, so a press outside only closes it. The trigger stays usable, so it can close the menu, and so does a menubar around it. A menu the pointer opened leaves the page alone, and so do submenus.
 - **Items that come and go.** When the focused item leaves the document, focus moves to the item that took its place, or to the menu, so the keys keep working.
@@ -197,7 +197,7 @@ Automated, in Chromium, Firefox and WebKit (`bun run test`, `test:browser`, `tes
 - Enter, Space, Arrow Down and Arrow Up open it at the right item; the arrows, Home, End and typing move past disabled and hidden items; Enter and Space run an item and return focus to the trigger; Escape closes one menu at a time; Tab and Shift+Tab close it and move focus on in every engine.
 - Checkbox and radio items change `aria-checked` and keep the menu open; a canceled change keeps the state; disabled items never run, by key, pointer or script.
 - A submenu opens with Arrow Right, Enter or a resting pointer, closes with Arrow Left or Escape with focus back on its item, and swaps the arrows in right-to-left text.
-- A canceled open leaves no layer, scroll lock or highlight behind; a canceled close keeps the menu and its highlight; a controlled menu follows its owner.
+- A canceled open leaves no layer, scroll lock or highlight behind; a canceled close keeps the menu and its highlight; a controlled menu follows its owner; a menu that becomes disabled closes, and one that starts open and disabled stays closed; a trigger the caller disabled opens nothing, by hover, click or key.
 - A modal menu makes the page inert and stops scrolling until it closes; unmounting it while open releases the page.
 - Removing the focused item moves focus to its neighbor.
 - Without JavaScript, the trigger opens the menu natively and its links work; a menu opened that way before the script ran stays open after hydration, below its trigger.

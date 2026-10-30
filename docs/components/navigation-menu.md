@@ -93,7 +93,7 @@ Dispatched on the `<nav>` before a panel opens or the open one closes, with `val
 
 ## Composition
 
-- **Without JavaScript.** Every link works. Until the menu runs, a button opens its panel natively with `popovertarget`, in the middle of the screen; Escape or a press elsewhere closes it.
+- **Without JavaScript.** Every link works. Until the menu runs, a button opens its panel natively with `popovertarget`, in the middle of the screen; Escape or a press elsewhere closes it. A panel opened that way before the script ran stays open, now below its button.
 - **Closing.** Escape closes the open panel, with focus back on its button when focus was in the panel. A press elsewhere, and focus leaving the button and its panel, close it too.
 - **Pointer.** A panel stays open while the pointer crosses the gap to it. A click on a button whose panel the pointer opened keeps it open until the next click. Touch doesn't hover: a tap on a button opens its panel, and a tap on a link follows it.
 - **Placement.** Each panel sits below its own button, in the top layer, so a box that clips its overflow doesn't clip it. It's never wider than the window, and scrolls what doesn't fit.
@@ -128,7 +128,7 @@ Automated, in Chromium, Firefox and WebKit (`bun run test`, `test:browser`, `tes
 - The arrows, Home and End move between the list's buttons and links, mirrored in right-to-left text.
 - The pointer opens a panel after the delay, switches at once to the next button, and a press-opened panel stays when the pointer leaves.
 - Focus leaving, a press elsewhere and Escape close it; a controlled menu follows its owner and a canceled change keeps the panel as it is.
-- Without JavaScript, the links work and a button opens its panel natively; a tap follows a link on touch.
+- Without JavaScript, the links work and a button opens its panel natively; a panel opened that way before the script ran stays open after hydration, below its button; a tap follows a link on touch.
 - axe-core finds no WCAG 2.2 A or AA violation with a panel open, in both themes.
 
 Not checked, so not claimed:

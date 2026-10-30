@@ -275,6 +275,23 @@ describe('ContextMenu in the browser', () => {
     assert.equal(isOpen(content), false)
   })
 
+  it('opens nothing when a listener before it cancels the right click', async (t) => {
+    let { container } = mount(
+      t,
+      <div mix={on('contextmenu', (event) => event.preventDefault(), true)}>
+        <Invoice />
+      </div>,
+    )
+    await settle()
+    let { trigger, content } = parts(container)
+
+    rightClick(250, 180)
+    await settle()
+    assert.equal(isOpen(content), false)
+    assert.ok(!trigger.hasAttribute('data-popup-open'))
+    assert.equal(document.querySelector('[inert]'), null, 'and leaves no modal layer')
+  })
+
   it('leaves the browser menu alone when disabled', async (t) => {
     let { container } = mount(t, <Invoice disabled />)
     await settle()

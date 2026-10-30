@@ -167,7 +167,8 @@ const triggerMixin = createMixin<HTMLElement>((handle) => {
           }),
           on('contextmenu', (event) => {
             // A disabled menu leaves the browser's own menu, and the menu's own events bubble through a menu inside the area.
-            if (api.disabled || insideMenu(event)) return
+            // A listener that canceled the right click already, before this one, keeps the menu closed.
+            if (api.disabled || event.defaultPrevented || insideMenu(event)) return
             event.preventDefault()
             cancelPress()
             let pointer = fromPointer(event)
@@ -191,6 +192,7 @@ const triggerMixin = createMixin<HTMLElement>((handle) => {
           on('pointerdown', (event) => {
             let view = area?.ownerDocument.defaultView
             if (event.pointerType !== 'touch' || !event.isPrimary || api.disabled || !view || insideMenu(event)) return
+            if (event.defaultPrevented) return
             cancelPress()
             let scroll = new AbortController()
             let start = { x: event.clientX, y: event.clientY }

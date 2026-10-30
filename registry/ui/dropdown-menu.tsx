@@ -248,7 +248,7 @@ export interface DropdownMenuProps {
    * A menu the pointer opened on hover is never modal.
    */
   modal?: boolean
-  /** Whether the menu ignores the trigger and stays closed. */
+  /** Whether the menu is disabled: its trigger is, and the menu closes and stays closed. */
   disabled?: boolean
   /** The arrow keys that move between the items: Up and Down when `'vertical'` (the default), Left and Right when `'horizontal'`. */
   orientation?: 'horizontal' | 'vertical'
@@ -394,11 +394,13 @@ export function MenuRoot(handle: Handle<MenuRootProps, MenuApi>) {
     api.family = parent?.family ?? family ?? 'dropdown-menu'
     api.group = parent ? null : (group ?? null)
     api.disabled = disabled || (parent?.disabled ?? false)
+    // A menu that becomes disabled closes, and stays closed once enabled again.
+    if (api.disabled) uncontrolledOpen = false
     api.orientation = orientation
     api.loop = loopFocus
     api.highlightOnHover = highlightItemOnHover
     api.closeParentOnEsc = closeParentOnEsc
-    api.open = api.running && (open ?? uncontrolledOpen)
+    api.open = api.running && !api.disabled && (open ?? uncontrolledOpen)
     if (!api.open) {
       api.openedBy = null
       api.focus = 'none'
@@ -452,6 +454,11 @@ function openingKey(api: MenuApi, event: KeyboardEvent): 'first' | 'last' | unde
   return undefined
 }
 
+/** Whether a trigger is disabled now, natively or with aria-disabled. */
+function isTriggerDisabled(trigger: Element) {
+  return trigger.matches(':disabled') || trigger.getAttribute('aria-disabled') === 'true'
+}
+
 const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptions]>((handle, type) => {
   // Only a button can open a popover natively.
   let native = type === 'button'
@@ -462,7 +469,10 @@ const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptio
     let id = (hostProps.id as string | undefined) ?? api.defaultTriggerId
     // The content renders after the trigger and names the menu with this id.
     api.triggerId = id
-    let { disabled } = api
+    // A trigger the caller disabled opens nothing, also one that stays focusable with aria-disabled.
+    let own = hostProps as Record<string, unknown>
+    let disabled = api.disabled || Boolean(own.disabled) || String(own['aria-disabled']) === 'true'
+    let blocked = (event: Event) => disabled || isTriggerDisabled(event.currentTarget as Element)
 
     return (
       <handle.element
@@ -474,12 +484,12 @@ const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptio
         data-popup-open={api.open ? '' : undefined}
         data-disabled={disabled ? '' : undefined}
         popovertarget={native && !api.running && !disabled ? api.contentId : undefined}
-        {...(disabled ? (native ? { disabled: true } : { 'aria-disabled': 'true' }) : {})}
+        {...(api.disabled ? (native ? { disabled: true } : { 'aria-disabled': 'true' }) : {})}
         mix={[
           attrs({ 'data-slot': `${api.family}-trigger` }),
           ref((node, signal) => api.attachTrigger(node, signal)),
           on('click', (event) => {
-            if (event.defaultPrevented || api.disabled) return
+            if (event.defaultPrevented || blocked(event)) return
             // A click on a menu the pointer opened keeps it open, now for good.
             if (api.open && api.openedBy === 'hover') {
               api.keepOpen()
@@ -490,7 +500,7 @@ const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptio
             api.setOpen(!api.open, 'trigger-press', { cause: event, focus })
           }),
           on('keydown', (event) => {
-            if (event.defaultPrevented || api.disabled || event.altKey || event.ctrlKey || event.metaKey) return
+            if (event.defaultPrevented || blocked(event) || event.altKey || event.ctrlKey || event.metaKey) return
             let which = openingKey(api, event)
             if (!which) return
             event.preventDefault()
@@ -499,7 +509,7 @@ const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptio
           }),
           // In a menubar with an open menu, the pointer opens the menu it moves onto.
           on('pointerenter', (event) => {
-            if (event.pointerType === 'touch' || api.open || api.disabled || !api.group?.hasOpenMenu()) return
+            if (event.pointerType === 'touch' || api.open || blocked(event) || !api.group?.hasOpenMenu()) return
             api.setOpen(true, 'trigger-hover', { cause: event, focus: 'menu' })
           }),
           // A menu a press opened stays open wherever the pointer goes.
@@ -688,11 +698,16 @@ function onContentKeyDown(api: MenuApi, event: KeyboardEvent) {
   }
 
   if (target === content) {
-    // Nothing is highlighted, as after a pointer opened the menu.
+    // Nothing is highlighted, as after a pointer opened the menu. The arrows
+    // along the menu's orientation, mirrored in right-to-left text, start at either end.
+    let rtl = getDirection(content) === 'rtl'
+    let horizontal = api.orientation === 'horizontal'
+    let next = horizontal ? (rtl ? 'ArrowLeft' : 'ArrowRight') : 'ArrowDown'
+    let previous = horizontal ? (rtl ? 'ArrowRight' : 'ArrowLeft') : 'ArrowUp'
     let which: 'first' | 'last' | undefined =
-      event.key === 'ArrowDown' || event.key === 'Home'
+      event.key === next || event.key === 'Home'
         ? 'first'
-        : event.key === 'ArrowUp' || event.key === 'End'
+        : event.key === previous || event.key === 'End'
           ? 'last'
           : undefined
     if (which) {

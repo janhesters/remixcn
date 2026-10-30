@@ -26,6 +26,7 @@ import {
   menuCheckedChangeType,
   menuOpenChangeType,
   menuValueChangeType,
+  dropdownMenuTrigger,
 } from './dropdown-menu.tsx'
 import type { DropdownMenuContentProps, DropdownMenuProps, MenuOpenChangeReason } from './dropdown-menu.tsx'
 
@@ -223,6 +224,115 @@ describe('DropdownMenu in the browser', () => {
     assert.equal(focused(), 'Copy', 'the same letter again moves to the next match')
     key('r')
     assert.equal(focused(), 'Copy', 'typing skips the disabled and the hidden item')
+  })
+
+  it('starts at the first or last item with the arrows along a horizontal menu, mirrored in right-to-left text', async (t) => {
+    for (let [dir, first, last] of [
+      ['ltr', 'ArrowRight', 'ArrowLeft'],
+      ['rtl', 'ArrowLeft', 'ArrowRight'],
+    ] as const) {
+      let { container } = mount(
+        t,
+        <div dir={dir}>
+          <Edit orientation="horizontal" />
+        </div>,
+      )
+      await settle()
+      let { trigger, content } = parts(container)
+
+      press(trigger)
+      await settle()
+      assert.equal(document.activeElement, content, 'a pointer opens it without highlighting an item')
+      assert.equal(content.getAttribute('aria-orientation'), 'horizontal')
+      assert.equal(key(first).defaultPrevented, true)
+      assert.equal(focused(), 'Undo', dir)
+
+      content.focus()
+      key(last)
+      assert.equal(focused(), 'Paste', dir)
+      key('Escape')
+      await settle()
+    }
+  })
+
+  it('closes when its menu becomes disabled, and stays closed when it starts open and disabled', async (t) => {
+    let setDisabled: (disabled: boolean) => void = () => {}
+    function Switchable(handle: Handle) {
+      let disabled = false
+      setDisabled = (next) => {
+        disabled = next
+        void handle.update()
+      }
+      return () => <Edit defaultOpen modal={false} disabled={disabled} />
+    }
+    let { container } = mount(
+      t,
+      <div>
+        <Switchable />
+        <Edit defaultOpen disabled />
+      </div>,
+    )
+    await settle()
+    let switchable = parts(container, 0)
+    let disabledFromTheStart = parts(container, 1)
+    assert.equal(isOpen(switchable.content), true)
+    assert.equal(isOpen(disabledFromTheStart.content), false)
+    assert.equal(document.documentElement.style.overflow, '', 'no modal state either')
+
+    setDisabled(true)
+    await settle()
+    assert.equal(isOpen(switchable.content), false)
+    assert.ok(switchable.content.hasAttribute('data-closed'))
+    assert.equal(switchable.trigger.getAttribute('aria-expanded'), 'false')
+    assert.ok((switchable.trigger as HTMLButtonElement).disabled)
+
+    setDisabled(false)
+    await settle()
+    assert.equal(isOpen(switchable.content), false, 'enabling it again leaves it closed')
+  })
+
+  it('never opens from a trigger the caller disabled, on hover, a click or the keys', async (t) => {
+    let { container } = mount(
+      t,
+      <div>
+        <DropdownMenu>
+          <DropdownMenuTrigger disabled openOnHover delay={0} mix={at(100, 100)}>
+            Native
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Undo</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <DropdownMenu>
+          <span
+            role="button"
+            tabIndex={0}
+            aria-disabled="true"
+            mix={[at(300, 100), dropdownMenuTrigger({ openOnHover: true, delay: 0 })]}
+          >
+            Focusable
+          </span>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Redo</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>,
+    )
+    await settle()
+    let native = parts(container, 0)
+    let focusable = parts(container, 1)
+
+    for (let { trigger } of [native, focusable]) {
+      hover(trigger)
+      press(trigger)
+      trigger.focus()
+      key('ArrowDown', {}, trigger)
+      keyClick(trigger)
+    }
+    await settle(50)
+    assert.equal(isOpen(native.content), false)
+    assert.equal(isOpen(focusable.content), false)
+    assert.ok(!native.trigger.hasAttribute('popovertarget'))
   })
 
   it('stops at the ends without loopFocus', async (t) => {

@@ -71,6 +71,26 @@ function focused(page: Page) {
   })
 }
 
+/** Opens the examples with their module scripts held back until `release()`, so the page waits before hydration. */
+async function holdScripts(t: TestContext) {
+  let examples = await createMenuExamples()
+  t.after(() => void examples.close())
+  let server = await createTestServer(examples.fetch)
+  let page = await t.serve(server)
+  let release!: () => void
+  let released = new Promise<void>((resolve) => (release = resolve))
+  await page.route(
+    (url) => /\.(ts|tsx|js)$/.test(url.pathname),
+    async (route) => {
+      await released
+      await route.continue()
+    },
+  )
+  // The module scripts wait, so the page never reaches DOMContentLoaded until they're released.
+  await page.goto('/', { waitUntil: 'commit' })
+  return { page, release }
+}
+
 function frames(page: Page) {
   return page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
 }
@@ -409,21 +429,7 @@ describe('Dropdown Menu, Context Menu, Menubar and Navigation Menu examples', ()
   })
 
   it('keep a menu the browser opened before the script ran, now below its trigger', async (t) => {
-    let examples = await createMenuExamples()
-    t.after(() => void examples.close())
-    let server = await createTestServer(examples.fetch)
-    let page = await t.serve(server)
-    let release!: () => void
-    let released = new Promise<void>((resolve) => (release = resolve))
-    await page.route(
-      (url) => /\.(ts|tsx|js)$/.test(url.pathname),
-      async (route) => {
-        await released
-        await route.continue()
-      },
-    )
-    await page.goto('/', { waitUntil: 'commit' })
-
+    let { page, release } = await holdScripts(t)
     let content = '[data-example="dropdown-basic"] [data-slot="dropdown-menu-content"]'
     await example(page, 'dropdown-basic').getByRole('button', { name: 'Open' }).click()
     assert.equal(await isOpen(page, content), true)
@@ -435,6 +441,22 @@ describe('Dropdown Menu, Context Menu, Menubar and Navigation Menu examples', ()
     assert.equal((await box(page, content)).top, trigger.bottom + 4)
     await page.keyboard.press('ArrowDown')
     assert.equal(await focused(page), 'Profile', 'and the keys work in it')
+  })
+
+  it('keep a navigation panel the browser opened before the script ran, now below its button', async (t) => {
+    let { page, release } = await holdScripts(t)
+    let panel = '[data-example="navigation-basic"] [data-slot="navigation-menu-content"]'
+    let button = example(page, 'navigation-basic').getByRole('button', { name: 'Getting started' })
+    await button.click()
+    assert.equal(await isOpen(page, panel), true)
+
+    release()
+    await page.locator('html[data-ready]').waitFor({ state: 'attached' })
+    await page.locator(`${panel}[data-open]`).waitFor({ state: 'attached' })
+    assert.equal(await isOpen(page, panel), true)
+    assert.equal(await button.getAttribute('aria-expanded'), 'true')
+    let trigger = await box(page, '[data-example="navigation-basic"] [data-slot="navigation-menu-trigger"]')
+    assert.equal((await box(page, panel)).top, trigger.bottom + 8)
   })
 
   it('fit an open menu into 320px with text at 200%, without scrolling sideways', async (t) => {
