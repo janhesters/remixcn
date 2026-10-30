@@ -203,11 +203,15 @@ describe('Slider examples', () => {
     await page.evaluate(() => {
       let log: string[] = ((window as any).commits = [])
       document.addEventListener('remixcn:slider-commit', (event) => log.push(String((event as any).values)))
+      // Chromium answers a touch start, move or end once the page handled it, but a touch cancel at once: nothing
+      // can prevent a cancel, so the browser doesn't wait. The page notes when the cancel arrives.
+      document.addEventListener('pointercancel', () => ((window as any).canceled = true), { capture: true })
     })
     await touch('touchStart', await spot(page, 'Basic', 0.2))
     await touch('touchMove', await spot(page, 'Basic', 0.3))
     assert.equal(await volume.inputValue(), '30')
     await touch('touchCancel')
+    await page.waitForFunction(() => (window as any).canceled === true, undefined, { timeout: 5000 })
 
     assert.equal(await volume.inputValue(), '80')
     assert.deepEqual(await page.evaluate(() => (window as any).commits), [])
