@@ -382,6 +382,13 @@ describe('Input OTP', () => {
     await input.click()
     assert.equal(await marks(page, 'input-otp-demo-digits'), 'caret - - - - -')
     await page.keyboard.type('1a2-３')
+    // Firefox types the full-width digit through an input method's composition, which the input cleans up in the
+    // next task. A loaded machine can run that task after the next read, so wait for it.
+    await page.waitForFunction(
+      (element) => !(element as HTMLInputElement).value.includes('３'),
+      await input.elementHandle(),
+      { timeout: 5000 },
+    )
     assert.equal(await input.inputValue(), '123', 'refused characters stay out, and a full-width digit becomes a digit')
     assert.equal(await input.evaluate((element: HTMLInputElement) => element.validity.patternMismatch), false)
     assert.equal(await slots(page, 'input-otp-demo-digits'), '1|2|3|○|○|○'.replace(/○/g, ''))
