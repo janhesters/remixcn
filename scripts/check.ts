@@ -2,8 +2,10 @@
 // Usage: node scripts/check.ts [lane ...] [--project <name>] [--diagnostics <dir>]
 //        node scripts/check.ts --plan
 import { spawn } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { constants } from 'node:os'
 import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
@@ -22,6 +24,8 @@ const marker = 'REMIXCN_CHECK_LANE'
 const outputGraceMs = 2_000
 /** How long a stopped leftover may take to exit. SIGKILL only asks the system to end it. */
 const stopGraceMs = 5_000
+/** On POSIX systems, each lane runs in a process group of its own, so check can stop all of it without a process list. */
+const ownGroup = process.platform !== 'win32'
 
 let { values: options, positionals: requested } = parseArgs({
   allowPositionals: true,
@@ -125,6 +129,37 @@ async function stopProcesses(leftovers: Array<{ pid: number; command: string }>)
   return { count, list, survivors }
 }
 
+/** Signals the lane's process group, or only its own process where it has no group. */
+function signalLane(child: ChildProcess, signal: NodeJS.Signals) {
+  if (child.pid === undefined) return
+  try {
+    if (ownGroup) process.kill(-child.pid, signal)
+    else child.kill(signal)
+  } catch {
+    // Everything in it has exited already.
+  }
+}
+
+/** Whether a process of the group still runs. A process that exited but waits to be collected still counts. */
+function groupRuns(pgid: number) {
+  try {
+    process.kill(-pgid, 0)
+    return true
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM'
+  }
+}
+
+/** Waits until no process of the group runs, for at most `timeoutMs`. Says whether the group ended. */
+async function waitForGroup(pgid: number, timeoutMs: number) {
+  let deadline = Date.now() + timeoutMs
+  while (groupRuns(pgid) && Date.now() < deadline) await delay(20)
+  return !groupRuns(pgid)
+}
+
+/** The lane that runs now, which a terminal's Ctrl+C no longer reaches once it has its own group. */
+let running: ChildProcess | undefined
+
 /** The lane's deadline in milliseconds, which REMIXCN_LANE_DEADLINE_MS shortens for check's own tests. */
 function deadlineOf(lane: Lane): number | undefined {
   if (lane.deadlineMinutes === undefined) return undefined
@@ -152,7 +187,9 @@ async function runLane(lane: Lane): Promise<string | undefined> {
   if (options.diagnostics) env.REMIXCN_DIAGNOSTICS = resolve(options.diagnostics)
 
   let args = ['run', lane.script, ...(project ? ['--project', project] : [])]
-  let child = spawn('bun', args, { cwd: root, env, stdio: ['inherit', 'pipe', 'pipe'] })
+  // A lane in its own group reads nothing from the terminal, which would stop it there.
+  let child = spawn('bun', args, { cwd: root, env, detached: ownGroup, stdio: ['ignore', 'pipe', 'pipe'] })
+  running = child
   let chunks: Buffer[] = []
   for (let [stream, target] of [
     [child.stdout, process.stdout],
@@ -187,10 +224,11 @@ async function runLane(lane: Lane): Promise<string | undefined> {
     process.stderr.write(note)
     if (log) appendFileSync(log, note)
 
+    // Listed first, so it also finds the processes that left the lane's group, where /proc lists them.
     let marked = findMarkedProcesses(id)
-    // The lane's own process, which needs no process list to find, such as where /proc is missing.
-    child.kill('SIGKILL')
+    signalLane(child, 'SIGKILL')
     let stopped = marked.length > 0 ? await stopProcesses(marked) : undefined
+    let groupEnded = ownGroup && child.pid !== undefined ? await waitForGroup(child.pid, stopGraceMs) : undefined
     let ended = await Promise.race([
       exited.then(
         () => true,
@@ -203,11 +241,17 @@ async function runLane(lane: Lane): Promise<string | undefined> {
     child.stderr.destroy()
 
     if (!ended) return `${late}, and its process ${child.pid} still runs after SIGKILL`
-    if (!stopped)
-      return `${late}; check stopped its process ${child.pid}, but can't list the processes it started here, so they may still run`
+    if (groupEnded === false) return `${late}, and processes of its group ${child.pid} still run after SIGKILL`
+    let group = groupEnded ? `its process group ${child.pid}` : `its process ${child.pid}`
+    if (!stopped) {
+      return groupEnded
+        ? `${late}; check stopped ${group}, but can't list processes that left that group here`
+        : `${late}; check stopped ${group}, but can't list the processes it started here, so they may still run`
+    }
     let { count, list, survivors } = stopped
-    if (survivors.length > 0) return `${late}; check stopped ${count}, but ${survivors.join(', ')} still runs: ${list}`
-    return `${late}; check stopped ${count}: ${list}`
+    let what = groupEnded ? `its process group and ${count}` : count
+    if (survivors.length > 0) return `${late}; check stopped ${what}, but ${survivors.join(', ')} still runs: ${list}`
+    return `${late}; check stopped ${what}: ${list}`
   }
 
   let code = await (passed ? Promise.race([exited, passed]) : exited)
@@ -236,6 +280,14 @@ async function runLane(lane: Lane): Promise<string | undefined> {
 }
 
 async function runLanes() {
+  // Passes a terminal's Ctrl+C, or a stop, on to the running lane's group, as the terminal did when they shared one.
+  for (let signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+    process.on(signal, () => {
+      if (running) signalLane(running, signal)
+      process.exit(128 + constants.signals[signal])
+    })
+  }
+
   let unknown = requested.filter((name) => !lanes.some((lane) => lane.name === name))
   if (unknown.length > 0) {
     process.stderr.write(`unknown lane "${unknown[0]}"; the lanes are ${lanes.map((lane) => lane.name).join(', ')}\n`)
@@ -255,6 +307,8 @@ async function runLanes() {
       continue
     }
     let problem = await runLane(plan.lane)
+    // Its group id may later name another group.
+    running = undefined
     if (problem) failed++
     results.push(problem ? `  ✗ ${plan.lane.name}: ${problem}` : `  ✓ ${plan.lane.name}`)
   }
