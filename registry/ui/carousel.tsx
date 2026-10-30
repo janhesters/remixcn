@@ -282,7 +282,10 @@ const dragThreshold = 8
 // A drag this long moves on one snap, even when it ends nearer the snap it started from.
 const flickDistance = 24
 // Without a scrollend event, a scroll counts as done this long after its last
-// scroll event. The carousel's own smooth scrolls get longer to start moving.
+// scroll event. The carousel's own scrolls get longer to start moving. Its
+// smooth ones wait for their scrollend where the engine sends one: the
+// timer runs on the page's clock, which can get ahead of the engine's smooth
+// scroll, such as on a page busy for a second or under a test's fake clock.
 const settleDelay = 150
 const ownScrollDelay = 1000
 
@@ -432,6 +435,9 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
   // A scroll the carousel started, until it settles. Scroll events don't change the selection meanwhile.
   let pending: number | undefined
   let pendingReason: CarouselSelectReason = 'user'
+  let pendingSmooth = false
+  // Whether the engine sends scrollend events.
+  let scrollEnds = false
   let announce = false
   let status = ''
   let settleTimer: ReturnType<typeof setTimeout> | undefined
@@ -554,7 +560,8 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
     }
     pending = target
     pendingReason = reason
-    scrollViewport(position, instant || reducedMotion() ? 'instant' : 'smooth')
+    pendingSmooth = !instant && !reducedMotion()
+    scrollViewport(position, pendingSmooth ? 'smooth' : 'instant')
     waitForSettle()
   }
 
@@ -565,6 +572,8 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
 
   function waitForSettle() {
     clearTimeout(settleTimer)
+    settleTimer = undefined
+    if (pending !== undefined && pendingSmooth && scrollEnds) return
     settleTimer = setTimeout(settle, pending === undefined ? settleDelay : ownScrollDelay)
   }
 
@@ -646,17 +655,20 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
     if (!snap || Math.abs(scrollPosition() - snap.position) < tolerance) return
     pending = index
     pendingReason = 'layout'
+    pendingSmooth = false
     scrollViewport(snap.position, 'instant')
     waitForSettle()
   }
 
   // A scrollend can belong to an earlier scroll, such as a drag's last move,
   // while the carousel's own scroll still runs. That one settles at its snap,
-  // or once the scroll events stop.
+  // or once the scroll events stop. A scroll that stopped short, such as
+  // where focus moved, sends no more of them.
   function onScrollEnd() {
     let target = pending === undefined ? undefined : snaps[pending]
-    if (target && Math.abs(scrollPosition() - target.position) >= tolerance) waitForSettle()
-    else settle()
+    if (!target || Math.abs(scrollPosition() - target.position) < tolerance) return settle()
+    clearTimeout(settleTimer)
+    settleTimer = setTimeout(settle, ownScrollDelay)
   }
 
   // Layout changes arrive in a ResizeObserver or MutationObserver callback,
@@ -667,6 +679,7 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
   function connect(element: HTMLElement, content: HTMLElement, signal: AbortSignal) {
     viewport = element
     track = content
+    scrollEnds = 'onscrollend' in element
     let resizes = new ResizeObserver(measureLayout)
     let watch = () => {
       resizes.disconnect()
