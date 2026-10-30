@@ -126,6 +126,14 @@
       "files": [{ "path": "registry/ui/code-block.tsx", "type": "registry:ui", "target": "@ui/code-block.tsx" }]
     },
     {
+      "name": "command",
+      "type": "registry:ui",
+      "title": "Command",
+      "description": "A command menu: a search field over grouped commands, filtered and sorted as you type, with keyboard and pointer selection, shortcuts as text, and a command dialog.",
+      "registryDependencies": ["@remixcn/composite", "@remixcn/dialog", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/command.tsx", "type": "registry:ui", "target": "@ui/command.tsx" }]
+    },
+    {
       "name": "dialog",
       "type": "registry:ui",
       "title": "Dialog",
@@ -355,7 +363,7 @@
       "name": "composite",
       "type": "registry:lib",
       "title": "Composite navigation",
-      "description": "Keyboard navigation for toolbars, menus, tabs and lists: roving focus or active descendant, with orientation, right-to-left text, Home and End, typeahead, and disabled, hidden and nested items.",
+      "description": "Keyboard navigation for toolbars, menus, tabs and lists: roving focus or active descendant, with orientation, right-to-left text, Home and End, typeahead, key aliases, and disabled, hidden and nested items.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/composite.ts", "type": "registry:lib", "target": "@lib/composite.ts" }]
     },
