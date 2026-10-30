@@ -7,6 +7,7 @@ import { contrastRatio } from '../scripts/color.ts'
 import { findAccessibilityViolations } from './accessibility.ts'
 import { createCalendarExamples, fixtureToday } from './fixtures/calendar/server.tsx'
 import { paintColors, toRgba } from './paint.ts'
+import { suppressValidationMessages } from './validation.ts'
 
 interface OpenOptions {
   colorScheme?: 'light' | 'dark'
@@ -353,11 +354,16 @@ describe('Calendar and Date Picker examples', () => {
     )
     assert.match((await form.locator('[data-slot="field-description"]').textContent()) ?? '', /June 1, 2026/)
 
-    // An empty required field blocks the submit.
+    // An empty required field blocks the submit. WebKit's own message would
+    // starve the next click of frames (see validation.ts).
+    let invalidControls = await suppressValidationMessages(page)
     await input.fill('')
+    await input.blur()
     await form.getByRole('button', { name: 'Send' }).click()
     assert.equal(await page.locator('[data-echo]').count(), 0)
+    assert.deepEqual(await invalidControls(), ['subscription'])
     assert.equal(await input.evaluate((element: HTMLInputElement) => element.validity.valueMissing), true)
+    assert.equal(await input.evaluate((element) => element === document.activeElement), false)
 
     await input.fill('2026-12-24')
     await dayIn(page, rangeScope, '2026-10-20').click()

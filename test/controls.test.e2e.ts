@@ -5,6 +5,7 @@ import type { TestContext } from 'remix/test'
 
 import { findAccessibilityViolations } from './accessibility.ts'
 import { createControls } from './fixtures/controls/server.tsx'
+import { suppressValidationMessages } from './validation.ts'
 
 interface OpenOptions {
   // Without JavaScript the page stays as the server rendered it.
@@ -284,8 +285,11 @@ describe('controls', () => {
     await form.getByRole('button', { name: 'Italic' }).click()
     assert.equal(new URL(page.url()).pathname, '/')
 
+    // WebKit's own message would starve the next click of frames (see validation.ts).
+    let invalidControls = await suppressValidationMessages(page)
     await form.getByRole('button', { name: 'Save' }).click()
     assert.equal(new URL(page.url()).pathname, '/')
+    assert.deepEqual(await invalidControls(), ['terms'])
     assert.equal(
       await form
         .getByRole('checkbox', { name: 'I accept the terms' })

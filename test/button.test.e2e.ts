@@ -5,6 +5,7 @@ import type { TestContext } from 'remix/test'
 
 import { contrastRatio } from '../scripts/color.ts'
 import { createButtonExamples } from './fixtures/button/server.tsx'
+import { suppressValidationMessages } from './validation.ts'
 
 // Pages open with reduced motion, so transitions take 0s and every read sees
 // the final style. The motion test opts back in.
@@ -121,13 +122,17 @@ describe('Button examples', () => {
   it('keep the submitter overrides: Save draft posts elsewhere and skips validation', async (t) => {
     let { page } = await open(t)
     let form = example(page, 'Form')
-    await form.getByLabel('Billing email').fill('not an email')
+    let email = form.getByLabel('Billing email')
+    // WebKit's own message would starve the Save draft click of frames (see validation.ts).
+    let invalidControls = await suppressValidationMessages(page)
+    await email.fill('not an email')
+    await email.blur()
 
     await form.getByRole('button', { name: 'Send reminder' }).click()
-    assert.equal(
-      await form.getByLabel('Billing email').evaluate((input: HTMLInputElement) => input.validity.valid),
-      false,
-    )
+    assert.deepEqual(await invalidControls(), ['email'])
+    assert.equal(await email.evaluate((input: HTMLInputElement) => input.validity.valid), false)
+    // No message: the browser leaves focus where it was instead of moving it to the field.
+    assert.equal(await email.evaluate((input) => input === document.activeElement), false)
     assert.equal(new URL(page.url()).pathname, '/')
 
     await form.getByRole('button', { name: 'Save draft' }).click()
