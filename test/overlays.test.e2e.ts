@@ -324,11 +324,25 @@ describe('Popover, Hover Card and Tooltip examples', () => {
     let toolbar = example(page, 'tooltip-toolbar')
     let contents = toolbar.locator('[data-slot="tooltip-content"]')
 
+    let send = toolbar.getByRole('button', { name: 'Send' })
+
     await toolbar.getByRole('button', { name: 'Archive' }).hover()
     await contents.nth(0).and(page.locator('[data-open]')).waitFor()
-    await toolbar.getByRole('button', { name: 'Send' }).hover()
+    // The page times the next tooltip, from the pointer reaching its trigger to the popover opening, so the round
+    // trips to the test, slow on a loaded machine, don't count against it.
+    await send.evaluate((trigger) =>
+      trigger.addEventListener('pointerenter', () => ((window as any).enteredAt = performance.now()), { once: true }),
+    )
+    await contents.nth(1).evaluate((content) =>
+      content.addEventListener('toggle', (event) => {
+        if ((event as ToggleEvent).newState === 'open') (window as any).openedAt = performance.now()
+      }),
+    )
+    await send.hover()
+    await contents.nth(1).and(page.locator('[data-open]')).waitFor()
+    let waited = await page.evaluate(() => (window as any).openedAt - (window as any).enteredAt)
     // Faster than the provider's 400ms delay, which the first one waited for.
-    await contents.nth(1).and(page.locator('[data-open]')).waitFor({ timeout: 200 })
+    assert.ok(waited >= 0 && waited < 400, `the next tooltip opened ${waited}ms after the pointer reached its trigger`)
     assert.equal(await contents.nth(0).evaluate((element) => element.matches(':popover-open')), false)
   })
 
