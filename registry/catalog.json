@@ -196,7 +196,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/attachment.tsx"
+      "target": "registry/ui/attachment.tsx",
+      "exampleTarget": "registry/examples/attachment-example.tsx"
     },
     {
       "name": "avatar",
@@ -278,7 +279,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/bubble.tsx"
+      "target": "registry/ui/bubble.tsx",
+      "exampleTarget": "registry/examples/bubble-example.tsx"
     },
     {
       "name": "button",
@@ -821,7 +823,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/marker.tsx"
+      "target": "registry/ui/marker.tsx",
+      "exampleTarget": "registry/examples/marker-example.tsx"
     },
     {
       "name": "menubar",
@@ -858,7 +861,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/message.tsx"
+      "target": "registry/ui/message.tsx",
+      "exampleTarget": "registry/examples/message-example.tsx"
     },
     {
       "name": "message-scroller",

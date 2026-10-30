@@ -38,6 +38,14 @@
       "files": [{ "path": "registry/ui/aspect-ratio.tsx", "type": "registry:ui", "target": "@ui/aspect-ratio.tsx" }]
     },
     {
+      "name": "attachment",
+      "type": "registry:ui",
+      "title": "Attachment",
+      "description": "A file or image with its name, details, upload state and actions, local previews that release their object URLs, a full-card trigger, and scrolling groups.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/attachment.tsx", "type": "registry:ui", "target": "@ui/attachment.tsx" }]
+    },
+    {
       "name": "avatar",
       "type": "registry:ui",
       "title": "Avatar",
@@ -60,6 +68,14 @@
       "description": "A navigation landmark with an ordered list of native links, separators, the current page and an ellipsis.",
       "registryDependencies": ["@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/breadcrumb.tsx", "type": "registry:ui", "target": "@ui/breadcrumb.tsx" }]
+    },
+    {
+      "name": "bubble",
+      "type": "registry:ui",
+      "title": "Bubble",
+      "description": "A message surface in seven looks that sizes to its text, aligns to either side, groups, and carries reactions, with bubbleContentVariants() for links and buttons.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/bubble.tsx", "type": "registry:ui", "target": "@ui/bubble.tsx" }]
     },
     {
       "name": "button",
@@ -148,6 +164,22 @@
       "description": "Native kbd elements for single keys and key combinations.",
       "registryDependencies": ["@remixcn/theme"],
       "files": [{ "path": "registry/ui/kbd.tsx", "type": "registry:ui", "target": "@ui/kbd.tsx" }]
+    },
+    {
+      "name": "marker",
+      "type": "registry:ui",
+      "title": "Marker",
+      "description": "A status line, note or labelled divider in a conversation, with a decorative icon and markerVariants() for links and buttons.",
+      "registryDependencies": ["@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/marker.tsx", "type": "registry:ui", "target": "@ui/marker.tsx" }]
+    },
+    {
+      "name": "message",
+      "type": "registry:ui",
+      "title": "Message",
+      "description": "A conversation row with an avatar, a header, the message and a footer, aligned to either side, and groups of rows.",
+      "registryDependencies": ["@remixcn/theme"],
+      "files": [{ "path": "registry/ui/message.tsx", "type": "registry:ui", "target": "@ui/message.tsx" }]
     },
     {
       "name": "message-scroller",
@@ -307,7 +339,7 @@
       "name": "styles",
       "type": "registry:lib",
       "title": "Style conventions",
-      "description": "Style objects for css(): focus ring, invalid and disabled states, hidden text, transitions, right-to-left mirroring and button group joins.",
+      "description": "Style objects for css(): focus ring, invalid and disabled states, hidden text, transitions, a text shimmer, right-to-left mirroring and button group joins.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/styles.ts", "type": "registry:lib", "target": "@lib/styles.ts" }]
     },
