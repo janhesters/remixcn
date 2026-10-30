@@ -65,7 +65,7 @@ A `<ul>` and its `<li>`s. The arrow keys move between the list's buttons and lin
 
 ### `NavigationMenuTrigger`
 
-A native `<button type="button">` with a chevron that turns while its panel is open. It renders `aria-expanded` once the menu runs, `aria-controls`, and `data-popup-open` while open. It never opens on focus alone. Enter, Space and a click open or close the panel with focus kept on the button; Arrow Down (the arrow toward the panel when vertical) opens it and moves focus to its first link. A disabled button opens nothing.
+A native `<button type="button">` with a chevron that turns while its panel is open. It renders `aria-expanded` once the menu runs, `aria-controls`, and `data-popup-open` while open. It never opens on focus alone. Enter, Space and a click open or close the panel with focus kept on the button; Arrow Down (the arrow toward the panel when vertical) opens it and moves focus to its first link. A disabled button opens nothing, also on hover, and so does one a disabled `<fieldset>` disables before or during the hover delay.
 
 ### `NavigationMenuContent`
 

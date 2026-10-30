@@ -60,7 +60,7 @@ Groups the parts and holds whether the menu is open. It renders no element.
 
 `DropdownMenuTrigger` is a native `<button type="button">`. It takes every button prop, `mix`, and `openOnHover` (`false`), `delay` (`100`) and `closeDelay` (`0`), which open the menu while the pointer rests on it. Give it a Button's look with `mix={buttonVariants({ variant: 'outline' })}`.
 
-`dropdownMenuTrigger(options)` makes any element the trigger and keeps the element's own `data-slot`. A click opens the menu with focus on the menu itself; Enter and Space open it at the first item, Arrow Down at the first and Arrow Up at the last. A trigger you disable, with `disabled` or `aria-disabled="true"`, opens nothing, also on hover. The trigger renders `aria-haspopup="menu"`, `aria-controls`, `aria-expanded` once the menu runs, `data-popup-open` while open, and an `id` the menu's `aria-labelledby` points at (yours, if you give one).
+`dropdownMenuTrigger(options)` makes any element the trigger and keeps the element's own `data-slot`. A click opens the menu with focus on the menu itself; Enter and Space open it at the first item, Arrow Down at the first and Arrow Up at the last. A trigger you disable, with `disabled`, `aria-disabled="true"` or a disabled `<fieldset>` around it, opens nothing, also on hover: hover checks the trigger when the pointer arrives and again when the delay ends. One in a disabled fieldset's first `<legend>` stays usable, as the browser keeps it enabled. The trigger renders `aria-haspopup="menu"`, `aria-controls`, `aria-expanded` once the menu runs, `data-popup-open` while open, and an `id` the menu's `aria-labelledby` points at (yours, if you give one).
 
 ### `DropdownMenuContent` and `DropdownMenuSubContent`
 
@@ -197,7 +197,7 @@ Automated, in Chromium, Firefox and WebKit (`bun run test`, `test:browser`, `tes
 - Enter, Space, Arrow Down and Arrow Up open it at the right item; the arrows, Home, End and typing move past disabled and hidden items; Enter and Space run an item and return focus to the trigger; Escape closes one menu at a time; Tab and Shift+Tab close it and move focus on in every engine.
 - Checkbox and radio items change `aria-checked` and keep the menu open; a canceled change keeps the state; disabled items never run, by key, pointer or script.
 - A submenu opens with Arrow Right, Enter or a resting pointer, closes with Arrow Left or Escape with focus back on its item, and swaps the arrows in right-to-left text.
-- A canceled open leaves no layer, scroll lock or highlight behind; a canceled close keeps the menu and its highlight; a controlled menu follows its owner; a menu that becomes disabled closes, and one that starts open and disabled stays closed; a trigger the caller disabled opens nothing, by hover, click or key.
+- A canceled open leaves no layer, scroll lock or highlight behind; a canceled close keeps the menu and its highlight; a controlled menu follows its owner; a menu that becomes disabled closes, and one that starts open and disabled stays closed; a trigger the caller disabled opens nothing, by hover, click or key, also one a fieldset disables before or during the hover delay, while one in the fieldset's first legend opens.
 - A modal menu makes the page inert and stops scrolling until it closes; unmounting it while open releases the page.
 - Removing the focused item moves focus to its neighbor.
 - Without JavaScript, the trigger opens the menu natively and its links work; a menu opened that way before the script ran stays open after hydration, below its trigger.
