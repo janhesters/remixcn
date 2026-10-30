@@ -87,7 +87,9 @@
     "trace-examples": "node --import remix/node-tsx test/fixtures/trace/server.tsx",
     "capture:trace-examples": "node --import remix/node-tsx test/fixtures/trace/capture.ts",
     "select-examples": "node --import remix/node-tsx test/fixtures/select/server.tsx",
-    "capture:select-examples": "node --import remix/node-tsx test/fixtures/select/capture.ts"
+    "capture:select-examples": "node --import remix/node-tsx test/fixtures/select/capture.ts",
+    "calendar-examples": "node --import remix/node-tsx test/fixtures/calendar/server.tsx",
+    "capture:calendar-examples": "node --import remix/node-tsx test/fixtures/calendar/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"
