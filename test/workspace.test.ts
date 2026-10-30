@@ -189,6 +189,7 @@ describe('contributor docs and credits', () => {
       'Copyright (c) 2023 shadcn',
       'Copyright (c) 2019 Material-UI SAS',
       'Copyright (c) 2025 Shopify Inc.',
+      'Copyright (c) 2024 Guilherme Rodz',
     ]) {
       assert.ok(notices.includes(copyright), copyright)
     }

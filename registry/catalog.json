@@ -739,6 +739,8 @@
       "docs": "https://ui.shadcn.com/docs/components/base/input-group",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/input-group-example.tsx",
       "dependsOn": [
+        "theme",
+        "styles",
         "button",
         "input",
         "textarea"
@@ -759,7 +761,12 @@
       "docs": "https://ui.shadcn.com/docs/components/base/input-otp",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/input-otp-example.tsx",
       "behavior": "https://input-otp.rodz.dev",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "aria",
+        "icons"
+      ],
       "upstreamImports": [
         "cn",
         "icon-placeholder",

@@ -182,6 +182,22 @@
       "files": [{ "path": "registry/ui/input.tsx", "type": "registry:ui", "target": "@ui/input.tsx" }]
     },
     {
+      "name": "input-group",
+      "type": "registry:ui",
+      "title": "Input Group",
+      "description": "One box around a native input or textarea with addons, text and buttons, which draws its focus ring and invalid state.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/input", "@remixcn/styles", "@remixcn/textarea", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/input-group.tsx", "type": "registry:ui", "target": "@ui/input-group.tsx" }]
+    },
+    {
+      "name": "input-otp",
+      "type": "registry:ui",
+      "title": "Input OTP",
+      "description": "A one-time code in one native text input, drawn as slots, groups and separators, with pattern filtering, paste and masking.",
+      "registryDependencies": ["@remixcn/aria", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/input-otp.tsx", "type": "registry:ui", "target": "@ui/input-otp.tsx" }]
+    },
+    {
       "name": "item",
       "type": "registry:ui",
       "title": "Item",
