@@ -459,6 +459,14 @@
       "files": [{ "path": "registry/ui/tooltip.tsx", "type": "registry:ui", "target": "@ui/tooltip.tsx" }]
     },
     {
+      "name": "trace",
+      "type": "registry:ui",
+      "title": "Trace",
+      "description": "Lines for the steps an agent takes, with running, failed and pending states, rows that expand on Collapsible, link and dialog rows, and an option that announces changes of status.",
+      "registryDependencies": ["@remixcn/collapsible", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/trace.tsx", "type": "registry:ui", "target": "@ui/trace.tsx" }]
+    },
+    {
       "name": "typography",
       "type": "registry:component",
       "title": "Typography",
