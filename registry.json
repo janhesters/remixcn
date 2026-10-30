@@ -118,6 +118,20 @@
       "files": [{ "path": "registry/ui/carousel.tsx", "type": "registry:ui", "target": "@ui/carousel.tsx" }]
     },
     {
+      "name": "chart",
+      "type": "registry:ui",
+      "title": "Chart",
+      "description": "Line, area, bar, pie, radar and radial bar charts in native SVG, with shadcn's config, tooltip and legend, keyboard and pointer inspection, and a summary and table for assistive technology.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/composite",
+        "@remixcn/layer",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/chart.tsx", "type": "registry:ui", "target": "@ui/chart.tsx" }]
+    },
+    {
       "name": "checkbox",
       "type": "registry:ui",
       "title": "Checkbox",
