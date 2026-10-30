@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -8,13 +8,13 @@ import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 import type { TestContext } from 'remix/test'
 
-import { isRunning } from './processes.ts'
+import { isRunning, waitForExit } from './processes.ts'
 
 const check = fileURLToPath(new URL('check.ts', import.meta.url))
 const fixtures = fileURLToPath(new URL('../test/fixtures/lanes/', import.meta.url))
 
-function runCheck(fixture: string, args: string[], env: Record<string, string> = {}) {
-  let result = spawnSync(process.execPath, [check, ...args], {
+function runCheck(fixture: string, args: string[], env: Record<string, string> = {}, node: string[] = []) {
+  let result = spawnSync(process.execPath, [...node, check, ...args], {
     cwd: join(fixtures, fixture),
     encoding: 'utf8',
     env: { ...process.env, GITHUB_ACTIONS: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '', ...env },
@@ -116,6 +116,96 @@ describe('check', () => {
     assert.equal(status, 0)
     assert.match(readFileSync(join(diagnostics, 'format.log'), 'utf8'), /^formatted$/m)
   })
+
+  it(
+    'stops a lane that runs past its deadline, with every process it started, and keeps its log',
+    { skip: process.platform !== 'linux', timeout: 60_000 },
+    (t) => {
+      let diagnostics = scratchDirectory(t)
+      let started = performance.now()
+
+      let { status, stdout } = runCheck('stuck', ['e2e', '--diagnostics', diagnostics], {
+        REMIXCN_LANE_DEADLINE_MS: '1000',
+      })
+      let pids = (/^stuck (\d+) (\d+)$/m.exec(stdout) ?? []).slice(1).map(Number)
+      t.after(() => {
+        for (let pid of pids) if (pid > 0 && isRunning(pid)) process.kill(pid, 'SIGKILL')
+      })
+
+      assert.equal(status, 1)
+      assert.match(
+        stdout,
+        /^ {2}✗ e2e: ran past its deadline of 1 s; check stopped its process group and 3 processes: \d+ bun run test:e2e; /m,
+      )
+      assert.equal(pids.length, 2, stdout)
+      for (let pid of pids) assert.ok(!isRunning(pid), `process ${pid} still runs`)
+      assert.ok(performance.now() - started < 20_000, 'stopped soon after the deadline')
+      let log = readFileSync(join(diagnostics, 'e2e.log'), 'utf8')
+      assert.match(log, /^stuck \d+ \d+$/m)
+      assert.match(log, /^e2e ran past its deadline of 1 s, so check stops it\.$/m)
+    },
+  )
+
+  it(
+    'stops a lane past its deadline on a system where it cannot list the processes the lane started',
+    { skip: process.platform === 'win32', timeout: 60_000 },
+    (t) => {
+      let started = performance.now()
+
+      let { status, stdout } = runCheck('stuck', ['e2e'], { REMIXCN_LANE_DEADLINE_MS: '1000' }, [
+        '--import',
+        join(fixtures, 'no-proc.ts'),
+      ])
+      let pids = (/^stuck (\d+) (\d+)$/m.exec(stdout) ?? []).slice(1).map(Number)
+      t.after(() => {
+        for (let pid of pids) if (pid > 0 && isRunning(pid)) process.kill(pid, 'SIGKILL')
+      })
+
+      assert.equal(status, 1, stdout)
+      assert.match(
+        stdout,
+        /^ {2}✗ e2e: ran past its deadline of 1 s; check stopped its process group \d+, but can't list processes that left that group here$/m,
+      )
+      // The fixture's script and the process it started, both in the lane's group.
+      assert.equal(pids.length, 2, stdout)
+      for (let pid of pids) assert.ok(!isRunning(pid), `process ${pid} still runs`)
+      assert.ok(performance.now() - started < 20_000, 'finished soon after the deadline')
+    },
+  )
+
+  it(
+    "passes a terminal's Ctrl+C on to the lane's process group",
+    { skip: process.platform === 'win32', timeout: 60_000 },
+    async (t) => {
+      let child = spawn(process.execPath, [check, 'e2e'], {
+        cwd: join(fixtures, 'stuck'),
+        env: { ...process.env, GITHUB_ACTIONS: '', GITHUB_OUTPUT: '', GITHUB_STEP_SUMMARY: '' },
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      let pids: number[] = []
+      t.after(() => {
+        for (let pid of [child.pid ?? 0, ...pids]) if (pid > 0 && isRunning(pid)) process.kill(pid, 'SIGKILL')
+      })
+      let exited = new Promise<number | null>((resolve) => child.on('exit', resolve))
+      let stdout = ''
+      await new Promise<void>((resolve, reject) => {
+        child.on('exit', () => reject(new Error(`check exited first:\n${stdout}`)))
+        child.stdout.setEncoding('utf8').on('data', (chunk: string) => {
+          stdout += chunk
+          let match = /^stuck (\d+) (\d+)$/m.exec(stdout)
+          if (!match) return
+          pids = match.slice(1).map(Number)
+          resolve()
+        })
+      })
+
+      // As a terminal does on Ctrl+C, to check's own process group, which the lane no longer shares.
+      process.kill(child.pid!, 'SIGINT')
+
+      assert.equal(await exited, 130)
+      assert.deepEqual(await waitForExit(pids, 5_000), [], 'the lane stops with check')
+    },
+  )
 
   it('rejects a lane it does not know', () => {
     let { status, output } = runCheck('empty', ['docs'])

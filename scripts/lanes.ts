@@ -18,6 +18,12 @@ export interface Lane {
   perNode?: boolean
   /** The ticket that adds the lane's script. */
   addedBy?: string
+  /**
+   * How long the lane may run before check stops it and fails it, so a test
+   * that never settles fails the lane, and CI keeps its diagnostics, before the
+   * job's own limit cancels everything.
+   */
+  deadlineMinutes?: number
 }
 
 export const lanes: Lane[] = [
@@ -44,6 +50,8 @@ export const lanes: Lane[] = [
     checks: 'end-to-end tests against local servers',
     tests: { pattern: /\.test\.e2e\.tsx?$/, label: '*.test.e2e.{ts,tsx}' },
     perProject: true,
+    // CI gives each job 20 minutes; this leaves time to check and upload the diagnostics.
+    deadlineMinutes: 15,
   },
   { name: 'components', script: 'check:components', checks: 'the catalog and browser-reachable imports' },
   { name: 'secrets', script: 'check:secrets', checks: 'no credentials in the repository' },

@@ -2,9 +2,11 @@
 // Usage: node scripts/check.ts [lane ...] [--project <name>] [--diagnostics <dir>]
 //        node scripts/check.ts --plan
 import { spawn } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { constants } from 'node:os'
+import { join, resolve } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
@@ -15,11 +17,15 @@ import { waitForExit } from './processes.ts'
 import { listWorkspaceFiles } from './workspace.ts'
 
 const root = process.cwd()
+/** What a lane's wait ends with once its deadline passed. */
+const overrun = Symbol('overrun')
 const marker = 'REMIXCN_CHECK_LANE'
 /** How long a lane's output may stay open after the lane exited and its leftovers were stopped. */
 const outputGraceMs = 2_000
 /** How long a stopped leftover may take to exit. SIGKILL only asks the system to end it. */
 const stopGraceMs = 5_000
+/** On POSIX systems, each lane runs in a process group of its own, so check can stop all of it without a process list. */
+const ownGroup = process.platform !== 'win32'
 
 let { values: options, positionals: requested } = parseArgs({
   allowPositionals: true,
@@ -100,7 +106,14 @@ async function stopLeftovers(value: string): Promise<string | undefined> {
     leftovers = findMarkedProcesses(value)
   }
   if (leftovers.length === 0) return undefined
+  let { count, list, survivors } = await stopProcesses(leftovers)
+  if (survivors.length > 0)
+    return `left ${count} running, and ${survivors.join(', ')} still runs after SIGKILL: ${list}`
+  return `left ${count} running, now stopped: ${list}`
+}
 
+/** Stops the processes with SIGKILL, and lists them and the ones still running once that had time to work. */
+async function stopProcesses(leftovers: Array<{ pid: number; command: string }>) {
   for (let { pid } of leftovers) {
     try {
       process.kill(pid, 'SIGKILL')
@@ -113,10 +126,49 @@ async function stopLeftovers(value: string): Promise<string | undefined> {
   let survivors = await waitForExit(pids, stopGraceMs)
   let count = leftovers.length === 1 ? '1 process' : `${leftovers.length} processes`
   let list = leftovers.map(({ pid, command }) => `${pid} ${command}`).join('; ')
-  if (survivors.length > 0) {
-    return `left ${count} running, and ${survivors.join(', ')} still runs after SIGKILL: ${list}`
+  return { count, list, survivors }
+}
+
+/** Signals the lane's process group, or only its own process where it has no group. */
+function signalLane(child: ChildProcess, signal: NodeJS.Signals) {
+  if (child.pid === undefined) return
+  try {
+    if (ownGroup) process.kill(-child.pid, signal)
+    else child.kill(signal)
+  } catch {
+    // Everything in it has exited already.
   }
-  return `left ${count} running, now stopped: ${list}`
+}
+
+/** Whether a process of the group still runs. A process that exited but waits to be collected still counts. */
+function groupRuns(pgid: number) {
+  try {
+    process.kill(-pgid, 0)
+    return true
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM'
+  }
+}
+
+/** Waits until no process of the group runs, for at most `timeoutMs`. Says whether the group ended. */
+async function waitForGroup(pgid: number, timeoutMs: number) {
+  let deadline = Date.now() + timeoutMs
+  while (groupRuns(pgid) && Date.now() < deadline) await delay(20)
+  return !groupRuns(pgid)
+}
+
+/** The lane that runs now, which a terminal's Ctrl+C no longer reaches once it has its own group. */
+let running: ChildProcess | undefined
+
+/** The lane's deadline in milliseconds, which REMIXCN_LANE_DEADLINE_MS shortens for check's own tests. */
+function deadlineOf(lane: Lane): number | undefined {
+  if (lane.deadlineMinutes === undefined) return undefined
+  let injected = Number(process.env.REMIXCN_LANE_DEADLINE_MS)
+  return injected > 0 ? injected : lane.deadlineMinutes * 60_000
+}
+
+function describeDuration(ms: number) {
+  return ms % 60_000 === 0 ? `${ms / 60_000} min` : `${ms / 1000} s`
 }
 
 async function runLane(lane: Lane): Promise<string | undefined> {
@@ -131,9 +183,13 @@ async function runLane(lane: Lane): Promise<string | undefined> {
 
   let env: NodeJS.ProcessEnv = { ...process.env, [marker]: id }
   if (process.stdout.isTTY && !('NO_COLOR' in env)) env.FORCE_COLOR ??= '1'
+  // Tests that keep their own records, such as phase logs, write them next to the lane's log.
+  if (options.diagnostics) env.REMIXCN_DIAGNOSTICS = resolve(options.diagnostics)
 
   let args = ['run', lane.script, ...(project ? ['--project', project] : [])]
-  let child = spawn('bun', args, { cwd: root, env, stdio: ['inherit', 'pipe', 'pipe'] })
+  // A lane in its own group reads nothing from the terminal, which would stop it there.
+  let child = spawn('bun', args, { cwd: root, env, detached: ownGroup, stdio: ['ignore', 'pipe', 'pipe'] })
+  running = child
   let chunks: Buffer[] = []
   for (let [stream, target] of [
     [child.stdout, process.stdout],
@@ -146,10 +202,62 @@ async function runLane(lane: Lane): Promise<string | undefined> {
     })
   }
   let closed = new Promise<boolean>((resolve) => child.on('close', () => resolve(true)))
-  let code = await new Promise<number | null>((resolve, reject) => {
+
+  let exited = new Promise<number | null>((resolve, reject) => {
     child.on('error', reject)
     child.on('exit', resolve)
   })
+
+  // Past its deadline, the lane stops with every process it started, and fails.
+  let deadline = deadlineOf(lane)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let passed =
+    deadline === undefined
+      ? undefined
+      : new Promise<typeof overrun>((resolve) => {
+          timer = setTimeout(() => resolve(overrun), deadline)
+        })
+
+  async function stopOverrun(ms: number): Promise<string> {
+    let late = `ran past its deadline of ${describeDuration(ms)}`
+    let note = `\n${lane.name} ${late}, so check stops it.\n`
+    process.stderr.write(note)
+    if (log) appendFileSync(log, note)
+
+    // Listed first, so it also finds the processes that left the lane's group, where /proc lists them.
+    let marked = findMarkedProcesses(id)
+    signalLane(child, 'SIGKILL')
+    let stopped = marked.length > 0 ? await stopProcesses(marked) : undefined
+    let groupEnded = ownGroup && child.pid !== undefined ? await waitForGroup(child.pid, stopGraceMs) : undefined
+    let ended = await Promise.race([
+      exited.then(
+        () => true,
+        () => true,
+      ),
+      delay(stopGraceMs, false, { ref: false }),
+    ])
+    await Promise.race([closed, delay(outputGraceMs, false, { ref: false })])
+    child.stdout.destroy()
+    child.stderr.destroy()
+
+    if (!ended) return `${late}, and its process ${child.pid} still runs after SIGKILL`
+    if (groupEnded === false) return `${late}, and processes of its group ${child.pid} still run after SIGKILL`
+    let group = groupEnded ? `its process group ${child.pid}` : `its process ${child.pid}`
+    if (!stopped) {
+      return groupEnded
+        ? `${late}; check stopped ${group}, but can't list processes that left that group here`
+        : `${late}; check stopped ${group}, but can't list the processes it started here, so they may still run`
+    }
+    let { count, list, survivors } = stopped
+    let what = groupEnded ? `its process group and ${count}` : count
+    if (survivors.length > 0) return `${late}; check stopped ${what}, but ${survivors.join(', ')} still runs: ${list}`
+    return `${late}; check stopped ${what}: ${list}`
+  }
+
+  let code = await (passed ? Promise.race([exited, passed]) : exited)
+  clearTimeout(timer)
+  // Only a lane with a deadline can reach it.
+  if (code === overrun) return stopOverrun(deadline ?? 0)
 
   // A leftover process may hold the lane's output open, so cleanup starts once
   // the lane exits. Stopping it closes the output. If something the cleanup
@@ -172,6 +280,14 @@ async function runLane(lane: Lane): Promise<string | undefined> {
 }
 
 async function runLanes() {
+  // Passes a terminal's Ctrl+C, or a stop, on to the running lane's group, as the terminal did when they shared one.
+  for (let signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
+    process.on(signal, () => {
+      if (running) signalLane(running, signal)
+      process.exit(128 + constants.signals[signal])
+    })
+  }
+
   let unknown = requested.filter((name) => !lanes.some((lane) => lane.name === name))
   if (unknown.length > 0) {
     process.stderr.write(`unknown lane "${unknown[0]}"; the lanes are ${lanes.map((lane) => lane.name).join(', ')}\n`)
@@ -191,6 +307,8 @@ async function runLanes() {
       continue
     }
     let problem = await runLane(plan.lane)
+    // Its group id may later name another group.
+    running = undefined
     if (problem) failed++
     results.push(problem ? `  ✗ ${plan.lane.name}: ${problem}` : `  ✓ ${plan.lane.name}`)
   }
