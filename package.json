@@ -79,7 +79,9 @@
     "input-group-examples": "node --import remix/node-tsx test/fixtures/input-group/server.tsx",
     "capture:input-group-examples": "node --import remix/node-tsx test/fixtures/input-group/capture.ts",
     "overlays": "node --import remix/node-tsx test/fixtures/overlays/server.tsx",
-    "capture:overlays": "node --import remix/node-tsx test/fixtures/overlays/capture.ts"
+    "capture:overlays": "node --import remix/node-tsx test/fixtures/overlays/capture.ts",
+    "menu-examples": "node --import remix/node-tsx test/fixtures/menus/server.tsx",
+    "capture:menu-examples": "node --import remix/node-tsx test/fixtures/menus/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"

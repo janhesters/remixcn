@@ -517,14 +517,20 @@
       "docs": "https://ui.shadcn.com/docs/components/base/context-menu",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/context-menu-example.tsx",
       "behavior": "https://base-ui.com/react/components/context-menu.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "anchor-position",
+        "dropdown-menu"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/context-menu.tsx"
+      "target": "registry/ui/context-menu.tsx",
+      "exampleTarget": "registry/examples/context-menu-example.tsx"
     },
     {
       "name": "data-table",
@@ -643,14 +649,25 @@
       "docs": "https://ui.shadcn.com/docs/components/base/dropdown-menu",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/dropdown-menu-example.tsx",
       "behavior": "https://base-ui.com/react/components/menu.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
+        "composite",
+        "layer",
+        "focus-scope",
+        "modal",
+        "anchor-position",
+        "hover-intent"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/dropdown-menu.tsx"
+      "target": "registry/ui/dropdown-menu.tsx",
+      "exampleTarget": "registry/examples/dropdown-menu-example.tsx"
     },
     {
       "name": "empty",
@@ -873,6 +890,9 @@
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/menubar-example.tsx",
       "behavior": "https://base-ui.com/react/components/menubar.md",
       "dependsOn": [
+        "theme",
+        "styles",
+        "composite",
         "dropdown-menu"
       ],
       "upstreamImports": [
@@ -881,7 +901,8 @@
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/menubar.tsx"
+      "target": "registry/ui/menubar.tsx",
+      "exampleTarget": "registry/examples/menubar-example.tsx"
     },
     {
       "name": "message",
@@ -956,14 +977,24 @@
       "docs": "https://ui.shadcn.com/docs/components/base/navigation-menu",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/navigation-menu-example.tsx",
       "behavior": "https://base-ui.com/react/components/navigation-menu.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
+        "composite",
+        "layer",
+        "focus-scope",
+        "anchor-position",
+        "hover-intent"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "class-variance-authority",
         "cn",
         "icon-placeholder"
       ],
-      "target": "registry/ui/navigation-menu.tsx"
+      "target": "registry/ui/navigation-menu.tsx",
+      "exampleTarget": "registry/examples/navigation-menu-example.tsx"
     },
     {
       "name": "pagination",
