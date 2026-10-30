@@ -436,6 +436,9 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
   let pending: number | undefined
   let pendingReason: CarouselSelectReason = 'user'
   let pendingSmooth = false
+  // Where the carousel's own smooth scroll started, and how far toward its target it got.
+  let pendingFrom = 0
+  let pendingProgress = 0
   // Whether the engine sends scrollend events.
   let scrollEnds = false
   let announce = false
@@ -448,6 +451,8 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
     | undefined
   let dragging = false
   let restoreSnapping = false
+  // Where a finger touched down, until its first moves show which way it scrolls.
+  let touchStart: { x: number; y: number } | undefined
 
   let autoplayEnabled = Boolean(handle.props.autoplay)
   let playing = autoplayEnabled
@@ -561,6 +566,8 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
     pending = target
     pendingReason = reason
     pendingSmooth = !instant && !reducedMotion()
+    pendingFrom = scrollPosition()
+    pendingProgress = 0
     scrollViewport(position, pendingSmooth ? 'smooth' : 'instant')
     waitForSettle()
   }
@@ -603,8 +610,28 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
 
   function onScroll() {
     if (ready && !measuredLayout()) remeasure('layout')
-    else if (pending === undefined && !dragging) select(nearestSnap(snaps, scrollPosition()), 'user')
+    else if (!dragging) {
+      if (strayed()) handOver()
+      if (pending === undefined) select(nearestSnap(snaps, scrollPosition()), 'user')
+    }
     if (!dragging) waitForSettle()
+  }
+
+  // The carousel's own smooth scroll only moves from where it started toward
+  // its target. Past the target, or back the way it came, something else
+  // moved it, such as a wheel the browser passed on past a box that contains
+  // it, or handed to the running scroll. Firefox carries the speed of a scroll
+  // still running into the next for a moment, so turning back counts only
+  // once the scroll made headway.
+  function strayed() {
+    let target = pending === undefined ? undefined : snaps[pending]
+    if (!target || !pendingSmooth) return false
+    let distance = target.position - pendingFrom
+    let progress = (scrollPosition() - pendingFrom) * Math.sign(distance)
+    if (progress > Math.abs(distance) + tolerance) return true
+    if (pendingProgress >= tolerance && progress < pendingProgress - tolerance) return true
+    pendingProgress = Math.max(pendingProgress, progress)
+    return false
   }
 
   // The first slide of the selected snap stays selected and in view when slides come and go or the size changes.
@@ -671,6 +698,77 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
     settleTimer = setTimeout(settle, ownScrollDelay)
   }
 
+  // The user takes the carousel's own scroll over: where it ends is their
+  // change, announced also when it's the snap the carousel was going to.
+  function handOver() {
+    pending = undefined
+    announce = true
+    syncAutoplay(true)
+    waitForSettle()
+  }
+
+  // A wheel or a finger that scrolls the carousel while its own scroll runs
+  // takes the scroll over. One that moves more across the axis than along it
+  // scrolls the page instead, one a slide cancelled scrolls nothing, and one
+  // a scroll container in a slide can take scrolls that container, so the
+  // scroll stays the carousel's. `delta` is the scroll the gesture asks for:
+  // positive scrolls right or down.
+  function takeOver(target: EventTarget | null, delta: number) {
+    if (pending === undefined || dragging || scrollsInside(target, delta)) return
+    handOver()
+  }
+
+  // The browser gives a wheel or a swipe to the innermost scroll container
+  // that can move its way, such as a code block or a nested carousel in a
+  // slide. One with overscroll-behavior keeps it at its end too, also when
+  // its content fits or it hides its overflow, which no wheel scrolls.
+  function scrollsInside(target: EventTarget | null, delta: number) {
+    for (let node = target instanceof Element ? target : null; node && node !== viewport; node = node.parentElement) {
+      let style = getComputedStyle(node)
+      let overflow = horizontal() ? style.overflowX : style.overflowY
+      if (overflow !== 'auto' && overflow !== 'scroll' && overflow !== 'hidden') continue
+      if ((horizontal() ? style.overscrollBehaviorX : style.overscrollBehaviorY) !== 'auto') return true
+      let range = horizontal() ? node.scrollWidth - node.clientWidth : node.scrollHeight - node.clientHeight
+      if (overflow === 'hidden' || range < tolerance) continue
+      let position = horizontal() ? node.scrollLeft : node.scrollTop
+      // In right-to-left text, scrollLeft runs from minus the range to 0.
+      let start = horizontal() && style.direction === 'rtl' ? -range : 0
+      let room = delta > 0 ? start + range - position : position - start
+      if (room >= tolerance) return true
+    }
+    return false
+  }
+
+  function onWheel(event: WheelEvent) {
+    let along = horizontal() ? event.deltaX : event.deltaY
+    let across = horizontal() ? event.deltaY : event.deltaX
+    if (!event.defaultPrevented && Math.abs(along) > Math.abs(across)) takeOver(event.target, along)
+  }
+
+  function onTouchStart(event: TouchEvent) {
+    let touch = event.touches[0]
+    touchStart = undefined
+    if (touch && event.touches.length === 1 && !event.defaultPrevented)
+      touchStart = { x: touch.clientX, y: touch.clientY }
+  }
+
+  // The browser picks the way a swipe scrolls from its first moves, and so
+  // does the carousel: once the finger moved as far as a mouse must to drag.
+  function onTouchMove(event: TouchEvent) {
+    let touch = event.touches[0]
+    if (!touchStart || !touch) return
+    let x = touch.clientX - touchStart.x
+    let y = touch.clientY - touchStart.y
+    let along = horizontal() ? x : y
+    let across = horizontal() ? y : x
+    if (event.defaultPrevented || event.touches.length > 1) touchStart = undefined
+    else if (Math.max(Math.abs(along), Math.abs(across)) >= dragThreshold) {
+      touchStart = undefined
+      // A finger that moves right scrolls the content left.
+      if (Math.abs(along) > Math.abs(across)) takeOver(event.target, -along)
+    }
+  }
+
   // Layout changes arrive in a ResizeObserver or MutationObserver callback,
   // before the scroll events that the browser's re-snapping sends. Measuring
   // right away keeps those events from meeting the old snaps.
@@ -698,6 +796,9 @@ export function Carousel(handle: Handle<CarouselProps, CarouselContext>) {
 
     element.addEventListener('scroll', onScroll, { passive: true, signal })
     element.addEventListener('scrollend', onScrollEnd, { signal })
+    element.addEventListener('wheel', onWheel, { passive: true, signal })
+    element.addEventListener('touchstart', onTouchStart, { passive: true, signal })
+    element.addEventListener('touchmove', onTouchMove, { passive: true, signal })
     element.addEventListener('pointerdown', onPointerDown, { signal })
     element.addEventListener('dragstart', (event) => drag && event.preventDefault(), { signal })
 

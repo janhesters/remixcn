@@ -75,18 +75,21 @@ interface Recording {
   selections: [index: number, reason: string][]
   announcements: string[]
   scrollEnds: number[]
+  wheels: number[]
+  touches: number[]
 }
 
 /**
  * Records what a carousel does from now on: the snaps it selects and why,
- * what its live region says, and where its scrolls end. Each scroll end is
- * recorded after the carousel handled it.
+ * what its live region says, where its scrolls end, and where each wheel
+ * and each move of a finger found it. Each scroll end is recorded after the
+ * carousel handled it.
  */
 function record(carousel: ReturnType<typeof carouselIn>) {
   return carousel.evaluate((root: HTMLElement & { recording?: Recording }) => {
     let viewport = root.querySelector<HTMLElement>('[data-slot="carousel-content"]')!
     let status = root.querySelector('[data-slot="carousel-status"]')!
-    let recording: Recording = { selections: [], announcements: [], scrollEnds: [] }
+    let recording: Recording = { selections: [], announcements: [], scrollEnds: [], wheels: [], touches: [] }
     root.recording = recording
     root.addEventListener('remixcn:carousel-select', (event) => {
       if (event.target === root) recording.selections.push([event.index, event.reason])
@@ -95,6 +98,8 @@ function record(carousel: ReturnType<typeof carouselIn>) {
       if (status.textContent) recording.announcements.push(status.textContent)
     }).observe(status, { childList: true, characterData: true, subtree: true })
     viewport.addEventListener('scrollend', () => recording.scrollEnds.push(viewport.scrollLeft))
+    viewport.addEventListener('wheel', () => recording.wheels.push(viewport.scrollLeft), { passive: true })
+    viewport.addEventListener('touchmove', () => recording.touches.push(viewport.scrollLeft), { passive: true })
   })
 }
 
@@ -108,6 +113,52 @@ function slideStep(page: Page, title: string) {
     .locator('[data-slot="carousel-item"]')
     .first()
     .evaluate((element) => element.getBoundingClientRect().width + 16)
+}
+
+/** A finger's swipe in three moves, as Chromium's input pipeline delivers it. Only Chromium has it. */
+async function swipe(page: Page, from: { x: number; y: number }, to: { x: number; y: number }) {
+  let session = await page.context().newCDPSession(page)
+  let touch = (type: 'touchStart' | 'touchMove', share: number) =>
+    session.send('Input.dispatchTouchEvent', {
+      type,
+      touchPoints: [
+        { x: Math.round(from.x + (to.x - from.x) * share), y: Math.round(from.y + (to.y - from.y) * share) },
+      ],
+    })
+  await touch('touchStart', 0)
+  for (let move = 1; move <= 3; move++) await touch('touchMove', move / 3)
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] })
+}
+
+/**
+ * Makes the Autoplay example's next rotation start as the next wheel reaches
+ * the page, with the pointer resting on `target` in the carousel. Opened
+ * with a paused clock, the page runs no rotation before.
+ *
+ * WebKit's smooth scroll lasts about 220ms however far it goes, and
+ * Playwright's wheel reaches WebKit 50 to over 230ms after a rotation starts,
+ * so a wheel sent after the rotation can miss it. Here the rotation's own
+ * timer fires from a capturing wheel listener, before the carousel sees the
+ * wheel, and the browser routes the wheel as it would. Starting the rotation
+ * from its toggle wins over the hover, so it runs with the pointer inside.
+ */
+async function rotateOnWheel(page: Page, target: ReturnType<Page['locator']>) {
+  let autoplay = carouselIn(page, 'Autoplay')
+  await page.evaluate(() => {
+    let schedule = window.setTimeout
+    let rotation: (() => void) | undefined
+    window.setTimeout = ((callback: TimerHandler, delay?: number, ...rest: unknown[]) => {
+      if (delay === 2000 && typeof callback === 'function') rotation = callback as () => void
+      return schedule(callback, delay, ...rest)
+    }) as typeof window.setTimeout
+    document.addEventListener('wheel', () => rotation?.(), { capture: true, once: true, passive: true })
+  })
+  await autoplay.getByRole('button', { name: 'Stop slide rotation' }).click()
+  await autoplay.getByRole('button', { name: 'Start slide rotation' }).click()
+  // WebKit can scroll the page to press a button, so the target is measured after.
+  let box = (await target.boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+  assert.equal(await autoplay.getAttribute('data-autoplay'), 'running')
 }
 
 /** The logical scroll position of an example's first scroll container. */
@@ -499,6 +550,170 @@ describe('Carousel autoplay', () => {
     assert.deepEqual(selections, [[1, 'autoplay']], `selections ${JSON.stringify(selections)}`)
     assert.deepEqual(announcements, [], `announcements ${JSON.stringify(announcements)}`)
   })
+
+  it('announces the slide a wheel takes it to while it scrolls on its own', async (t) => {
+    let { page } = await open(t, { reducedMotion: 'no-preference', clock: 'paused' })
+    let autoplay = carouselIn(page, 'Autoplay')
+    let viewport = example(page, 'Autoplay').locator('[data-slot="carousel-content"]')
+    let step = await slideStep(page, 'Autoplay')
+    await viewport.scrollIntoViewIfNeeded()
+    let box = (await viewport.boundingBox())!
+    await rotateOnWheel(page, viewport)
+    await record(autoplay)
+
+    // The rotation starts its smooth scroll to slide 2 as a wheel turns it
+    // back. The page's timers then run on, so a wheel that moved nothing settles.
+    await page.mouse.wheel(-box.width, 0)
+    await page.clock.runFor(500)
+
+    // Engines differ in whether their smooth scroll goes on after a wheel:
+    // Chromium's ends on slide 2, Firefox's on slide 1, and WebKit's on either.
+    // The carousel announces the slide it rests on, which is the user's now.
+    await eventually(
+      async () => {
+        let index = await selected(page, 'Autoplay')
+        return (await recorded(autoplay)).announcements.at(-1) === `Slide ${index + 1} of 5`
+      },
+      async () => `never announced the selected slide: ${JSON.stringify(await recorded(autoplay))}`,
+    )
+
+    let { selections, wheels } = await recorded(autoplay)
+    assert.ok((wheels[0] ?? step) < step - 1, `the wheel came at ${wheels[0]}, after the scroll arrived`)
+    // Only the rotation's own selection is automatic; the wheel made the rest the user's.
+    assert.deepEqual(selections[0], [1, 'autoplay'])
+    assert.ok(
+      selections.slice(1).every(([, reason]) => reason === 'user'),
+      `selections ${JSON.stringify(selections)}`,
+    )
+  })
+
+  it('stays silent through a swipe that scrolls the page, and one a slide cancels', async (t) => {
+    let { page } = await open(t, { reducedMotion: 'no-preference', clock: 'paused' })
+    // Touch input runs through Chromium's DevTools protocol only. The browser
+    // tests cover these swipes, and wheels, in every engine.
+    if (engine(page) !== 'chromium') return
+    let autoplay = carouselIn(page, 'Autoplay')
+    let viewport = example(page, 'Autoplay').locator('[data-slot="carousel-content"]')
+    let step = await slideStep(page, 'Autoplay')
+    let middle = async () => {
+      let box = (await viewport.boundingBox())!
+      return { x: box.x + box.width / 2, y: box.y + box.height * 0.8 }
+    }
+    let pageScroll = () => page.evaluate(() => window.scrollY)
+    await viewport.scrollIntoViewIfNeeded()
+    await record(autoplay)
+
+    // While the first rotation scrolls, a finger moves up and scrolls the page.
+    let before = await pageScroll()
+    let { x, y } = await middle()
+    await page.clock.runFor(2010)
+    await swipe(page, { x, y }, { x, y: y - 60 })
+    await eventually(async () => (await recorded(autoplay)).scrollEnds.length > 0, 'the first rotation never ended')
+    assert.ok((await pageScroll()) > before, 'the page never scrolled')
+    let firstSwipe = (await recorded(autoplay)).touches
+    assert.ok((firstSwipe[0] ?? step) < step - 1, `the swipe came at ${firstSwipe[0]}, after the rotation arrived`)
+
+    // While the second one scrolls, a slide cancels a swipe back along the carousel.
+    await autoplay.locator('[data-slot="carousel-item"]').evaluateAll((items) => {
+      for (let item of items) item.addEventListener('touchmove', (event) => event.preventDefault(), { passive: false })
+    })
+    before = await pageScroll()
+    ;({ x, y } = await middle())
+    await page.clock.runFor(2010)
+    await swipe(page, { x: x - 40, y }, { x: x + 40, y })
+    await eventually(async () => (await recorded(autoplay)).scrollEnds.length > 1, 'the second rotation never ended')
+    assert.equal(await pageScroll(), before, 'the cancelled swipe scrolled the page')
+
+    let { selections, announcements, scrollEnds, touches } = await recorded(autoplay)
+    let cancelled = touches[firstSwipe.length]
+    assert.ok((cancelled ?? 2 * step) < 2 * step - 1, `the swipe came at ${cancelled}, after the rotation arrived`)
+    assert.ok(Math.abs((scrollEnds.at(-1) ?? 0) - 2 * step) < 1, `the rotation ended at ${scrollEnds.at(-1)}`)
+    assert.deepEqual(
+      selections,
+      [
+        [1, 'autoplay'],
+        [2, 'autoplay'],
+      ],
+      `selections ${JSON.stringify(selections)}`,
+    )
+    assert.deepEqual(announcements, [], `announcements ${JSON.stringify(announcements)}`)
+  })
+
+  for (let { name, overflow, width, scrolls } of [
+    { name: 'a wheel that scrolls a scroll container in a slide', overflow: 'auto', width: '800px', scrolls: true },
+    {
+      name: 'a wheel over a contained box in a slide whose content fits',
+      overflow: 'auto',
+      width: '80px',
+      scrolls: false,
+    },
+    {
+      name: 'a wheel over a contained box in a slide that hides its overflow',
+      overflow: 'hidden',
+      width: '800px',
+      scrolls: false,
+    },
+  ]) {
+    it(`stays silent through ${name}`, async (t) => {
+      let { page } = await open(t, { reducedMotion: 'no-preference', clock: 'paused' })
+      let autoplay = carouselIn(page, 'Autoplay')
+      let viewport = example(page, 'Autoplay').locator('[data-slot="carousel-content"]')
+      let step = await slideStep(page, 'Autoplay')
+      // A strip in the first slide that contains its gestures, such as a code block.
+      await autoplay
+        .locator('[data-slot="carousel-item"]')
+        .first()
+        .evaluate(
+          (item, { overflow, width }) => {
+            let strip = document.createElement('div')
+            strip.setAttribute('data-test-strip', '')
+            strip.style.cssText = `width: 100%; height: 80px; overflow-x: ${overflow}; overscroll-behavior-x: contain`
+            let content = document.createElement('div')
+            content.textContent = 'A line'
+            content.style.cssText = `width: ${width}; height: 60px`
+            strip.append(content)
+            item.append(strip)
+          },
+          { overflow, width },
+        )
+      let strip = autoplay.locator('[data-test-strip]')
+      let stripScroll = () => strip.evaluate((element) => element.scrollLeft)
+      await viewport.scrollIntoViewIfNeeded()
+      await rotateOnWheel(page, strip)
+      await record(autoplay)
+
+      // A wheel over the strip, while the rotation scrolls.
+      await page.mouse.wheel(100, 0)
+      await eventually(async () => (await recorded(autoplay)).scrollEnds.length > 0, 'the rotation never ended')
+      let { wheels } = await recorded(autoplay)
+      assert.ok((wheels[0] ?? step) < step - 1, `the wheel came at ${wheels[0]}, after the rotation arrived`)
+
+      // Chromium keeps the wheel in the strip, as the CSS Overscroll spec says,
+      // and so does WebKit, except that it sometimes gives it to the running
+      // rotation instead. Playwright's Firefox passes it on past a contained
+      // box that can't scroll. A wheel given to the carousel moves it on past
+      // the rotation's target: the user's change, announced where it rests.
+      let { selections, announcements, scrollEnds } = await recorded(autoplay)
+      let rest = scrollEnds.at(-1) ?? 0
+      let passedOn = engine(page) === 'firefox' ? !scrolls : engine(page) === 'webkit' && rest > step + 1
+      if (passedOn) {
+        assert.ok(rest > step + 1, `the wheel never moved the carousel past ${step}, it rests at ${rest}`)
+        assert.equal(announcements.at(-1), `Slide ${(await selected(page, 'Autoplay')) + 1} of 5`)
+        assert.deepEqual(selections[0], [1, 'autoplay'])
+        assert.ok(
+          selections.slice(1).every(([, reason]) => reason === 'user'),
+          `selections ${JSON.stringify(selections)}`,
+        )
+        return
+      }
+      // WebKit may scroll the strip after the rotation ended.
+      if (scrolls) await eventually(async () => (await stripScroll()) > 0, 'the strip never scrolled')
+      else assert.equal(await stripScroll(), 0)
+      assert.ok(Math.abs(rest - step) < 1, `the rotation ended at ${rest}`)
+      assert.deepEqual(selections, [[1, 'autoplay']], `selections ${JSON.stringify(selections)}`)
+      assert.deepEqual(announcements, [], `announcements ${JSON.stringify(announcements)}`)
+    })
+  }
 
   it('never runs with reduced motion', async (t) => {
     let { page } = await open(t, { clock: true })
