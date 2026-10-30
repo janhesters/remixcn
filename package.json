@@ -65,7 +65,8 @@
     "controls": "node --import remix/node-tsx test/fixtures/controls/server.tsx",
     "capture:controls": "node --import remix/node-tsx test/fixtures/controls/capture.ts",
     "carousel-examples": "node --import remix/node-tsx test/fixtures/carousel/server.tsx",
-    "capture:carousel-examples": "node --import remix/node-tsx test/fixtures/carousel/capture.ts"
+    "capture:carousel-examples": "node --import remix/node-tsx test/fixtures/carousel/capture.ts",
+    "conversation-examples": "node --import remix/node-tsx test/fixtures/conversation/server.tsx"
   },
   "engines": {
     "node": ">=24.3.0"
