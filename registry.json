@@ -102,6 +102,20 @@
       "files": [{ "path": "registry/ui/button-group.tsx", "type": "registry:ui", "target": "@ui/button-group.tsx" }]
     },
     {
+      "name": "calendar",
+      "type": "registry:ui",
+      "title": "Calendar",
+      "description": "A month grid to pick a day, several days or a range, as YYYY-MM-DD civil dates, with Intl locales, week numbers, month and year dropdowns, keyboard navigation and form values.",
+      "registryDependencies": [
+        "@remixcn/button",
+        "@remixcn/civil-date",
+        "@remixcn/icons",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/calendar.tsx", "type": "registry:ui", "target": "@ui/calendar.tsx" }]
+    },
+    {
       "name": "card",
       "type": "registry:ui",
       "title": "Card",
@@ -485,6 +499,23 @@
       "files": [{ "path": "registry/ui/trace.tsx", "type": "registry:ui", "target": "@ui/trace.tsx" }]
     },
     {
+      "name": "date-picker",
+      "type": "registry:component",
+      "title": "Date Picker",
+      "description": "Pickers built from Popover and Calendar: a day, a range, a date of birth, a typed YYYY-MM-DD field and a time, with locale labels and form values.",
+      "registryDependencies": [
+        "@remixcn/button",
+        "@remixcn/calendar",
+        "@remixcn/civil-date",
+        "@remixcn/field",
+        "@remixcn/icons",
+        "@remixcn/input",
+        "@remixcn/input-group",
+        "@remixcn/popover"
+      ],
+      "files": [{ "path": "registry/examples/date-picker.tsx", "type": "registry:component", "target": "@components/date-picker.tsx" }]
+    },
+    {
       "name": "typography",
       "type": "registry:component",
       "title": "Typography",
@@ -507,6 +538,14 @@
       "description": "Writes boolean aria-* props as \"true\" or \"false\", the strings ARIA reads, also in server HTML.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/aria.ts", "type": "registry:lib", "target": "@lib/aria.ts" }]
+    },
+    {
+      "name": "civil-date",
+      "type": "registry:lib",
+      "title": "Civil dates",
+      "description": "YYYY-MM-DD days counted in the Gregorian calendar without Date parsing or host time zones: arithmetic, week numbers, week starts, today in a time zone and Intl formatting.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/civil-date.ts", "type": "registry:lib", "target": "@lib/civil-date.ts" }]
     },
     {
       "name": "composite",
