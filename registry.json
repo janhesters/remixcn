@@ -349,6 +349,24 @@
       "files": [{ "path": "registry/ui/scroll-area.tsx", "type": "registry:ui", "target": "@ui/scroll-area.tsx" }]
     },
     {
+      "name": "select",
+      "type": "registry:ui",
+      "title": "Select",
+      "description": "A button that opens a list of items over or beside it, with groups, keys, typing, single and multiple values, and a native select that holds the form value and works without JavaScript.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/aria",
+        "@remixcn/composite",
+        "@remixcn/focus-scope",
+        "@remixcn/icons",
+        "@remixcn/layer",
+        "@remixcn/modal",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/select.tsx", "type": "registry:ui", "target": "@ui/select.tsx" }]
+    },
+    {
       "name": "separator",
       "type": "registry:ui",
       "title": "Separator",
@@ -494,7 +512,7 @@
       "name": "composite",
       "type": "registry:lib",
       "title": "Composite navigation",
-      "description": "Keyboard navigation for toolbars, menus, tabs and lists: roving focus or active descendant, with orientation, right-to-left text, Home and End, typeahead, key aliases, and disabled, hidden and nested items.",
+      "description": "Keyboard navigation for toolbars, menus, tabs and lists: roving focus or active descendant, with orientation, right-to-left text, Home and End, typeahead, key aliases, and disabled, hidden and nested items, and a typeahead buffer for widgets that match items themselves.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/composite.ts", "type": "registry:lib", "target": "@lib/composite.ts" }]
     },
