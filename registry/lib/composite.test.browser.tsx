@@ -385,6 +385,131 @@ describe('activeDescendant', () => {
     assert.equal(input.getAttribute('aria-activedescendant'), options[1].id)
   })
 
+  it('moves the highlight with Home and End on a text field that asks for them', async (t) => {
+    let { $, $$, cleanup } = render(
+      <div>
+        <input
+          role="combobox"
+          mix={activeDescendant({
+            items: () => $$('[role=option]') as NodeListOf<HTMLElement>,
+            orientation: 'vertical',
+            homeAndEnd: true,
+          })}
+        />
+        <ul role="listbox">
+          <li role="option">Apple</li>
+          <li role="option">Banana</li>
+          <li role="option">Cherry</li>
+        </ul>
+      </div>,
+    )
+    t.after(cleanup)
+    let input = $('input') as HTMLInputElement
+    let options = $$('[role=option]')
+    input.focus()
+
+    assert.equal(press(input, 'End').defaultPrevented, true)
+    assert.equal(input.getAttribute('aria-activedescendant'), options[2].id)
+    assert.equal(press(input, 'Home').defaultPrevented, true)
+    assert.equal(input.getAttribute('aria-activedescendant'), options[0].id)
+    assert.equal(press(input, 'a').defaultPrevented, false, 'typing still edits the text')
+
+    let composing = new KeyboardEvent('keydown', {
+      key: 'ArrowDown',
+      bubbles: true,
+      cancelable: true,
+      isComposing: true,
+    })
+    input.dispatchEvent(composing)
+    assert.equal(composing.defaultPrevented, false, 'keys that pick a character in an input method stay with it')
+    assert.equal(input.getAttribute('aria-activedescendant'), options[0].id)
+  })
+
+  it('maps other keys onto the navigation keys', async (t) => {
+    let { $, $$, cleanup } = render(
+      <div>
+        <input
+          role="combobox"
+          mix={activeDescendant({
+            items: () => $$('[role=option]') as NodeListOf<HTMLElement>,
+            orientation: 'vertical',
+            loop: false,
+            keyAliases: (event) =>
+              event.ctrlKey && event.key === 'n'
+                ? 'ArrowDown'
+                : event.metaKey && event.key === 'ArrowDown'
+                  ? 'End'
+                  : undefined,
+          })}
+        />
+        <ul role="listbox">
+          <li role="option">Apple</li>
+          <li role="option" aria-disabled="true">
+            Apricot
+          </li>
+          <li role="option">Banana</li>
+          <li role="option">Cherry</li>
+        </ul>
+      </div>,
+    )
+    t.after(cleanup)
+    let input = $('input') as HTMLInputElement
+    let options = $$('[role=option]')
+    input.focus()
+
+    let press = (key: string, init: KeyboardEventInit = {}) => {
+      let event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...init })
+      input.dispatchEvent(event)
+      return event
+    }
+
+    assert.equal(press('n', { ctrlKey: true }).defaultPrevented, true)
+    assert.equal(input.getAttribute('aria-activedescendant'), options[0].id)
+    press('n', { ctrlKey: true })
+    assert.equal(input.getAttribute('aria-activedescendant'), options[2].id, 'an alias skips disabled items too')
+    press('ArrowDown', { metaKey: true })
+    assert.equal(input.getAttribute('aria-activedescendant'), options[3].id)
+    assert.equal(press('b', { ctrlKey: true }).defaultPrevented, false, 'other modified keys stay with the browser')
+    assert.equal(press('ArrowUp', { metaKey: true }).defaultPrevented, false)
+  })
+
+  it('lets the owner render the highlight from its own state', async (t) => {
+    let highlighted: HTMLElement[] = []
+    let { $, $$, cleanup } = render(
+      <div>
+        <input
+          role="combobox"
+          mix={activeDescendant({
+            items: () => $$('[role=option]') as NodeListOf<HTMLElement>,
+            orientation: 'vertical',
+            highlight: (item) => highlighted.push(item),
+          })}
+        />
+        <ul role="listbox">
+          <li role="option" id="apple">
+            Apple
+          </li>
+          <li role="option" id="banana">
+            Banana
+          </li>
+        </ul>
+      </div>,
+    )
+    t.after(cleanup)
+    let input = $('input') as HTMLInputElement
+    let options = $$('[role=option]')
+    input.focus()
+
+    assert.equal(press(input, 'ArrowDown').defaultPrevented, true)
+    assert.deepEqual(highlighted, [options[0]])
+    assert.equal(input.hasAttribute('aria-activedescendant'), false, 'the owner writes the highlight')
+    assert.equal(options[0].hasAttribute('data-highlighted'), false)
+
+    input.setAttribute('aria-activedescendant', 'apple')
+    press(input, 'ArrowDown')
+    assert.deepEqual(highlighted, [options[0], options[1]], 'the next key starts from the highlight the owner rendered')
+  })
+
   it('lets pointer hover and filtering set the highlight, and clears it on removal', async (t) => {
     let { $, $$, act, root, cleanup } = render(<Listbox />)
     t.after(cleanup)
