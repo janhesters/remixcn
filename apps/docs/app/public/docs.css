@@ -1,0 +1,189 @@
+/*
+ * The site's layout. It sits in the app layer, so it beats the components'
+ * own rules whatever their order, as AGENTS.md describes. The components
+ * style themselves; this places them on the page.
+ */
+@layer app {
+  /* Skip links show when they get focus, above everything else. */
+  [data-docs-skip-links] a {
+    position: absolute;
+    inset-block-start: calc(var(--spacing) * 2);
+    inset-inline-start: calc(var(--spacing) * 2);
+    z-index: 50;
+    padding: calc(var(--spacing) * 2) calc(var(--spacing) * 3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background-color: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow-md);
+    font-weight: 500;
+  }
+
+  [data-docs-skip-links] a:not(:focus) {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /*
+   * The sidebar spans the left column, and the header and the page share the
+   * right one. The chrome's provider adds no box of its own, so its sidebar
+   * and header take their places in this grid beside the server's page.
+   */
+  [data-docs-layout] {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "sidebar header"
+      "sidebar body";
+    min-height: 100svh;
+  }
+
+  [data-docs-layout] > [data-slot="sidebar-wrapper"] {
+    display: contents;
+  }
+
+  [data-docs-layout] [data-slot="sidebar"]:not([data-mobile]) {
+    grid-area: sidebar;
+  }
+
+  [data-docs-header] {
+    grid-area: header;
+  }
+
+  [data-docs-body] {
+    grid-area: body;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  [data-docs-main] {
+    flex: 1 0 auto;
+  }
+
+  /* Main isn't a control: focus moves there from the skip link only so the next Tab starts in the content. */
+  [data-docs-main]:focus {
+    outline: none;
+  }
+
+  [data-docs-page] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 8);
+    max-width: 72rem;
+    margin-inline: auto;
+    padding: calc(var(--spacing) * 8) calc(var(--spacing) * 6) calc(var(--spacing) * 16);
+  }
+
+  [data-docs-content] {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: calc(var(--spacing) * 12);
+  }
+
+  [data-docs-toc] {
+    display: grid;
+    gap: calc(var(--spacing) * 2);
+    padding: calc(var(--spacing) * 4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  [data-docs-toc] p {
+    margin: 0;
+    font-weight: 500;
+  }
+
+  [data-docs-toc] ul {
+    display: grid;
+    gap: calc(var(--spacing) * 1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  [data-docs-toc] a {
+    display: inline-block;
+    padding-block: calc(var(--spacing) * 0.5);
+    color: var(--muted-foreground);
+    text-decoration: none;
+  }
+
+  [data-docs-toc] a:hover {
+    color: var(--foreground);
+    text-decoration: underline;
+  }
+
+  [data-docs-footer] {
+    padding: calc(var(--spacing) * 6);
+    border-block-start: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: var(--text-sm);
+    line-height: var(--text-sm--line-height);
+  }
+
+  [data-docs-footer] p {
+    max-width: 72rem;
+    margin: 0 auto;
+  }
+
+  /* Wide screens put the table of contents beside the page, where it stays in view. */
+  @media (width >= 80rem) {
+    [data-docs-page] {
+      grid-template-columns: minmax(0, 1fr) 14rem;
+      grid-template-rows: auto 1fr;
+      grid-template-areas:
+        "header toc"
+        "content toc";
+      column-gap: calc(var(--spacing) * 12);
+    }
+
+    [data-docs-page] > header {
+      grid-area: header;
+    }
+
+    [data-docs-content] {
+      grid-area: content;
+    }
+
+    [data-docs-toc] {
+      grid-area: toc;
+      align-self: start;
+      position: sticky;
+      inset-block-start: calc(var(--spacing) * 8);
+      padding: 0;
+      border: 0;
+    }
+  }
+
+  /* Narrow screens stack the header, the sidebar while it shows in the page's flow, and the page. */
+  @media (width < 48rem) {
+    [data-docs-layout] {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas:
+        "header"
+        "sidebar"
+        "body";
+    }
+
+    [data-docs-page] {
+      padding-inline: calc(var(--spacing) * 4);
+    }
+  }
+
+  /* There, the navigation sits in the menu, which a skip link can't open. */
+  @media (width < 48rem) and (scripting: enabled) {
+    [data-docs-skip-links] a[href="#docs-navigation"] {
+      display: none;
+    }
+  }
+}
