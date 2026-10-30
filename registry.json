@@ -397,6 +397,14 @@
       "files": [{ "path": "registry/ui/sheet.tsx", "type": "registry:ui", "target": "@ui/sheet.tsx" }]
     },
     {
+      "name": "sidebar",
+      "type": "registry:ui",
+      "title": "Sidebar",
+      "description": "A responsive app sidebar that collapses off the screen or to icons, with a sheet on narrow screens, tooltips for collapsed labels and a keyboard shortcut. Its links work before any script runs.",
+      "registryDependencies": ["@remixcn/button", "@remixcn/dialog", "@remixcn/focus-scope", "@remixcn/icons", "@remixcn/input", "@remixcn/separator", "@remixcn/sheet", "@remixcn/skeleton", "@remixcn/styles", "@remixcn/theme", "@remixcn/tooltip", "@remixcn/use-mobile"],
+      "files": [{ "path": "registry/ui/sidebar.tsx", "type": "registry:ui", "target": "@ui/sidebar.tsx" }]
+    },
+    {
       "name": "skeleton",
       "type": "registry:ui",
       "title": "Skeleton",
@@ -610,6 +618,14 @@
       "description": "The cascade layer order, shadcn's Neutral colors as light and dark tokens, the type, space, radius, shadow and motion tokens, and a small reset.",
       "registryDependencies": ["@remixcn/licenses"],
       "files": [{ "path": "registry/lib/theme.css", "type": "registry:file", "target": "@lib/theme.css" }]
+    },
+    {
+      "name": "use-mobile",
+      "type": "registry:lib",
+      "title": "Mobile breakpoint",
+      "description": "Tells whether the viewport is narrower than shadcn's 48rem mobile breakpoint, now or as it changes, with the media query the CSS uses too.",
+      "registryDependencies": ["@remixcn/licenses"],
+      "files": [{ "path": "registry/lib/use-mobile.ts", "type": "registry:lib", "target": "@lib/use-mobile.ts" }]
     }
   ]
 }
