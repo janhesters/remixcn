@@ -107,7 +107,7 @@ export interface DialogContext {
 }
 
 /** The context of the nearest Dialog. Throws when `part` sits outside one. */
-export function getDialogContext(handle: Handle<any>, part: string): DialogContext {
+export function getDialogContext(handle: Handle<any, any>, part: string): DialogContext {
   let context = handle.context.get(Dialog) as DialogContext | undefined
   if (!context) throw new Error(`${part} must sit inside Dialog, Alert Dialog, Sheet or Drawer`)
   return context
