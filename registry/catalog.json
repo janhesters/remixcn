@@ -1220,13 +1220,18 @@
       "docs": "https://ui.shadcn.com/docs/components/base/sidebar",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/sidebar-example.tsx",
       "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
+        "focus-scope",
+        "use-mobile",
         "button",
+        "dialog",
         "input",
         "separator",
         "sheet",
         "skeleton",
-        "tooltip",
-        "use-mobile"
+        "tooltip"
       ],
       "upstreamImports": [
         "@base-ui/react",
