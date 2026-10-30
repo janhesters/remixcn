@@ -52,7 +52,7 @@ export function isInSafeArea(point: Point, anchor: Rect, floating: Rect): boolea
 
 // Opens a popup while the pointer rests on its trigger or the trigger has
 // keyboard focus, after a delay, and closes it once neither does, after a
-// close delay. A hoverable popup stays open while the pointer is on it, or on
+// close delay. Without openOnFocus, only the pointer opens it, as a submenu. A hoverable popup stays open while the pointer is on it, or on
 // its way there across the gap. Touch pointers never open it, so the first
 // tap on a link still follows it. It only asks: the popup's owner decides and
 // passes the new `open` state back with `update()`.
@@ -72,6 +72,12 @@ export interface HoverIntentOptions {
   closeDelay?: number
   /** Whether a click on the trigger closes the popup until the pointer or focus comes back (defaults to `false`). */
   closeOnClick?: boolean
+  /**
+   * Whether keyboard focus on the trigger opens the popup (defaults to `true`).
+   * Without it, only hover opens the popup, and any focus on the trigger or in
+   * the popup keeps it open, as in a submenu that focuses the item under the pointer.
+   */
+  openOnFocus?: boolean
   /** Whether to ignore hover and focus, and cancel a pending change (defaults to `false`). */
   disabled?: boolean
 }
@@ -111,7 +117,10 @@ export function createHoverIntent(trigger: HTMLElement, initial: HoverIntentOpti
 
   let isOpen = () => assumedOpen ?? options.open
   let getPopup = () => options.popup?.() ?? null
-  let wanted = () => !options.disabled && (overTrigger || overPopup || bridging || focused)
+  let opensOnFocus = () => options.openOnFocus !== false
+  // Without openOnFocus, focus only keeps an open popup open.
+  let wanted = () =>
+    !options.disabled && (overTrigger || overPopup || bridging || (focused && (opensOnFocus() || isOpen())))
 
   function cancel() {
     view.clearTimeout(timer)
@@ -218,6 +227,12 @@ export function createHoverIntent(trigger: HTMLElement, initial: HoverIntentOpti
     element.addEventListener(
       'focusin',
       (event) => {
+        if (!opensOnFocus()) {
+          // Focus never opens it, so a hover delay that runs goes on.
+          focused = true
+          if (isOpen()) evaluate('trigger-focus', event)
+          return
+        }
         focused = isFocusVisible(event.target)
         evaluate('trigger-focus', event)
       },

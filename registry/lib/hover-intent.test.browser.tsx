@@ -241,6 +241,34 @@ describe('createHoverIntent', () => {
     assert.equal(changes.length, 1)
   })
 
+  it('never opens on focus without openOnFocus, but focus inside keeps an open popup open', async (t) => {
+    let { trigger, popup, link, outside } = setup(t)
+    let { changes, state } = track(t, trigger, { openOnFocus: false, delay: 30, popup: () => popup })
+
+    trigger.focus()
+    await wait(50)
+    assert.deepEqual(changes, [])
+
+    // Focus that arrives while the hover delay runs leaves the delay alone.
+    leave(trigger, 90, 120)
+    trigger.blur()
+    enter(trigger, 150, 120)
+    trigger.focus()
+    assert.deepEqual(changes, [])
+    await wait(50)
+    assert.deepEqual(changes, [[true, 'trigger-hover']])
+
+    // Any focus counts, not only keyboard focus, as when a menu focuses the item under the pointer.
+    link.focus()
+    leave(trigger, 90, 120)
+    await wait(20)
+    assert.equal(state.open, true)
+
+    outside.focus()
+    await wait(20)
+    assert.deepEqual(changes.at(-1), [false, 'focus-out'])
+  })
+
   it('closes on a click when asked, and stays closed until the pointer comes back', async (t) => {
     let { trigger } = setup(t)
     let { changes, state } = track(t, trigger, { closeOnClick: true, delay: 30 })
