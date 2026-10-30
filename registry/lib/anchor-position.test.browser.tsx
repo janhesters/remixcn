@@ -79,6 +79,15 @@ for (let strategy of ['auto', 'measure'] as const) {
       assert.equal(floating.style.getPropertyValue('--anchor-center-x'), '20px')
     })
 
+    it('sets the anchor size before it measures, so a popup as wide as its anchor lands right at once', (t) => {
+      let { anchor, floating } = setup(t, 'left: 100px; top: 50px')
+      floating.style.width = 'var(--anchor-width)'
+      start(t, floating, anchor, { strategy, align: 'end' })
+
+      // Before any frame, so no observer has corrected it yet.
+      assert.deepEqual(box(floating), { left: 100, top: 70, right: 140, bottom: 170 })
+    })
+
     it('flips away from the edges it would cross, side first, then alignment', async (t) => {
       let { anchor, floating } = setup(t, `left: ${innerWidth - 50}px; top: ${innerHeight - 30}px`)
       start(t, floating, anchor, { strategy, align: 'start', collisionPadding: 0 })

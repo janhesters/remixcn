@@ -493,6 +493,9 @@ export function positionFloating(
 
     let boundary = getViewport(document)
     if (options.boundary) boundary = intersect(boundary, options.boundary.getBoundingClientRect())
+    // The floating element's size may depend on its anchor's, such as a menu as wide as its button.
+    floatingStyles.style('--anchor-width', `${anchorRect.width}px`)
+    floatingStyles.style('--anchor-height', `${anchorRect.height}px`)
     let size = { width: floating.offsetWidth, height: floating.offsetHeight }
     let position = computePosition(anchorRect, size, boundary, placement)
     let padding = placement.collisionPadding
@@ -550,8 +553,6 @@ export function positionFloating(
 
     floatingStyles.attribute('data-side', side)
     floatingStyles.attribute('data-align', position.align)
-    floatingStyles.style('--anchor-width', `${anchorRect.width}px`)
-    floatingStyles.style('--anchor-height', `${anchorRect.height}px`)
     floatingStyles.style('--available-width', `${position.availableWidth}px`)
     floatingStyles.style('--available-height', `${position.availableHeight}px`)
     floatingStyles.style('--transform-origin', origin)
