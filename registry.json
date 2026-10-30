@@ -134,6 +134,19 @@
       "files": [{ "path": "registry/ui/command.tsx", "type": "registry:ui", "target": "@ui/command.tsx" }]
     },
     {
+      "name": "context-menu",
+      "type": "registry:ui",
+      "title": "Context Menu",
+      "description": "A menu at the pointer on a right click, at the focused element with Shift+F10 or the Context Menu key, and on a held touch that doesn't scroll. It shares Dropdown Menu's items, submenus and keys.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/dropdown-menu",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/context-menu.tsx", "type": "registry:ui", "target": "@ui/context-menu.tsx" }]
+    },
+    {
       "name": "dialog",
       "type": "registry:ui",
       "title": "Dialog",
@@ -156,6 +169,24 @@
       "description": "A native dialog on any edge of the screen that follows mouse, touch and pen drags: swipe it closed or between snap points, with buttons that do the same from the keyboard.",
       "registryDependencies": ["@remixcn/dialog", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/drawer.tsx", "type": "registry:ui", "target": "@ui/drawer.tsx" }]
+    },
+    {
+      "name": "dropdown-menu",
+      "type": "registry:ui",
+      "title": "Dropdown Menu",
+      "description": "A menu of actions from a button: items, links, groups, labels, separators, shortcuts, checkbox and radio items and submenus, with arrow keys, typing, Escape and focus back. Without JavaScript the browser opens it and its links work.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/composite",
+        "@remixcn/focus-scope",
+        "@remixcn/hover-intent",
+        "@remixcn/icons",
+        "@remixcn/layer",
+        "@remixcn/modal",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/dropdown-menu.tsx", "type": "registry:ui", "target": "@ui/dropdown-menu.tsx" }]
     },
     {
       "name": "empty",
@@ -244,6 +275,14 @@
       "files": [{ "path": "registry/ui/marker.tsx", "type": "registry:ui", "target": "@ui/marker.tsx" }]
     },
     {
+      "name": "menubar",
+      "type": "registry:ui",
+      "title": "Menubar",
+      "description": "A row of menu buttons, as at the top of a desktop app: the arrow keys move between them and from menu to menu, and once one is open the pointer opens the others. It shares Dropdown Menu's items.",
+      "registryDependencies": ["@remixcn/composite", "@remixcn/dropdown-menu", "@remixcn/styles", "@remixcn/theme"],
+      "files": [{ "path": "registry/ui/menubar.tsx", "type": "registry:ui", "target": "@ui/menubar.tsx" }]
+    },
+    {
       "name": "message",
       "type": "registry:ui",
       "title": "Message",
@@ -268,6 +307,23 @@
       "description": "A native select with a chevron, two sizes, option groups, and default or controlled values in the server HTML.",
       "registryDependencies": ["@remixcn/aria", "@remixcn/icons", "@remixcn/styles", "@remixcn/theme"],
       "files": [{ "path": "registry/ui/native-select.tsx", "type": "registry:ui", "target": "@ui/native-select.tsx" }]
+    },
+    {
+      "name": "navigation-menu",
+      "type": "registry:ui",
+      "title": "Navigation Menu",
+      "description": "A site's main links in a nav landmark: buttons show panels of links on hover, a click or Enter, the arrow keys move between them, and the current page is marked. Every link works without JavaScript.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/composite",
+        "@remixcn/focus-scope",
+        "@remixcn/hover-intent",
+        "@remixcn/icons",
+        "@remixcn/layer",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/navigation-menu.tsx", "type": "registry:ui", "target": "@ui/navigation-menu.tsx" }]
     },
     {
       "name": "popover",
