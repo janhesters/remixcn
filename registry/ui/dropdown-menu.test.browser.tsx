@@ -335,6 +335,57 @@ describe('DropdownMenu in the browser', () => {
     assert.ok(!native.trigger.hasAttribute('popovertarget'))
   })
 
+  it('never opens on hover inside a disabled fieldset, also one disabled while the delay runs, but does in its first legend', async (t) => {
+    function Hovered(handle: Handle<{ name: string; left: number; delay: number }>) {
+      return () => (
+        <DropdownMenu>
+          <DropdownMenuTrigger openOnHover delay={handle.props.delay} mix={at(handle.props.left, 100)}>
+            {handle.props.name}
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>{`${handle.props.name} item`}</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )
+    }
+    let { container } = mount(
+      t,
+      <div>
+        <fieldset disabled>
+          <legend>
+            <Hovered name="Legend" left={100} delay={0} />
+          </legend>
+          <Hovered name="Disabled" left={300} delay={0} />
+        </fieldset>
+        <fieldset>
+          <Hovered name="Later" left={500} delay={60} />
+        </fieldset>
+      </div>,
+    )
+    await settle()
+    let legend = parts(container, 0)
+    let disabled = parts(container, 1)
+    let later = parts(container, 2)
+    assert.ok(disabled.trigger.matches(':disabled'))
+    assert.ok(!legend.trigger.matches(':disabled'), 'the first legend stays usable, natively')
+
+    hover(disabled.trigger)
+    await settle()
+    assert.equal(isOpen(disabled.content), false)
+
+    hover(legend.trigger)
+    await settle()
+    assert.equal(isOpen(legend.content), true)
+    unhover(legend.trigger)
+    await settle()
+
+    hover(later.trigger)
+    await wait(10)
+    later.trigger.closest('fieldset')!.disabled = true
+    await settle(100)
+    assert.equal(isOpen(later.content), false, 'the delay finds it disabled')
+  })
+
   it('stops at the ends without loopFocus', async (t) => {
     let { container } = mount(t, <Edit loopFocus={false} />)
     await settle()

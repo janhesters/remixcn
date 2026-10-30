@@ -405,6 +405,9 @@ const chevronStyles = css(
  * turns while it's open. Until the browser runs it, it opens the panel natively.
  */
 export function NavigationMenuTrigger(handle: Handle<Props<'button'>>) {
+  // Whether the button was disabled when the pointer arrived, such as by a disabled fieldset around it.
+  let disabledOnArrival = false
+
   return () => {
     let root = useRoot(handle, 'NavigationMenuTrigger')
     let item = useItem(handle, 'NavigationMenuTrigger')
@@ -463,6 +466,15 @@ export function NavigationMenuTrigger(handle: Handle<Props<'button'>>) {
             })
           }),
           on('focusout', (event) => closeOnFocusOut(root, item, event)),
+          // A disabled fieldset disables the button without a prop, so hover checks the button itself,
+          // when the pointer arrives and again when the delay ends.
+          on(
+            'pointerenter',
+            (event) => {
+              disabledOnArrival = (event.currentTarget as HTMLButtonElement).matches(':disabled')
+            },
+            true,
+          ),
           // A panel a press opened stays open wherever the pointer goes.
           disabled || (open && root.openedBy === 'press')
             ? undefined
@@ -474,6 +486,7 @@ export function NavigationMenuTrigger(handle: Handle<Props<'button'>>) {
                 openOnFocus: false,
                 popup: () => item.content,
                 onOpenChange: (next, reason, event) => {
+                  if (next && (disabledOnArrival || item.trigger?.matches(':disabled'))) return
                   if (next) root.setValue(item.value, 'trigger-hover', event)
                   else if (root.value === item.value) {
                     root.setValue(null, reason === 'focus-out' ? 'focus-out' : 'trigger-hover', event)

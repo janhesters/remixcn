@@ -462,6 +462,8 @@ function isTriggerDisabled(trigger: Element) {
 const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptions]>((handle, type) => {
   // Only a button can open a popover natively.
   let native = type === 'button'
+  // Whether the trigger was disabled when the pointer arrived, such as by a disabled fieldset around it.
+  let disabledOnArrival = false
 
   return (options, hostProps) => {
     let api = useMenu(handle, 'dropdownMenuTrigger()')
@@ -512,6 +514,15 @@ const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptio
             if (event.pointerType === 'touch' || api.open || blocked(event) || !api.group?.hasOpenMenu()) return
             api.setOpen(true, 'trigger-hover', { cause: event, focus: 'menu' })
           }),
+          // A disabled fieldset disables the trigger without a prop, so hover checks the element itself,
+          // when the pointer arrives and again when the delay ends.
+          on(
+            'pointerenter',
+            (event) => {
+              disabledOnArrival = blocked(event)
+            },
+            true,
+          ),
           // A menu a press opened stays open wherever the pointer goes.
           openOnHover && !disabled && !(api.open && api.openedBy === 'press')
             ? hoverIntent({
@@ -520,8 +531,10 @@ const triggerMixin = createMixin<HTMLElement, [options: DropdownMenuTriggerOptio
                 closeDelay,
                 openOnFocus: false,
                 popup: () => api.content,
-                onOpenChange: (open, _reason, event) =>
-                  api.setOpen(open, open ? 'trigger-hover' : 'focus-out', { cause: event, focus: 'none' }),
+                onOpenChange: (open, _reason, event) => {
+                  if (open && (disabledOnArrival || (api.trigger && isTriggerDisabled(api.trigger)))) return
+                  api.setOpen(open, open ? 'trigger-hover' : 'focus-out', { cause: event, focus: 'none' })
+                },
               })
             : undefined,
         ]}

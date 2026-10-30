@@ -299,6 +299,42 @@ describe('NavigationMenu in the browser', () => {
     ])
   })
 
+  it('never opens a panel on hover from a button a disabled fieldset disables, also while the delay runs', async (t) => {
+    let { container } = mount(
+      t,
+      <div>
+        <fieldset disabled>
+          <Site />
+        </fieldset>
+        <fieldset>
+          <NavigationMenu aria-label="Later" delay={60}>
+            <NavigationMenuList>
+              <NavigationMenuItem>
+                <NavigationMenuTrigger>Billing</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <NavigationMenuLink href="#billing">Billing</NavigationMenuLink>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            </NavigationMenuList>
+          </NavigationMenu>
+        </fieldset>
+      </div>,
+    )
+    await settle()
+    let { trigger } = parts(container)
+
+    pointer('pointerenter', trigger('Invoices'))
+    await settle(80)
+    assert.deepEqual(openPanels(container), [])
+
+    let billing = trigger('Billing')
+    pointer('pointerenter', billing)
+    await wait(10)
+    billing.closest('fieldset')!.disabled = true
+    await settle(100)
+    assert.deepEqual(openPanels(container), [], 'the delay finds it disabled')
+  })
+
   it('closes on a link only when asked, and shows the indicator under the open button', async (t) => {
     // The page keeps the links from navigating, after the links ran.
     let { container } = mount(
