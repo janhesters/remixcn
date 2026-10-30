@@ -38,6 +38,7 @@ export type DialogChangeReason =
   | 'close-request'
   | 'focus-out'
   | 'parent-dismissed'
+  | 'swipe'
   | 'none'
 
 export interface DialogChangeDetails {
@@ -99,8 +100,8 @@ export interface DialogContext {
   readonly trigger: HTMLElement | null
   /** Whether the last opening came from a touch, so focus shouldn't open a virtual keyboard. */
   readonly openedByTouch: boolean
-  /** Asks the root to open or close the dialog. */
-  setOpen(open: boolean, request: DialogChangeRequest): void
+  /** Asks the root to open or close the dialog. Returns `false` when `onOpenChange` canceled the change. */
+  setOpen(open: boolean, request: DialogChangeRequest): boolean
   /** Tells the root that the dialog finished opening or closing. */
   complete(open: boolean): void
 }
@@ -108,7 +109,7 @@ export interface DialogContext {
 /** The context of the nearest Dialog. Throws when `part` sits outside one. */
 export function getDialogContext(handle: Handle<any>, part: string): DialogContext {
   let context = handle.context.get(Dialog) as DialogContext | undefined
-  if (!context) throw new Error(`${part} must sit inside Dialog, Alert Dialog or Sheet`)
+  if (!context) throw new Error(`${part} must sit inside Dialog, Alert Dialog, Sheet or Drawer`)
   return context
 }
 
@@ -129,7 +130,7 @@ export function Dialog(handle: Handle<DialogProps, DialogContext>) {
   }
 
   function setOpen(open: boolean, { reason, event, pointerType, ...request }: DialogChangeRequest) {
-    if (open === isOpen()) return
+    if (open === isOpen()) return true
 
     let canceled = false
     let details: DialogChangeDetails = {
@@ -142,7 +143,7 @@ export function Dialog(handle: Handle<DialogProps, DialogContext>) {
       },
     }
     handle.props.onOpenChange?.(open, details)
-    if (canceled) return
+    if (canceled) return false
 
     if (open) {
       trigger = request.trigger ?? null
@@ -150,6 +151,7 @@ export function Dialog(handle: Handle<DialogProps, DialogContext>) {
     }
     if (handle.props.open === undefined) uncontrolledOpen = open
     void handle.update()
+    return true
   }
 
   return () => {
