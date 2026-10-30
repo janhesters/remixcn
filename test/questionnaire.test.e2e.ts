@@ -10,7 +10,7 @@ import { tags } from './html.ts'
 import { paintColors, toRgba } from './paint.ts'
 
 // Pages open with reduced motion, so transitions take 0s and every read sees the final style.
-async function open(t: TestContext, { javaScriptEnabled = true } = {}) {
+async function open(t: TestContext, { javaScriptEnabled = true, clock = false } = {}) {
   let examples = await createQuestionnaireExamples()
   t.after(() => void examples.close())
 
@@ -26,6 +26,7 @@ async function open(t: TestContext, { javaScriptEnabled = true } = {}) {
   page.on('pageerror', (error) => errors.push(error.message))
   page.on('console', (message) => ['error', 'warning'].includes(message.type()) && errors.push(message.text()))
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
+  if (clock) await page.clock.install()
   await page.goto('/')
   if (javaScriptEnabled) await page.locator('html[data-ready]').waitFor({ state: 'attached' })
   return { page, server, errors }
@@ -333,7 +334,12 @@ describe('Questionnaire examples', () => {
   })
 
   it('send once while a submit runs, keep every answer when it fails, and send again', async (t) => {
-    let { page } = await open(t)
+    // The example's send takes 800ms of the page's clock, held here so the forced click and the
+    // shortcut run while it sends. A forced click measures Send before it presses: a send that
+    // ended in between would show its error above Send and move it from under the press, and one
+    // that ended before the shortcut would let the shortcut send again.
+    let { page } = await open(t, { clock: true })
+    await page.clock.pauseAt(Date.now() + 1000)
     let submitting = example(page, 'submitting')
 
     await submitting.getByText('Tonight at 22:00').click()
@@ -346,6 +352,8 @@ describe('Questionnaire examples', () => {
     assert.ok((await send.textContent())?.includes('Sending…'))
     await send.click({ force: true })
     await page.keyboard.press('ControlOrMeta+Enter')
+    assert.equal(await send.getAttribute('aria-disabled'), 'true', 'still sending')
+    await page.clock.runFor(800)
 
     let error = submitting.locator('[data-slot="questionnaire-error"][data-scope="questionnaire"]')
     await error.getByText('The planning service didn’t answer.', { exact: false }).waitFor()
@@ -354,6 +362,7 @@ describe('Questionnaire examples', () => {
     assert.equal(await submitting.getByLabel('Approver').inputValue(), 'Billing on-call')
 
     await send.click()
+    await page.clock.runFor(800)
     await result(page, 'submitting').getByText('Sent after 2 tries.', { exact: false }).waitFor()
     assert.ok(!(await error.isVisible()))
   })
