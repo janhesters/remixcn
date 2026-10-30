@@ -69,7 +69,9 @@
     "conversation-examples": "node --import remix/node-tsx test/fixtures/conversation/server.tsx",
     "capture:conversation-examples": "node --import remix/node-tsx test/fixtures/conversation/capture.ts",
     "field-examples": "node --import remix/node-tsx test/fixtures/field/server.tsx",
-    "capture:field-examples": "node --import remix/node-tsx test/fixtures/field/capture.ts"
+    "capture:field-examples": "node --import remix/node-tsx test/fixtures/field/capture.ts",
+    "drawer-examples": "node --import remix/node-tsx test/fixtures/drawer/server.tsx",
+    "capture:drawer-examples": "node --import remix/node-tsx test/fixtures/drawer/capture.ts"
   },
   "engines": {
     "node": ">=24.3.0"

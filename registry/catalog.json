@@ -627,7 +627,8 @@
         "cn",
         "react"
       ],
-      "target": "registry/ui/drawer.tsx"
+      "target": "registry/ui/drawer.tsx",
+      "exampleTarget": "registry/examples/drawer-example.tsx"
     },
     {
       "name": "dropdown-menu",
