@@ -9,6 +9,9 @@ import { createQuestionnaireExamples } from './fixtures/questionnaire/server.tsx
 import { tags } from './html.ts'
 import { paintColors, toRgba } from './paint.ts'
 
+// How long a page may take to hydrate once its document arrived, also while a full lane runs every e2e file at once.
+const hydrationTimeout = 30_000
+
 // Pages open with reduced motion, so transitions take 0s and every read sees the final style.
 async function open(t: TestContext, { javaScriptEnabled = true, clock = false } = {}) {
   let examples = await createQuestionnaireExamples()
@@ -27,8 +30,13 @@ async function open(t: TestContext, { javaScriptEnabled = true, clock = false } 
   page.on('console', (message) => ['error', 'warning'].includes(message.type()) && errors.push(message.text()))
   await page.emulateMedia({ colorScheme: 'light', reducedMotion: 'reduce' })
   if (clock) await page.clock.install()
-  await page.goto('/')
-  if (javaScriptEnabled) await page.locator('html[data-ready]').waitFor({ state: 'attached' })
+  // Firefox fires load only once the entry's top-level `await app.ready()` has hydrated every client entry, so a
+  // navigation that waits for load times hydration against the 10s navigation limit there, and Chromium against the
+  // 5s action limit. The navigation waits for the document; hydration, every questionnaire on this long page, gets its
+  // own limit. A page without JavaScript has nothing to hydrate, and load also waits for its stylesheet.
+  await page.goto('/', { waitUntil: javaScriptEnabled ? 'domcontentloaded' : 'load' })
+  if (javaScriptEnabled)
+    await page.locator('html[data-ready]').waitFor({ state: 'attached', timeout: hydrationTimeout })
   return { page, server, errors }
 }
 
