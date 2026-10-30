@@ -446,6 +446,29 @@ describe('Questionnaire in the browser', () => {
     assert.deepEqual(visibleError(container), [], 'a new attempt clears the old error')
   })
 
+  it('leaves focus where the person moved it while a refused submit ran', async (t) => {
+    let run = deferred()
+    let { container, act, cleanup } = await mount(
+      <Survey
+        defaultItem="timing"
+        defaultAnswers={{ direction: 'questions', signals: ['risks'], timing: 'later' }}
+        onSubmit={() => run.promise}
+      />,
+    )
+    t.after(cleanup)
+    let submit = action(container, 'submit')
+
+    submit.focus()
+    await click(act, submit)
+    assert.equal(submit.getAttribute('aria-disabled'), 'true')
+    choice(container, 'later').focus()
+
+    await act(() => run.reject(new Error('The server is busy. Your answers are still here.')))
+    await act(() => settle())
+    assert.deepEqual(visibleError(container), ['The server is busy. Your answers are still here.'])
+    assert.equal(document.activeElement, choice(container, 'later'), 'focus stays on the answer, not on Submit')
+  })
+
   it('sends the person back to the question a failed submit names', async (t) => {
     let { container, act, cleanup } = await mount(
       <Survey
