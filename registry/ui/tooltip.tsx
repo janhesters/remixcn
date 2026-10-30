@@ -261,16 +261,23 @@ export interface TooltipTriggerOptions {
   closeDelay?: number
   /** Whether a click on the trigger closes the tooltip until the pointer or focus comes back (defaults to `true`). */
   closeOnClick?: boolean
+  /**
+   * Whether the trigger's aria-describedby points at the content (defaults
+   * to `true`). Turn it off when the tooltip only shows the trigger's own
+   * name, such as the label of a sidebar collapsed to icons, so screen
+   * readers don't hear it twice.
+   */
+  describe?: boolean
 }
 
 const triggerMixin = createMixin<HTMLElement, [options: TooltipTriggerOptions]>((handle) => (options, props) => {
   let api = useTooltip(handle, 'tooltipTrigger()')
-  let { delay, closeDelay, closeOnClick = true } = options
-  let describedBy = [props['aria-describedby'], api.contentId].filter(Boolean).join(' ')
+  let { delay, closeDelay, closeOnClick = true, describe = true } = options
+  let describedBy = [props['aria-describedby'], describe ? api.contentId : undefined].filter(Boolean).join(' ')
 
   return (
     <handle.element
-      aria-describedby={describedBy}
+      aria-describedby={describedBy || undefined}
       data-popup-open={api.open ? '' : undefined}
       data-trigger-disabled={api.disabled ? '' : undefined}
       mix={[
@@ -307,14 +314,14 @@ export interface TooltipTriggerProps extends Props<'button'>, TooltipTriggerOpti
 /** A native button that opens the tooltip on hover and keyboard focus. Give it `buttonVariants()` to look like a Button. */
 export function TooltipTrigger(handle: Handle<TooltipTriggerProps>) {
   return () => {
-    let { delay, closeDelay, closeOnClick, type = 'button', mix, ...props } = handle.props
+    let { delay, closeDelay, closeOnClick, describe, type = 'button', mix, ...props } = handle.props
 
     return (
       <button
         data-slot="tooltip-trigger"
         {...props}
         type={type}
-        mix={[mix, tooltipTrigger({ delay, closeDelay, closeOnClick })]}
+        mix={[mix, tooltipTrigger({ delay, closeDelay, closeOnClick, describe })]}
       />
     )
   }

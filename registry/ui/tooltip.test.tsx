@@ -101,6 +101,29 @@ describe('Tooltip on the server', () => {
     assert.equal(link.get('aria-describedby'), attributes(html, 'tooltip-content').get('id'))
   })
 
+  it("leaves the trigger's descriptions alone when the tooltip only repeats its name", async () => {
+    let html = await renderToString(
+      <div>
+        <p id="unread">3 unread</p>
+        <Tooltip>
+          <a href="/inbox" aria-describedby="unread" mix={tooltipTrigger({ describe: false })}>
+            Inbox
+          </a>
+          <TooltipContent>Inbox</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger describe={false}>Archive</TooltipTrigger>
+          <TooltipContent>Archive</TooltipContent>
+        </Tooltip>
+      </div>,
+    )
+    let [link, button] = tags(html, 'data-slot="tooltip-trigger"')
+
+    assert.equal(link?.get('aria-describedby'), 'unread')
+    assert.ok(!button?.has('aria-describedby'))
+    assert.ok(!button?.has('describe'))
+  })
+
   it('marks the trigger of a disabled tooltip', async () => {
     let html = await renderToString(
       <Tooltip disabled>
