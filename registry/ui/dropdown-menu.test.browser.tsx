@@ -173,6 +173,23 @@ describe('DropdownMenu in the browser', () => {
     assert.equal(document.activeElement, trigger)
   })
 
+  it('keeps focus on an item the keys reached before the frame in which a click moves focus to the menu', async (t) => {
+    let { container } = mount(t, <Edit />)
+    await settle()
+    let { trigger, content } = parts(container)
+
+    trigger.focus()
+    press(trigger)
+    // The menu shows once the update commits, and takes focus only on the next frame.
+    await Promise.resolve()
+    await Promise.resolve()
+    assert.equal(isOpen(content), true)
+    key('ArrowDown', {}, trigger)
+    assert.equal(focused(), 'Undo')
+    await settle()
+    assert.equal(focused(), 'Undo', 'the frame leaves focus where the keys put it')
+  })
+
   it('opens from the keyboard at the first or the last item', async (t) => {
     let { container } = mount(t, <Edit />)
     await settle()

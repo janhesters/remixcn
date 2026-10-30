@@ -768,6 +768,20 @@ function onContentKeyDown(api: MenuApi, event: KeyboardEvent) {
   if (top.group.move(top, event.key === forward ? 1 : -1, event)) event.preventDefault()
 }
 
+/**
+ * Where focus goes on the frame after the menu opens. An item the keys
+ * reached before that frame, such as with Arrow Down right after a click on
+ * the trigger, keeps focus.
+ */
+function initialFocusTarget(api: MenuApi): HTMLElement | null {
+  let content = api.content
+  let active = content?.ownerDocument.activeElement
+  if (content && active instanceof HTMLElement && active !== content && content.contains(active)) return active
+  if (api.focus === 'first') return focusableItems(content)[0] ?? content
+  if (api.focus === 'last') return focusableItems(content).at(-1) ?? content
+  return content
+}
+
 /** Moves focus to the next tabbable element after the focused one, or the one before it. */
 function moveFocusOn(document: Document, backward: boolean) {
   let from = document.activeElement
@@ -910,15 +924,7 @@ export function DropdownMenuContent(handle: Handle<DropdownMenuContentProps>) {
           }),
           focusScope({
             open,
-            initialFocus:
-              api.focus === 'none'
-                ? false
-                : () =>
-                    api.focus === 'first'
-                      ? (focusableItems(api.content)[0] ?? api.content)
-                      : api.focus === 'last'
-                        ? (focusableItems(api.content).at(-1) ?? api.content)
-                        : api.content,
+            initialFocus: api.focus === 'none' ? false : () => initialFocusTarget(api),
             returnFocus,
           }),
           modalMixin({
