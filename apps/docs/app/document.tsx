@@ -107,6 +107,12 @@ function Credits() {
   )
 }
 
+/** The header's links on every page: the docs and the component reference (C-979), then GitHub. */
+const headerLinks = [
+  { title: 'Docs', href: href('docs/') },
+  { title: 'Components', href: href('docs/components/') },
+]
+
 interface LayoutProps {
   /** The URL the navigation marks as the current page, if any. */
   current?: string
@@ -131,6 +137,7 @@ function Layout(handle: Handle<LayoutProps>) {
           <DocsChrome
             current={current}
             navigation={navigation}
+            links={headerLinks}
             search={searchEntries}
             home={href()}
             repository={repository}

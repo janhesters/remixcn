@@ -180,9 +180,13 @@
     }
   }
 
-  /* There, the navigation sits in the menu, which a skip link can't open. */
+  /*
+   * There, the navigation sits in the menu, which a skip link can't open, and
+   * the header keeps only GitHub: the menu lists the docs and the components.
+   */
   @media (width < 48rem) and (scripting: enabled) {
-    [data-docs-skip-links] a[href="#docs-navigation"] {
+    [data-docs-skip-links] a[href="#docs-navigation"],
+    [data-docs-main-nav] [data-docs-in-menu] {
       display: none;
     }
   }

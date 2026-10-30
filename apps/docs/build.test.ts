@@ -6,7 +6,7 @@ import * as assert from 'remix/assert'
 import { afterAll, beforeAll, describe, it } from 'remix/test'
 
 import { pages } from './app/pages.ts'
-import { basePath, canonicalUrl, homepage, href, seoPhrase, siteTitle } from './app/site.ts'
+import { basePath, canonicalUrl, homepage, href, repository, seoPhrase, siteTitle } from './app/site.ts'
 import { buildSite } from './build.ts'
 import { findAssetUrls, staticFilePath } from './static.ts'
 
@@ -105,6 +105,22 @@ describe('the site build', () => {
       files.filter((file) => file !== '.nojekyll' && file.split('/').some((segment) => segment.startsWith('.'))),
       [],
     )
+  })
+
+  it('gives every page a header that links to the docs, the components and GitHub', () => {
+    for (let page of pages) {
+      let html = read(staticFilePath(href(page.path), basePath))
+      let nav = /<nav aria-label="Main"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1]
+      assert.ok(nav, `${href(page.path)} has no main navigation`)
+      assert.deepEqual(
+        [...nav.matchAll(/<a\s[^>]*?\bhref="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(([, link, text]) => [text, link]),
+        [
+          ['Docs', href('docs/')],
+          ['Components', href('docs/components/')],
+          ['GitHub', repository],
+        ],
+      )
+    }
   })
 
   it("shows the examples' source as text", () => {
