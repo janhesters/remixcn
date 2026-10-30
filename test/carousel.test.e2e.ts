@@ -8,9 +8,10 @@ import { createCarouselExamples } from './fixtures/carousel/server.tsx'
 
 // Pages open with reduced motion, so the carousel jumps instead of scrolling
 // smoothly and every read sees the final position. Tests about motion opt back in.
+// A paused clock runs the page's timers only in runFor, however long the steps before it take.
 async function open(
   t: TestContext,
-  { reducedMotion = 'reduce' as 'reduce' | 'no-preference', clock = false, hydrate = true } = {},
+  { reducedMotion = 'reduce' as 'reduce' | 'no-preference', clock = false as boolean | 'paused', hydrate = true } = {},
 ) {
   let examples = await createCarouselExamples()
   t.after(() => void examples.close())
@@ -24,6 +25,7 @@ async function open(
   page.on('pageerror', (error) => errors.push(String(error)))
   await page.emulateMedia({ colorScheme: 'light', reducedMotion })
   if (clock) await page.clock.install()
+  if (clock === 'paused') await page.clock.pauseAt(Date.now() + 1000)
   await page.goto('/')
   if (hydrate) await page.locator('html[data-ready]').waitFor({ state: 'attached' })
   return { page, server, errors }
@@ -67,6 +69,45 @@ async function waitForSelected(page: Page, title: string, index: number) {
     async () => (await selected(page, title)) === index,
     async () => `${title}: slide ${index} never got selected, it is ${await selected(page, title)}`,
   )
+}
+
+interface Recording {
+  selections: [index: number, reason: string][]
+  announcements: string[]
+  scrollEnds: number[]
+}
+
+/**
+ * Records what a carousel does from now on: the snaps it selects and why,
+ * what its live region says, and where its scrolls end. Each scroll end is
+ * recorded after the carousel handled it.
+ */
+function record(carousel: ReturnType<typeof carouselIn>) {
+  return carousel.evaluate((root: HTMLElement & { recording?: Recording }) => {
+    let viewport = root.querySelector<HTMLElement>('[data-slot="carousel-content"]')!
+    let status = root.querySelector('[data-slot="carousel-status"]')!
+    let recording: Recording = { selections: [], announcements: [], scrollEnds: [] }
+    root.recording = recording
+    root.addEventListener('remixcn:carousel-select', (event) => {
+      if (event.target === root) recording.selections.push([event.index, event.reason])
+    })
+    new MutationObserver(() => {
+      if (status.textContent) recording.announcements.push(status.textContent)
+    }).observe(status, { childList: true, characterData: true, subtree: true })
+    viewport.addEventListener('scrollend', () => recording.scrollEnds.push(viewport.scrollLeft))
+  })
+}
+
+function recorded(carousel: ReturnType<typeof carouselIn>) {
+  return carousel.evaluate((root: HTMLElement & { recording?: Recording }) => root.recording!)
+}
+
+/** The distance from one snap to the next in an example: a slide and the 1rem gap after it. */
+function slideStep(page: Page, title: string) {
+  return example(page, title)
+    .locator('[data-slot="carousel-item"]')
+    .first()
+    .evaluate((element) => element.getBoundingClientRect().width + 16)
 }
 
 /** The logical scroll position of an example's first scroll container. */
@@ -439,6 +480,24 @@ describe('Carousel autoplay', () => {
     assert.equal(await autoplay.getByRole('button', { name: 'Start slide rotation' }).count(), 1)
     await page.clock.runFor(5000)
     assert.equal(await selected(page, 'Autoplay'), 1)
+  })
+
+  it('stays silent when the page runs its timers before the smooth scroll has moved', async (t) => {
+    let { page } = await open(t, { reducedMotion: 'no-preference', clock: 'paused' })
+    let autoplay = carouselIn(page, 'Autoplay')
+    let step = await slideStep(page, 'Autoplay')
+    await record(autoplay)
+
+    // One runFor fires the rotation and, in the same moment, every timer of the
+    // second after it. A test whose clock got a second ahead on a busy machine
+    // ran them in this order, while the engine's smooth scroll hadn't moved yet.
+    await page.clock.runFor(3100)
+    await eventually(async () => (await recorded(autoplay)).scrollEnds.length > 0, 'the scroll never ended')
+
+    let { selections, announcements, scrollEnds } = await recorded(autoplay)
+    assert.ok(Math.abs((scrollEnds[0] ?? 0) - step) < 1, `the scroll ended at ${scrollEnds[0]}, not ${step}`)
+    assert.deepEqual(selections, [[1, 'autoplay']], `selections ${JSON.stringify(selections)}`)
+    assert.deepEqual(announcements, [], `announcements ${JSON.stringify(announcements)}`)
   })
 
   it('never runs with reduced motion', async (t) => {
