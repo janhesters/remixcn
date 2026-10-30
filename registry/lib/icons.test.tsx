@@ -4,12 +4,14 @@ import { describe, it } from 'remix/test'
 
 import {
   ArrowDownIcon,
+  CalendarIcon,
   CheckIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CircleAlertIcon,
   CircleCheckIcon,
+  ClockIcon,
   CopyIcon,
   EllipsisIcon,
   Icon,
@@ -62,6 +64,8 @@ describe('icons', () => {
       <TriangleAlertIcon />,
       <OctagonXIcon />,
       <LoaderIcon />,
+      <CalendarIcon />,
+      <ClockIcon />,
     ]) {
       let svg = attributes(await renderToString(icon))
 
