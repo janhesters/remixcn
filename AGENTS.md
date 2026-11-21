@@ -2,6 +2,14 @@
 
 RemixCN ports the shadcn/ui component catalog to Remix 3. Users copy each component's source into their app and own it. The components need only `remix`, which the app already has. This guide holds the contracts every change keeps. Read it before you change the workspace.
 
+## Agent notes
+
+[docs/agent-notes.md](docs/agent-notes.md) holds lessons from earlier work, such as test, browser and tooling traps. Read the matching note when your task touches the area.
+
+When you learn something lasting about this repo, or find a note that's wrong,
+list it under **Lessons** in your PR description. Your PM collects these into
+the notes once a week for Jan's review; don't edit the notes in a feature PR.
+
 ## Commands
 
 ```sh
