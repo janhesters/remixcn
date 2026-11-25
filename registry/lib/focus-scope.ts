@@ -206,10 +206,12 @@ export function createFocusScope(container: HTMLElement, options: FocusScopeOpti
     if (current.returnFocus === false) return
 
     // Wait for the popup to close, so a closing modal dialog no longer blocks the target.
+    // Returning focus never scrolls, as in Base UI: a tap that closes the popup
+    // lifts before its click, which would land elsewhere on a scrolled page.
     queueMicrotask(() => {
       let active = getFocused(document)
       if (active && !container.contains(active)) return
-      getReturnTarget()?.focus()
+      getReturnTarget()?.focus({ preventScroll: true })
     })
   }
 

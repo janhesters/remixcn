@@ -153,6 +153,65 @@ describe('openLayer', () => {
     assert.deepEqual(dismissed, ['outside-press'])
   })
 
+  it("dismisses once on a tap that lifts outside, also without the click WebKit leaves out where the page isn't clickable", (t) => {
+    let outside = box(t, 'outside', 300, 300)
+    let { dismissed } = track(t, box(t, 'a', 0, 0))
+
+    pointer('pointerdown', outside, center(outside), 'touch')
+    pointer('pointerup', outside, center(outside), 'touch')
+    assert.deepEqual(dismissed, ['outside-press'])
+
+    // Where the page is clickable, the click follows and changes nothing more.
+    outside.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }))
+    assert.deepEqual(dismissed, ['outside-press'])
+  })
+
+  it("keeps a tap that dismisses a modal layer from reaching the control below, but lets a non-modal one's through", (t) => {
+    for (let modal of [true, false]) {
+      let control = document.createElement('button')
+      control.style.cssText = 'position: fixed; left: 300px; top: 300px; width: 60px; height: 40px'
+      document.body.append(control)
+      let reached: string[] = []
+      for (let type of ['mousedown', 'mouseup', 'click']) control.addEventListener(type, () => reached.push(type))
+      let layer = openLayer(box(t, 'a', 0, 0), { modal, onDismiss: () => layer.release() })
+
+      pointer('pointerdown', control, center(control), 'touch')
+      pointer('pointerup', control, center(control), 'touch')
+      assert.deepEqual(getOpenLayers(document), [])
+      let compatibility = ['mousedown', 'mouseup', 'click'].map((type) => {
+        let event = new MouseEvent(type, { bubbles: true, cancelable: true, detail: 1, ...center(control) })
+        control.dispatchEvent(event)
+        return event.defaultPrevented
+      })
+      assert.deepEqual(reached, modal ? [] : ['mousedown', 'mouseup', 'click'], `modal: ${modal}`)
+      assert.deepEqual(compatibility, [modal, modal, modal], `modal: ${modal}`)
+
+      // The next tap is the user's own again.
+      reached = []
+      press(control, control, 'touch')
+      assert.deepEqual(reached, ['click'], `modal: ${modal}`)
+      control.remove()
+    }
+  })
+
+  it('lets a key press through after a tap that dismissed a modal layer without a click, as in WebKit', (t) => {
+    let control = document.createElement('button')
+    control.style.cssText = 'position: fixed; left: 300px; top: 300px; width: 60px; height: 40px'
+    document.body.append(control)
+    t.after(() => control.remove())
+    let clicks = 0
+    control.addEventListener('click', () => clicks++)
+    let layer = openLayer(box(t, 'a', 0, 0), { modal: true, onDismiss: () => layer.release() })
+
+    pointer('pointerdown', document.body, { clientX: 5, clientY: 300 }, 'touch')
+    pointer('pointerup', document.body, { clientX: 5, clientY: 300 }, 'touch')
+    assert.deepEqual(getOpenLayers(document), [])
+
+    // Enter on a focused button clicks it without a pointer.
+    control.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, detail: 0 }))
+    assert.equal(clicks, 1)
+  })
+
   it('ignores the click of a press that began before the layer opened', (t) => {
     let outside = box(t, 'outside', 300, 300)
     pointer('pointerdown', outside, center(outside))
