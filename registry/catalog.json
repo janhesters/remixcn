@@ -663,14 +663,25 @@
       "docs": "https://ui.shadcn.com/docs/components/base/dropdown-menu",
       "example": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/registry/bases/base/examples/dropdown-menu-example.tsx",
       "behavior": "https://base-ui.com/react/components/menu.md",
-      "dependsOn": [],
+      "dependsOn": [
+        "theme",
+        "styles",
+        "icons",
+        "composite",
+        "layer",
+        "focus-scope",
+        "modal",
+        "anchor-position",
+        "button"
+      ],
       "upstreamImports": [
         "@base-ui/react",
         "cn",
         "icon-placeholder",
         "react"
       ],
-      "target": "registry/ui/dropdown-menu.tsx"
+      "target": "registry/ui/dropdown-menu.tsx",
+      "exampleTarget": "registry/examples/dropdown-menu-example.tsx"
     },
     {
       "name": "empty",
