@@ -438,12 +438,19 @@ describe('Calendar and Date Picker examples', () => {
     let scrolls = await calendar.evaluate((element) => element.scrollWidth > element.clientWidth)
     assert.equal(scrolls, true)
     await dayIn(page, '[data-example="calendar-basic"]', '2026-10-31').focus()
-    let visible = await calendar.evaluate((element) => {
-      let day = element.querySelector('[data-day="2026-10-31"]:not([data-outside]) button')!.getBoundingClientRect()
-      let box = element.getBoundingClientRect()
-      return day.left >= box.left - 1 && day.right <= box.right + 1
-    })
-    assert.equal(visible, true, 'focus scrolls the day into view')
+    // WebKit may scroll the focused day into view a frame or two after focus, so wait for it.
+    await page
+      .waitForFunction(
+        () => {
+          let element = document.querySelector('[data-example="calendar-basic"] [data-slot="calendar"]')!
+          let day = element.querySelector('[data-day="2026-10-31"]:not([data-outside]) button')!.getBoundingClientRect()
+          let box = element.getBoundingClientRect()
+          return day.left >= box.left - 1 && day.right <= box.right + 1
+        },
+        undefined,
+        { timeout: 5000 },
+      )
+      .catch((error: Error) => assert.fail(`focus scrolls the day into view: ${error.message}`))
   })
 
   it('keep 4.5:1 for picked, today, range, outside and weekday text in both themes', async (t) => {
