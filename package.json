@@ -92,6 +92,8 @@
     "capture:trace-examples": "node --import remix/node-tsx test/fixtures/trace/capture.ts",
     "select-examples": "node --import remix/node-tsx test/fixtures/select/server.tsx",
     "capture:select-examples": "node --import remix/node-tsx test/fixtures/select/capture.ts",
+    "dropdown-menu-examples": "node --import remix/node-tsx test/fixtures/dropdown-menu/server.tsx",
+    "capture:dropdown-menu-examples": "node --import remix/node-tsx test/fixtures/dropdown-menu/capture.ts",
     "calendar-examples": "node --import remix/node-tsx test/fixtures/calendar/server.tsx",
     "capture:calendar-examples": "node --import remix/node-tsx test/fixtures/calendar/capture.ts",
     "sidebar-examples": "node --import remix/node-tsx test/fixtures/sidebar/server.tsx",
