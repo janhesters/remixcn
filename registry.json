@@ -188,6 +188,24 @@
       "files": [{ "path": "registry/ui/drawer.tsx", "type": "registry:ui", "target": "@ui/drawer.tsx" }]
     },
     {
+      "name": "dropdown-menu",
+      "type": "registry:ui",
+      "title": "Dropdown Menu",
+      "description": "A button that opens a menu of choices, of which one is chosen, such as a Light, Dark and System theme picker, with keys, typing, touch and a check on the current choice. Its native popover opens before any script runs.",
+      "registryDependencies": [
+        "@remixcn/anchor-position",
+        "@remixcn/button",
+        "@remixcn/composite",
+        "@remixcn/focus-scope",
+        "@remixcn/icons",
+        "@remixcn/layer",
+        "@remixcn/modal",
+        "@remixcn/styles",
+        "@remixcn/theme"
+      ],
+      "files": [{ "path": "registry/ui/dropdown-menu.tsx", "type": "registry:ui", "target": "@ui/dropdown-menu.tsx" }]
+    },
+    {
       "name": "empty",
       "type": "registry:ui",
       "title": "Empty",
