@@ -377,6 +377,177 @@ describe('positionFloating strategy', () => {
     assert.equal(floating.style.getPropertyValue('left'), '100px')
   })
 
+  it('keeps its own styles when the owner rewrites either style attribute, and restores the owner’s', async (t) => {
+    for (let measured of [false, true]) {
+      if (measured) t.mock.method(CSS, 'supports', () => false)
+      let { anchor, floating } = setup(t, 'left: 100px; top: 50px')
+      let cleanup = start(t, floating, anchor, { align: 'start' })
+      await nextFrame()
+      let placed = box(floating)
+      let name = anchor.style.getPropertyValue('anchor-name')
+
+      // An owner writes its style as a whole string, as Remix does for a style prop that changes.
+      anchor.setAttribute('style', 'position: fixed; left: 100px; top: 50px; width: 40px; height: 20px; --owner: 2')
+      floating.setAttribute('style', 'width: 200px; height: 100px; padding: 0; border: 0; --owner: 3')
+      await nextFrame()
+      assert.equal(anchor.style.getPropertyValue('anchor-name'), name, `${measured ? 'measured' : 'css'} anchor name`)
+      assert.deepEqual(box(floating), placed, `${measured ? 'measured' : 'css'} place`)
+      assert.equal(anchor.style.getPropertyValue('--owner'), '2')
+      assert.equal(floating.style.getPropertyValue('--owner'), '3')
+
+      cleanup()
+      assert.equal(anchor.style.getPropertyValue('anchor-name'), '')
+      assert.equal(floating.style.getPropertyValue('position'), '')
+      assert.equal(floating.style.getPropertyValue('--owner'), '3', 'the owner’s own styles stay')
+    }
+  })
+
+  it('shares an anchor between live positioners, keeps the owner’s name, and ends either first', async (t) => {
+    for (let ending of ['first', 'second'] as const) {
+      let { anchor, floating } = setup(t, 'left: 100px; top: 50px; anchor-name: --owner-name')
+      let other = document.createElement('div')
+      other.popover = 'manual'
+      other.style.cssText = 'width: 120px; height: 40px; padding: 0; border: 0'
+      document.body.append(other)
+      other.showPopover()
+      t.after(() => other.remove())
+
+      // Positioners that undo each other's anchor name never let the page render: past 50 writes,
+      // this observer ends both, so the test fails instead of hanging.
+      let cleanups: Array<() => void> = []
+      let writes = 0
+      let guard = new MutationObserver((records) => {
+        writes += records.length
+        if (writes > 50) for (let cleanup of cleanups) cleanup()
+      })
+      guard.observe(anchor, { attributes: true, attributeFilter: ['style'] })
+      t.after(() => guard.disconnect())
+      cleanups.push(start(t, floating, anchor, { side: 'bottom' }), start(t, other, anchor, { side: 'top' }))
+      await nextFrame()
+      let names = () =>
+        anchor.style
+          .getPropertyValue('anchor-name')
+          .split(',')
+          .map((name) => name.trim())
+      let mine = floating.style.getPropertyValue('position-anchor')
+      let theirs = other.style.getPropertyValue('position-anchor')
+
+      assert.ok(writes < 10, `${ending}: the anchor settled after ${writes} writes`)
+      assert.deepEqual(names(), ['--owner-name', mine, theirs])
+      assert.equal(box(floating).top, 70, `${ending}: below the anchor`)
+      assert.equal(box(other).bottom, 50, `${ending}: above the anchor`)
+
+      // An owner's rewrite keeps every live name and its own new one.
+      anchor.setAttribute(
+        'style',
+        'position: fixed; left: 100px; top: 50px; width: 40px; height: 20px; anchor-name: --renamed',
+      )
+      await nextFrame()
+      assert.ok(writes < 20, `${ending}: settled after the rewrite, ${writes} writes`)
+      assert.deepEqual(names(), ['--renamed', mine, theirs])
+
+      let [first, second] = ending === 'first' ? cleanups : [...cleanups].reverse()
+      let staying = ending === 'first' ? theirs : mine
+      first()
+      await nextFrame()
+      assert.deepEqual(names(), ['--renamed', staying], `${ending}: the other popup keeps its anchor`)
+      second()
+      assert.deepEqual(names(), ['--renamed'], `${ending}: only the owner’s name stays`)
+    }
+  })
+
+  it('keeps the priority of the owner’s anchor name, so a competing stylesheet name never takes over', async (t) => {
+    let sheet = document.createElement('style')
+    sheet.textContent = '#important-anchor { anchor-name: --sheet !important; }'
+    document.head.append(sheet)
+    t.after(() => sheet.remove())
+    let { anchor, floating } = setup(t, 'left: 100px; top: 50px')
+    anchor.id = 'important-anchor'
+    anchor.style.setProperty('anchor-name', '--mine', 'important')
+    // The owner's own popup, anchored to its name with plain CSS.
+    let owners = document.createElement('div')
+    owners.style.cssText =
+      'position: fixed; position-anchor: --mine; position-area: bottom; margin: 0; width: 30px; height: 10px'
+    document.body.append(owners)
+    t.after(() => owners.remove())
+    await nextFrame()
+    let before = box(owners)
+    assert.deepEqual(before, { left: 105, top: 70, right: 135, bottom: 80 })
+
+    let cleanup = start(t, floating, anchor, { side: 'right' })
+    await nextFrame()
+    assert.equal(anchor.style.getPropertyPriority('anchor-name'), 'important')
+    assert.deepEqual(box(owners), before, 'the owner’s popup keeps its anchor while the helper adds its name')
+
+    // The owner renames its anchor while the helper runs, still against the stylesheet.
+    anchor.setAttribute(
+      'style',
+      'position: fixed; left: 100px; top: 50px; width: 40px; height: 20px; padding: 0; border: 0; anchor-name: --renamed !important',
+    )
+    owners.style.setProperty('position-anchor', '--renamed')
+    await nextFrame()
+    let helper = floating.style.getPropertyValue('position-anchor')
+    assert.equal(anchor.style.getPropertyValue('anchor-name'), `--renamed, ${helper}`)
+    assert.equal(anchor.style.getPropertyPriority('anchor-name'), 'important')
+    assert.deepEqual(box(owners), before, 'the renamed anchor keeps the owner’s popup')
+
+    cleanup()
+    await nextFrame()
+    assert.equal(anchor.style.getPropertyValue('anchor-name'), '--renamed')
+    assert.equal(anchor.style.getPropertyPriority('anchor-name'), 'important')
+    assert.deepEqual(box(owners), before, 'and after the helper ends')
+  })
+
+  it('gives back an owner’s anchor-name: none, so a stylesheet name stays where the owner wants it', async (t) => {
+    let sheet = document.createElement('style')
+    sheet.textContent = '.sheet-anchor { anchor-name: --sheet !important; }'
+    document.head.append(sheet)
+    t.after(() => sheet.remove())
+    // The intended anchor, and the owner's popup anchored to its stylesheet name with plain CSS.
+    let intended = document.createElement('button')
+    intended.className = 'sheet-anchor'
+    intended.style.cssText =
+      'position: fixed; left: 100px; top: 150px; width: 40px; height: 20px; padding: 0; border: 0'
+    let owners = document.createElement('div')
+    owners.style.cssText =
+      'position: fixed; position-anchor: --sheet; position-area: bottom; margin: 0; width: 30px; height: 10px'
+    document.body.append(intended, owners)
+    t.after(() => {
+      intended.remove()
+      owners.remove()
+    })
+    // A later button matches the same rule, but opts out inline, so the name stays on the first.
+    let { anchor, floating } = setup(t, 'left: 450px; top: 300px')
+    anchor.className = 'sheet-anchor'
+    anchor.style.setProperty('anchor-name', 'none', 'important')
+    await nextFrame()
+    let before = box(owners)
+    assert.deepEqual(before, { left: 105, top: 170, right: 135, bottom: 180 })
+
+    let cleanup = start(t, floating, anchor, { side: 'right' })
+    await nextFrame()
+    assert.deepEqual(box(owners), before, 'while the helper names the later button')
+    cleanup()
+    await nextFrame()
+    assert.equal(anchor.style.getPropertyValue('anchor-name'), 'none')
+    assert.equal(anchor.style.getPropertyPriority('anchor-name'), 'important')
+    assert.deepEqual(box(owners), before, 'after the helper ends')
+  })
+
+  it('sizes a popup as wide as its anchor before it measures it, so the first placement is right', async (t) => {
+    for (let measured of [false, true]) {
+      if (measured) t.mock.method(CSS, 'supports', () => false)
+      let { anchor, floating } = setup(t, 'left: 300px; top: 300px')
+      // As wide as the anchor once the helper says how wide that is; until then a popover stretches.
+      floating.style.width = 'var(--anchor-width, auto)'
+      start(t, floating, anchor, { side: 'top', align: 'start', sideOffset: 6 })
+
+      // Before any observer measures again: the first placement already lines up with the anchor.
+      let first = box(floating)
+      assert.deepEqual(first, { left: 300, top: 194, right: 340, bottom: 294 }, measured ? 'measured' : 'css')
+    }
+  })
+
   it('anchors to pointer coordinates', async (t) => {
     let { floating } = setup(t, 'left: 0; top: 0')
     start(t, floating, { x: 120, y: 60 }, { align: 'start' })

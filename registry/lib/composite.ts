@@ -446,6 +446,12 @@ export interface ActiveDescendantOptions extends NavigationOptions {
    * `aria-activedescendant`, so render it there.
    */
   highlight?: (item: HTMLElement) => void
+  /**
+   * The item your state highlights, for a highlight you render. Keys then step
+   * from it also before your render writes `aria-activedescendant`, such as
+   * a second arrow key pressed while a popup opens.
+   */
+  current?: () => HTMLElement | null
   /** Called when the highlighted item changes through the keyboard. */
   onActiveChange?: (item: HTMLElement) => void
 }
@@ -488,7 +494,7 @@ export const activeDescendant: MixinFactory<HTMLElement, [options: ActiveDescend
       if (alias === undefined && !homeAndEnd && (key === 'Home' || key === 'End')) return
 
       let items = getItems()
-      let highlighted = getActiveDescendant(host)
+      let highlighted = options.current ? options.current() : getActiveDescendant(host)
       let current = highlighted ? items.indexOf(highlighted) : -1
       let disabled = items.map(isSkipped)
       let next = getNextIndex(key, current, disabled, { ...options, dir: getDirection(host, options.dir) })

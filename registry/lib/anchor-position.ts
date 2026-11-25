@@ -242,6 +242,8 @@ export function supportsCssAnchorPositioning(): boolean {
 /** Records the inline styles and attributes it changes so they can be put back. */
 function createRestorer(element: HTMLElement) {
   let styles = new Map<string, [value: string, priority: string]>()
+  // The value this helper wants for each style it set.
+  let wanted = new Map<string, string>()
   let attributes = new Map<string, string | null>()
 
   return {
@@ -249,6 +251,7 @@ function createRestorer(element: HTMLElement) {
       if (!styles.has(property)) {
         styles.set(property, [element.style.getPropertyValue(property), element.style.getPropertyPriority(property)])
       }
+      wanted.set(property, value)
       if (element.style.getPropertyValue(property) !== value) element.style.setProperty(property, value)
     },
     /** Puts one style back as it was before. */
@@ -256,8 +259,24 @@ function createRestorer(element: HTMLElement) {
       let saved = styles.get(property)
       if (!saved) return
       styles.delete(property)
+      wanted.delete(property)
       if (saved[0]) element.style.setProperty(property, saved[0], saved[1])
       else element.style.removeProperty(property)
+    },
+    /**
+     * Writes again the styles an owner's rewrite of the style attribute dropped or changed, and
+     * remembers the owner's values for the restore. Says whether it wrote any.
+     */
+    reapply() {
+      let changed = false
+      for (let [property, value] of wanted) {
+        let current = element.style.getPropertyValue(property)
+        if (current === value) continue
+        styles.set(property, [current, element.style.getPropertyPriority(property)])
+        element.style.setProperty(property, value)
+        changed = true
+      }
+      return changed
     },
     attribute(name: string, value: string | null) {
       if (!attributes.has(name)) attributes.set(name, element.getAttribute(name))
@@ -274,6 +293,7 @@ function createRestorer(element: HTMLElement) {
         else element.setAttribute(name, value)
       }
       styles.clear()
+      wanted.clear()
       attributes.clear()
     },
   }
@@ -405,6 +425,59 @@ function getCssMargins(side: PhysicalSide, options: Required<PlacementOptions>):
 }
 
 let anchorCount = 0
+const helperName = '--remixcn-anchor-'
+// The names live positioners give each anchor, so several popups can share one, such as a popover
+// and a tooltip on the same trigger.
+interface AnchorState {
+  /** The names of the live positioners. */
+  names: Set<string>
+  /** The owner's own declaration, kept apart from those names, such as `none !important`. */
+  owner: { value: string; priority: string }
+  /** What this helper wrote last, as the attribute reads it, or `null` before its first write. */
+  written: string | null
+}
+
+const anchorStates = new WeakMap<HTMLElement, AnchorState>()
+
+function splitNames(value: string) {
+  return value
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+}
+
+function readAnchorName(anchor: HTMLElement) {
+  let value = anchor.style.getPropertyValue('anchor-name')
+  let priority = anchor.style.getPropertyPriority('anchor-name')
+  return { value, priority, key: `${splitNames(value).join(',')}|${priority}` }
+}
+
+/**
+ * Writes the anchor's `anchor-name`: the owner's own names, then every live positioner's, with the
+ * priority the owner gave it, such as `!important` against a stylesheet. Once no positioner is
+ * left, the owner's declaration comes back as it was, also an explicit `none`. Each positioner
+ * computes the same value, so none undoes another, and whatever differs from this helper's last
+ * write is the owner's, such as a style attribute it rewrote. Says whether it wrote anything.
+ */
+function writeAnchorNames(anchor: HTMLElement, state: AnchorState) {
+  let current = readAnchorName(anchor)
+  if (current.key !== state.written) {
+    let own = splitNames(current.value).filter((name) => !name.startsWith(helperName))
+    state.owner = { value: own.join(', '), priority: current.priority }
+  }
+  let live = [...state.names]
+  let own = splitNames(state.owner.value).filter((name) => name !== 'none')
+  let value = live.length > 0 ? [...own, ...live].join(', ') : state.owner.value
+  let { priority } = state.owner
+  let wanted = `${splitNames(value).join(',')}|${priority}`
+  let changed = wanted !== current.key
+  if (changed) {
+    if (value) anchor.style.setProperty('anchor-name', value, priority)
+    else anchor.style.removeProperty('anchor-name')
+  }
+  state.written = readAnchorName(anchor).key
+  return changed
+}
 
 /**
  * Positions `floating` against an anchor element or point and keeps it there
@@ -434,17 +507,23 @@ export function positionFloating(
   }
   let requestedSide = resolveSide(placement.side, dir)
   let floatingStyles = createRestorer(floating)
-  let anchorStyles = anchorElement instanceof view.HTMLElement ? createRestorer(anchorElement) : null
-  let canUseCss = anchorStyles !== null && options.strategy !== 'measure' && supportsCssAnchorPositioning()
+  let namedAnchor = anchorElement instanceof view.HTMLElement ? anchorElement : null
+  let canUseCss = namedAnchor !== null && options.strategy !== 'measure' && supportsCssAnchorPositioning()
+  let anchorName = canUseCss ? `${helperName}${++anchorCount}` : null
   let controller = new AbortController()
   let frame = 0
 
   floatingStyles.style('position', 'fixed')
-  if (canUseCss) {
-    let name = `--remixcn-anchor-${++anchorCount}`
-    let existing = (anchorElement as HTMLElement).style.getPropertyValue('anchor-name')
-    anchorStyles!.style('anchor-name', existing && existing !== 'none' ? `${existing}, ${name}` : name)
-    floatingStyles.style('position-anchor', name)
+  if (anchorName) {
+    let state = anchorStates.get(namedAnchor!) ?? {
+      names: new Set(),
+      owner: { value: '', priority: '' },
+      written: null,
+    }
+    state.names.add(anchorName)
+    anchorStates.set(namedAnchor!, state)
+    writeAnchorNames(namedAnchor!, state)
+    floatingStyles.style('position-anchor', anchorName)
   }
 
   // Longhands only, so restoring them can't disturb a shorthand set before.
@@ -493,6 +572,9 @@ export function positionFloating(
 
     let boundary = getViewport(document)
     if (options.boundary) boundary = intersect(boundary, options.boundary.getBoundingClientRect())
+    // The floating element's size may depend on its anchor's, such as a menu as wide as its button.
+    floatingStyles.style('--anchor-width', `${anchorRect.width}px`)
+    floatingStyles.style('--anchor-height', `${anchorRect.height}px`)
     let size = { width: floating.offsetWidth, height: floating.offsetHeight }
     let position = computePosition(anchorRect, size, boundary, placement)
     let padding = placement.collisionPadding
@@ -550,8 +632,6 @@ export function positionFloating(
 
     floatingStyles.attribute('data-side', side)
     floatingStyles.attribute('data-align', position.align)
-    floatingStyles.style('--anchor-width', `${anchorRect.width}px`)
-    floatingStyles.style('--anchor-height', `${anchorRect.height}px`)
     floatingStyles.style('--available-width', `${position.availableWidth}px`)
     floatingStyles.style('--available-height', `${position.availableHeight}px`)
     floatingStyles.style('--transform-origin', origin)
@@ -576,6 +656,17 @@ export function positionFloating(
   observer.observe(floating)
   if (anchorElement) observer.observe(anchorElement)
   if (options.boundary) observer.observe(options.boundary)
+  // An owner may write either style attribute anew, such as when a string style prop changes, which
+  // drops the anchor name and the placement. They come back before the next paint.
+  let styleObserver = new view.MutationObserver(() => {
+    let changed = floatingStyles.reapply()
+    let state = anchorName ? anchorStates.get(namedAnchor!) : undefined
+    if (state && writeAnchorNames(namedAnchor!, state)) changed = true
+    if (changed) schedule()
+  })
+  let styleOnly = { attributes: true, attributeFilter: ['style'] }
+  styleObserver.observe(floating, styleOnly)
+  if (anchorName) styleObserver.observe(namedAnchor!, styleOnly)
 
   update()
 
@@ -584,8 +675,16 @@ export function positionFloating(
     controller.abort()
     view.cancelAnimationFrame(frame)
     observer.disconnect()
+    styleObserver.disconnect()
     floatingStyles.restore()
-    anchorStyles?.restore()
+    if (anchorName) {
+      let state = anchorStates.get(namedAnchor!)
+      if (state) {
+        state.names.delete(anchorName)
+        writeAnchorNames(namedAnchor!, state)
+        if (state.names.size === 0) anchorStates.delete(namedAnchor!)
+      }
+    }
   }
 }
 
