@@ -86,6 +86,24 @@ describe('createFocusScope', () => {
     assert.equal(focused(), 'Trigger')
   })
 
+  it("returns focus without scrolling the page, so a tap's click still lands where the finger lifted", async (t) => {
+    let { popup } = setup(t)
+    let spacer = document.createElement('div')
+    spacer.style.height = '300vh'
+    popup.after(spacer)
+    t.after(() => spacer.remove())
+    let release = createFocusScope(popup)
+    await nextFrame()
+    window.scrollTo(0, document.documentElement.scrollHeight)
+    let scrolled = window.scrollY
+    assert.ok(scrolled > 0)
+
+    release()
+    await settle()
+    assert.equal(focused(), 'Trigger')
+    assert.equal(window.scrollY, scrolled)
+  })
+
   it('prefers the initialFocus option, then autofocus, then the container itself', async (t) => {
     let { popup } = setup(t, '<button>First</button><button autofocus>Auto</button>')
     let release = createFocusScope(popup)

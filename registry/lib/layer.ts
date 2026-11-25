@@ -15,6 +15,11 @@ import type { MixinFactory } from 'remix/component'
 //   drag out of a layer or a touch that scrolls dismisses nothing. Presses
 //   inside a child layer count as inside its parents. Layers below a modal
 //   layer ignore outside presses.
+// - A mouse or pen press ends with its click. A touch ends when it lifts:
+//   WebKit, as on iPhones, sends no click for a tap on a part of the page that
+//   isn't clickable, such as the empty page around a menu. A tap outside a
+//   modal layer only dismisses: the mouse events and click the browser sends
+//   after it don't reach the page, which is no longer inert by then.
 // - Releasing a layer dismisses the child layers it still owns.
 
 export type DismissReason = 'escape-key' | 'outside-press' | 'close-request' | 'parent-dismissed'
@@ -108,7 +113,8 @@ function onKeyDown(stack: Stack, event: KeyboardEvent) {
   if (top.options.dismissOnEscape !== false) top.options.onDismiss({ reason: 'escape-key', event })
 }
 
-function onClick(stack: Stack, event: MouseEvent) {
+/** Ends the press, dismisses the layers it landed outside of, and says whether a modal layer shielded the page. */
+function onPress(stack: Stack, event: MouseEvent): boolean {
   let press = stack.press
   stack.press = null
   let target = getTarget(event)
@@ -123,10 +129,12 @@ function onClick(stack: Stack, event: MouseEvent) {
     down = up = target
   } else {
     // The press began before a layer opened, or the browser canceled it to scroll.
-    return
+    return false
   }
 
-  if (entries.some((entry) => isInside(stack, entry, down, downPoint) !== isInside(stack, entry, up, upPoint))) return
+  if (entries.some((entry) => isInside(stack, entry, down, downPoint) !== isInside(stack, entry, up, upPoint))) {
+    return false
+  }
 
   let modal = entries.findLastIndex((entry) => entry.options.modal)
   let outside = entries.slice(Math.max(modal, 0)).filter((entry) => {
@@ -136,6 +144,32 @@ function onClick(stack: Stack, event: MouseEvent) {
   })
 
   for (let entry of outside.reverse()) entry.options.onDismiss({ reason: 'outside-press', event })
+  return modal !== -1 && !isInside(stack, entries[modal], up, upPoint)
+}
+
+// Ahead of the page's own listeners, the mouse events and click that follow a
+// tap end here, until the click or the next press. They outlive the layers. A
+// click without a pointer, as from Enter, is the user's own and goes through.
+function holdBackTap(view: Window | null) {
+  if (!view) return
+  let controller = new AbortController()
+  let options = { capture: true, signal: controller.signal }
+  let stop = (event: Event) => {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+  }
+  view.addEventListener('mousedown', stop, options)
+  view.addEventListener('mouseup', stop, options)
+  view.addEventListener(
+    'click',
+    (event) => {
+      controller.abort()
+      if (event.detail !== 0) stop(event)
+    },
+    options,
+  )
+  view.addEventListener('pointerdown', () => controller.abort(), options)
+  view.addEventListener('keydown', () => controller.abort(), options)
 }
 
 function createStack(document: Document): Stack {
@@ -160,11 +194,13 @@ function createStack(document: Document): Stack {
       // Touch pointers stay captured to where they started, so find where this one ended.
       stack.press.up = document.elementFromPoint(event.clientX, event.clientY) ?? getTarget(event) ?? undefined
       stack.press.upPoint = { x: event.clientX, y: event.clientY }
+      // The click that may follow then finds no press and changes nothing.
+      if (event.pointerType === 'touch' && onPress(stack, event)) holdBackTap(document.defaultView)
     },
     capture,
   )
   document.addEventListener('pointercancel', () => (stack.press = null), capture)
-  document.addEventListener('click', (event) => onClick(stack, event), capture)
+  document.addEventListener('click', (event) => onPress(stack, event), capture)
 
   stacks.set(document, stack)
   return stack
