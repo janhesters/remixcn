@@ -385,7 +385,7 @@ function getCssMargins(side: PhysicalSide, options: Required<PlacementOptions>):
   margins[opposite[side]] = sideOffset
   margins[side] = padding
 
-  let [startEdge, endEdge]: PhysicalSide[] = isVertical(side)
+  let [startEdge, endEdge]: [PhysicalSide, PhysicalSide] = isVertical(side)
     ? dir === 'rtl'
       ? ['right', 'left']
       : ['left', 'right']
