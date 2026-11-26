@@ -2,6 +2,7 @@ import * as assert from 'remix/assert'
 import { createTestServer } from 'remix/node-fetch-server/test'
 import { describe, it } from 'remix/test'
 import type { TestContext } from 'remix/test'
+import type { BrowserContext, BrowserContextOptions } from 'playwright'
 
 import { contrastRatio } from '../scripts/color.ts'
 import { findAccessibilityViolations } from './accessibility.ts'
@@ -14,20 +15,29 @@ interface OpenOptions {
   javaScript?: 'on' | 'off' | 'never'
   // Holds the page's entry module, and with it hydration, until this settles.
   hold?: Promise<void>
+  // Answers the requests it takes, before the examples do.
+  answer?: (request: Request) => Promise<Response> | undefined
 }
 
 // Pages open with reduced motion, so transitions take 0s and every read sees the final style.
-async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {}) {
+async function open(t: TestContext, { javaScript = 'on', hold, answer }: OpenOptions = {}) {
   let examples = await createInputGroupExamples()
   t.after(() => void examples.close())
 
-  let server = await createTestServer(examples.fetch)
+  let server = await createTestServer((request) => answer?.(request) ?? examples.fetch(request))
+  // The runner runs cleanups in the order they were added, and t.serve() adds the
+  // close of its page and server. So the contexts a test opens beside that page
+  // close first: a connection one keeps open would hold the server's close (#93).
+  let contexts: BrowserContext[] = []
+  t.after(() => Promise.all(contexts.map((context) => context.close())))
   let page = await t.serve(server)
-  if (javaScript === 'off') {
-    let context = await page.context().browser()!.newContext({ javaScriptEnabled: false, baseURL: server.baseUrl })
-    t.after(() => context.close())
-    page = await context.newPage()
+  let browser = page.context().browser()!
+  async function newContext(options: BrowserContextOptions = {}) {
+    let context = await browser.newContext({ baseURL: server.baseUrl, ...options })
+    contexts.push(context)
+    return context
   }
+  if (javaScript === 'off') page = await (await newContext({ javaScriptEnabled: false })).newPage()
 
   let errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
@@ -47,7 +57,7 @@ async function open(t: TestContext, { javaScript = 'on', hold }: OpenOptions = {
   // A held entry module also holds the load event, so such a page is read once it commits.
   await page.goto('/', { waitUntil: hold ? 'commit' : 'load' })
   if (javaScript === 'on' && !hold) await page.locator('html[data-ready]').waitFor({ state: 'attached' })
-  return { page, server, errors }
+  return { page, server, errors, newContext }
 }
 
 type Page = Awaited<ReturnType<typeof open>>['page']
@@ -209,13 +219,8 @@ describe('Input Group and Input OTP examples', () => {
 
   it('pass them before the scripts run too', async (t) => {
     // axe runs as a script, so the server HTML is checked with the page's own modules held back.
-    let { page } = await open(t)
-    let held = await page
-      .context()
-      .browser()!
-      .newContext({ baseURL: new URL(page.url()).origin })
-    t.after(() => held.close())
-    let before = await held.newPage()
+    let { newContext } = await open(t)
+    let before = await (await newContext()).newPage()
     await before.route('**/assets/**', (route) =>
       route.request().resourceType() === 'stylesheet' ? route.continue() : route.abort(),
     )
@@ -223,6 +228,27 @@ describe('Input Group and Input OTP examples', () => {
     await before.goto('/')
 
     assert.deepEqual(await findAccessibilityViolations(before, { except: [dimmedAddons] }), [])
+  })
+
+  // Node 24's server.close() waits for every connection that hasn't finished a request.
+  // In CI, the test above stalled in that close while its own context was still open (#93).
+  it('close the contexts their tests open before the server, also with a request unanswered', async (t) => {
+    let arrived = Promise.withResolvers<void>()
+    let { newContext } = await open(t, {
+      answer(request) {
+        if (new URL(request.url).pathname !== '/unanswered') return undefined
+        arrived.resolve()
+        return new Promise((resolve) =>
+          request.signal.addEventListener('abort', () => resolve(new Response(null, { status: 499 }))),
+        )
+      },
+    })
+    let other = await (await newContext()).newPage()
+    await other.goto('/echo')
+    let late = setTimeout(() => arrived.reject(new Error('the request never reached the server')), 10_000)
+    await other.evaluate(() => void fetch('/unanswered').catch(() => {}))
+
+    await arrived.promise.finally(() => clearTimeout(late))
   })
 })
 
