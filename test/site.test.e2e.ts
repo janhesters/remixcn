@@ -111,6 +111,24 @@ async function waitForText(locator: ReturnType<Page['locator']>, text: string | 
 
 const button = href('docs/components/button/')
 
+/**
+ * Waits until the search dialog shows and its enabled field took focus on its
+ * own, where typed keys go. The dialog focuses the field on its first frame,
+ * which comes late on a busy machine; a key pressed before it lands on the
+ * list, and the dialog then leaves focus where the user put it.
+ */
+async function searchReady(page: Page) {
+  let search = page.getByRole('dialog', { name: 'Search the docs' })
+  await search.waitFor()
+  let field = await search.getByRole('combobox').elementHandle()
+  await page.waitForFunction(
+    (input) => input instanceof HTMLInputElement && !input.disabled && input === document.activeElement,
+    field,
+    { timeout: 5_000 },
+  )
+  return search
+}
+
 describe('the static site', () => {
   for (let page of pages) {
     let url = href(page.path)
@@ -214,8 +232,7 @@ describe('keyboard', () => {
     let { page } = await open(t, href('docs/'))
 
     await page.keyboard.press('Control+k')
-    let search = page.getByRole('dialog', { name: 'Search the docs' })
-    await search.waitFor()
+    let search = await searchReady(page)
     await page.keyboard.type('butt')
     await waitForText(search.getByRole('option', { selected: true }), 'Button')
     await page.keyboard.press('Enter')
@@ -238,11 +255,12 @@ describe('keyboard', () => {
 
     let trigger = page.getByRole('button', { name: /Search the docs/ })
     await trigger.click()
+    let search = await searchReady(page)
     await page.keyboard.type('zzzz')
-    await waitForText(page.getByRole('status'), 'No page matches.')
+    await waitForText(search.getByRole('status'), 'No page matches.')
     await page.keyboard.press('Escape')
 
-    await page.getByRole('dialog', { name: 'Search the docs' }).waitFor({ state: 'hidden' })
+    await search.waitFor({ state: 'hidden' })
     assert.ok(await trigger.evaluate((element) => element === document.activeElement))
   })
 })
