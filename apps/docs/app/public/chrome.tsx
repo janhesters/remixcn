@@ -1,7 +1,8 @@
 // The parts of every page that run in the browser: the navigation in a
 // Sidebar, which turns into a menu sheet on a narrow screen, the header with
-// the menu button and the search, and the theme switch. The page's content
-// is the server's, beside this entry, so its examples hydrate on their own.
+// the menu button, the search and the links to the docs, the components and
+// GitHub, and the theme switch. The page's content is the server's, beside
+// this entry, so its examples hydrate on their own.
 import { clientEntry, css, on } from 'remix/component'
 import type { Handle, MixValue } from 'remix/component'
 
@@ -44,6 +45,8 @@ export interface DocsChromeProps {
   /** The URL of the page on screen, which the navigation marks as the current page. */
   current: string
   navigation: NavGroup[]
+  /** The header's links before GitHub, such as Docs and Components. A narrow screen has them in the menu instead. */
+  links: NavItem[]
   search: SearchEntry[]
   home: string
   repository: string
@@ -94,6 +97,7 @@ const headerBrandStyles = css({
   '@media (width < 48rem) and (scripting: enabled)': { display: 'inline-flex' },
 })
 const spacerStyles = css({ flex: '1 1 0%' })
+const mainNavStyles = css({ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: space(1) })
 const themeStyles = css({ '@media (scripting: none)': { display: 'none' } })
 const themeListStyles = css({ paddingInline: space(2), gap: space(2) })
 
@@ -153,10 +157,10 @@ function ThemeSwitch(handle: Handle) {
   }
 }
 
-function DocsHeader(handle: Handle<Pick<DocsChromeProps, 'home' | 'repository' | 'search'>>) {
+function DocsHeader(handle: Handle<Pick<DocsChromeProps, 'home' | 'links' | 'repository' | 'search'>>) {
   return () => {
     let sidebar = getSidebarContext(handle)
-    let { home, repository, search } = handle.props
+    let { home, links, repository, search } = handle.props
 
     return (
       <header data-docs-header="" mix={headerStyles}>
@@ -168,9 +172,16 @@ function DocsHeader(handle: Handle<Pick<DocsChromeProps, 'home' | 'repository' |
         />
         <span mix={spacerStyles} />
         <DocsSearch entries={search} />
-        <a href={repository} mix={buttonVariants({ variant: 'ghost' })}>
-          GitHub
-        </a>
+        <nav aria-label="Main" data-docs-main-nav="" mix={mainNavStyles}>
+          {links.map((link) => (
+            <a key={link.href} href={link.href} data-docs-in-menu="" mix={buttonVariants({ variant: 'ghost' })}>
+              {link.title}
+            </a>
+          ))}
+          <a href={repository} mix={buttonVariants({ variant: 'ghost' })}>
+            GitHub
+          </a>
+        </nav>
       </header>
     )
   }
@@ -178,7 +189,7 @@ function DocsHeader(handle: Handle<Pick<DocsChromeProps, 'home' | 'repository' |
 
 export const DocsChrome = clientEntry(import.meta.url, function DocsChrome(handle: Handle<DocsChromeProps>) {
   return () => {
-    let { current, navigation, home, repository, search } = handle.props
+    let { current, navigation, links, home, repository, search } = handle.props
 
     return (
       <SidebarProvider data-docs-chrome="">
@@ -211,7 +222,7 @@ export const DocsChrome = clientEntry(import.meta.url, function DocsChrome(handl
           </SidebarFooter>
           <SidebarRail />
         </Sidebar>
-        <DocsHeader home={home} repository={repository} search={search} />
+        <DocsHeader home={home} links={links} repository={repository} search={search} />
       </SidebarProvider>
     )
   }

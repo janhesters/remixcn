@@ -6,7 +6,7 @@ import * as assert from 'remix/assert'
 import { afterAll, beforeAll, describe, it } from 'remix/test'
 
 import { pages } from './app/pages.ts'
-import { basePath, canonicalUrl, homepage, href, seoPhrase, siteTitle } from './app/site.ts'
+import { basePath, canonicalUrl, homepage, href, repository, seoPhrase, siteTitle } from './app/site.ts'
 import { buildSite } from './build.ts'
 import { findAssetUrls, staticFilePath } from './static.ts'
 
@@ -105,6 +105,54 @@ describe('the site build', () => {
       files.filter((file) => file !== '.nojekyll' && file.split('/').some((segment) => segment.startsWith('.'))),
       [],
     )
+  })
+
+  it('gives every page a header that links to the docs, the components and GitHub', () => {
+    for (let page of pages) {
+      let html = read(staticFilePath(href(page.path), basePath))
+      let nav = /<nav aria-label="Main"[^>]*>([\s\S]*?)<\/nav>/.exec(html)?.[1]
+      assert.ok(nav, `${href(page.path)} has no main navigation`)
+      assert.deepEqual(
+        [...nav.matchAll(/<a\s[^>]*?\bhref="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(([, link, text]) => [text, link]),
+        [
+          ['Docs', href('docs/')],
+          ['Components', href('docs/components/')],
+          ['GitHub', repository],
+        ],
+      )
+    }
+  })
+
+  it('leads the home page with the phrase, the setup commands and its links to the components and the docs', () => {
+    let html = read('index.html')
+    let main = /<main\b[\s\S]*<\/main>/.exec(html)?.[0] ?? ''
+
+    assert.match(main, /<h1\b[^>]*>shadcn components for Remix V3<\/h1>/)
+    assert.ok(main.indexOf('npx remixcn init\nnpx remixcn add button') > main.indexOf('</h1>'))
+    let links = [...main.matchAll(/<a\s[^>]*?\bhref="([^"]*)"[^>]*>([^<]*)<\/a>/g)].map(([, link, text]) => [
+      text,
+      link,
+    ])
+    assert.deepEqual(links.slice(0, 2), [
+      ['Browse components', href('docs/components/')],
+      ['Read the docs', href('docs/')],
+    ])
+    assert.ok(links.some(([, link]) => link === href('docs/cli/')))
+    assert.ok(links.some(([, link]) => link === href('docs/mcp/')))
+    assert.ok(links.some(([, link]) => link === href('docs/licenses/')))
+  })
+
+  it("renders the home page's showcase inert, with its note, and with no form that sends anywhere", () => {
+    let html = read('index.html')
+    let showcase = /<div data-docs-showcase=""[^>]*>/.exec(html)?.[0]
+    let canvas = /<div data-docs-showcase-canvas=""[^>]*>/.exec(html)?.[0]
+
+    assert.match(showcase ?? '', /\sdata-pending=""/)
+    assert.match(canvas ?? '', /\sinert(?:=""|\s|>)/)
+    assert.equal(html.match(/The showcase runs with JavaScript\./g)?.length, 1)
+    let forms = html.match(/<form\b[^>]*>/g) ?? []
+    assert.equal(forms.length, 1)
+    assert.doesNotMatch(forms[0]!, /\b(?:action|method)=/)
   })
 
   it("shows the examples' source as text", () => {

@@ -1,6 +1,7 @@
 // The document every page renders: the head with its title, description,
 // canonical and social tags, the stylesheets and the browser entry, then the
 // skip links, the chrome, the page with its table of contents, and the credits.
+// A landing page, such as the home page, lays out its own content instead.
 import { unsafeHTML } from 'remix/component'
 import type { Handle, RemixNode } from 'remix/component'
 import { ImportMap } from 'remix/component/server'
@@ -107,6 +108,12 @@ function Credits() {
   )
 }
 
+/** The header's links on every page: the docs and the component reference (C-979), then GitHub. */
+const headerLinks = [
+  { title: 'Docs', href: href('docs/') },
+  { title: 'Components', href: href('docs/components/') },
+]
+
 interface LayoutProps {
   /** The URL the navigation marks as the current page, if any. */
   current?: string
@@ -114,12 +121,14 @@ interface LayoutProps {
   summary: string
   crumbs: ReturnType<typeof crumbsFor>
   sections: SectionInfo[]
+  /** Leaves the heading, the summary and the table of contents to the page's content. */
+  landing?: boolean
   children?: RemixNode
 }
 
 function Layout(handle: Handle<LayoutProps>) {
   return () => {
-    let { current = '', title, summary, crumbs, sections, children } = handle.props
+    let { current = '', title, summary, crumbs, sections, landing = false, children } = handle.props
 
     return (
       <>
@@ -131,17 +140,22 @@ function Layout(handle: Handle<LayoutProps>) {
           <DocsChrome
             current={current}
             navigation={navigation}
+            links={headerLinks}
             search={searchEntries}
             home={href()}
             repository={repository}
           />
           <div data-docs-body="">
             <main id="main-content" tabIndex={-1} data-docs-main="">
-              <div data-docs-page="">
-                <PageHeader crumbs={crumbs} title={title} summary={summary} />
-                <TableOfContents sections={sections} />
-                <div data-docs-content="">{children}</div>
-              </div>
+              {landing ? (
+                <div data-docs-landing="">{children}</div>
+              ) : (
+                <div data-docs-page="">
+                  <PageHeader crumbs={crumbs} title={title} summary={summary} />
+                  <TableOfContents sections={sections} />
+                  <div data-docs-content="">{children}</div>
+                </div>
+              )}
             </main>
             <Credits />
           </div>
@@ -170,6 +184,7 @@ export function DocsDocument(handle: Handle<{ page: DocsPage; assets: SiteAssets
           summary={page.summary}
           crumbs={crumbsFor(page.path)}
           sections={page.sections}
+          landing={page.landing}
         >
           <Content />
         </Layout>
