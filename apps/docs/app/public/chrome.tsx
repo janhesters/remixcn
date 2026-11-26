@@ -5,6 +5,8 @@
 import { clientEntry, css, on } from 'remix/component'
 import type { Handle, MixValue } from 'remix/component'
 
+import { pageTheme, themeChoices } from '../../../../registry/lib/theme-keeper.ts'
+import type { ThemeChoice, ThemeKeeper } from '../../../../registry/lib/theme-keeper.ts'
 import { buttonVariants } from '../../../../registry/ui/button.tsx'
 import { Field, FieldLabel } from '../../../../registry/ui/field.tsx'
 import { RadioGroup, RadioGroupItem } from '../../../../registry/ui/radio-group.tsx'
@@ -27,8 +29,6 @@ import {
 
 import { DocsSearch } from './search.tsx'
 import type { SearchEntry } from './search.tsx'
-import { pageTheme, themeChoices } from './theme.ts'
-import type { ThemeChoice, ThemeKeeper } from './theme.ts'
 
 export interface NavItem {
   title: string

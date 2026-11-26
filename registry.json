@@ -638,6 +638,14 @@
       "files": [{ "path": "registry/lib/theme.css", "type": "registry:file", "target": "@lib/theme.css" }]
     },
     {
+      "name": "theme-keeper",
+      "type": "registry:lib",
+      "title": "Theme keeper",
+      "description": "Light, dark or the system's theme, chosen by the user: a head bootstrap that applies a saved choice before the first paint, and a keeper that reads, sets and keeps it through in-place document updates.",
+      "registryDependencies": ["@remixcn/licenses", "@remixcn/theme"],
+      "files": [{ "path": "registry/lib/theme-keeper.ts", "type": "registry:lib", "target": "@lib/theme-keeper.ts" }]
+    },
+    {
       "name": "use-mobile",
       "type": "registry:lib",
       "title": "Mobile breakpoint",

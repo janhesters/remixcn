@@ -3,7 +3,7 @@
 // data-ready on <html> tells the browser tests that the first page hydrated.
 import { run } from 'remix/component'
 
-import { pageTheme } from './theme.ts'
+import { pageTheme } from '../../../../registry/lib/theme-keeper.ts'
 
 pageTheme()
 

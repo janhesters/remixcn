@@ -1552,6 +1552,18 @@
       "note": "The global stylesheet every component needs: the cascade layer order, shadcn's Neutral theme as light and dark tokens, the type, space, radius, shadow and motion tokens, and a small reset. Link it first in the document head."
     },
     {
+      "name": "theme-keeper",
+      "title": "Theme keeper",
+      "kind": "helper",
+      "batch": 1,
+      "source": "https://github.com/shadcn-ui/ui/blob/96da9cc7f1aa10580a3741664e2a77c721206c00/apps/v4/components/theme-provider.tsx",
+      "behavior": "https://github.com/pacocoursey/next-themes/blob/3a43743798db3008a0fc59e8bcc9d6e1bb5d4752/next-themes/src/script.ts",
+      "dependsOn": ["theme"],
+      "upstreamImports": ["react", "next-themes"],
+      "target": "registry/lib/theme-keeper.ts",
+      "note": "Replaces shadcn's next-themes ThemeProvider: a head bootstrap that applies a saved Light or Dark choice before the first paint, and a keeper that reads, sets and keeps the choice on <html> through in-place document updates. System clears data-theme, so theme.css follows the device."
+    },
+    {
       "name": "styles",
       "title": "Style conventions",
       "kind": "helper",
