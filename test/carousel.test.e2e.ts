@@ -107,6 +107,29 @@ function recorded(carousel: ReturnType<typeof carouselIn>) {
   return carousel.evaluate((root: HTMLElement & { recording?: Recording }) => root.recording!)
 }
 
+interface PageRecording {
+  scrolls: number[]
+  scrollEnds: number[]
+}
+
+/**
+ * Records where the document scrolls, and where its scrolls end, from now on.
+ * A swipe that scrolls the page can fling on after the finger lifts, past the
+ * carousel's own scroll end. The document's scrollend comes once it stops.
+ */
+function recordPage(page: Page) {
+  return page.evaluate(() => {
+    let recording: PageRecording = { scrolls: [], scrollEnds: [] }
+    ;(window as Window & { pageRecording?: PageRecording }).pageRecording = recording
+    document.addEventListener('scroll', () => recording.scrolls.push(window.scrollY), { passive: true })
+    document.addEventListener('scrollend', () => recording.scrollEnds.push(window.scrollY))
+  })
+}
+
+function recordedPage(page: Page) {
+  return page.evaluate(() => (window as Window & { pageRecording?: PageRecording }).pageRecording!)
+}
+
 /** The distance from one snap to the next in an example: a slide and the 1rem gap after it. */
 function slideStep(page: Page, title: string) {
   return example(page, title)
@@ -605,24 +628,46 @@ describe('Carousel autoplay', () => {
 
     // While the first rotation scrolls, a finger moves up and scrolls the page.
     let before = await pageScroll()
+    await recordPage(page)
     let { x, y } = await middle()
     await page.clock.runFor(2010)
     await swipe(page, { x, y }, { x, y: y - 60 })
     await eventually(async () => (await recorded(autoplay)).scrollEnds.length > 0, 'the first rotation never ended')
+    // The page can fling on after the rotation ended. A finger that lands on a
+    // moving page stops it there, and Chromium won't let a slide cancel that
+    // finger's moves, so the second swipe starts on a page at rest.
+    await eventually(
+      async () => (await recordedPage(page)).scrollEnds.some((end) => end > before),
+      async () => `the page never stopped scrolling: ${JSON.stringify(await recordedPage(page))}`,
+    )
     assert.ok((await pageScroll()) > before, 'the page never scrolled')
     let firstSwipe = (await recorded(autoplay)).touches
     assert.ok((firstSwipe[0] ?? step) < step - 1, `the swipe came at ${firstSwipe[0]}, after the rotation arrived`)
 
     // While the second one scrolls, a slide cancels a swipe back along the carousel.
     await autoplay.locator('[data-slot="carousel-item"]').evaluateAll((items) => {
-      for (let item of items) item.addEventListener('touchmove', (event) => event.preventDefault(), { passive: false })
+      let cancels: boolean[] = ((window as Window & { cancels?: boolean[] }).cancels = [])
+      for (let item of items) {
+        let cancel = (event: Event) => {
+          event.preventDefault()
+          cancels.push(event.defaultPrevented)
+        }
+        item.addEventListener('touchmove', cancel, { passive: false })
+      }
     })
     before = await pageScroll()
+    let settled = (await recordedPage(page)).scrolls.length
     ;({ x, y } = await middle())
     await page.clock.runFor(2010)
     await swipe(page, { x: x - 40, y }, { x: x + 40, y })
     await eventually(async () => (await recorded(autoplay)).scrollEnds.length > 1, 'the second rotation never ended')
-    assert.equal(await pageScroll(), before, 'the cancelled swipe scrolled the page')
+    let cancels = await page.evaluate(() => (window as Window & { cancels?: boolean[] }).cancels!)
+    assert.ok(
+      cancels.length > 0 && cancels.every(Boolean),
+      `a slide could not cancel the swipe: ${JSON.stringify(cancels)}`,
+    )
+    let pageScrolls = (await recordedPage(page)).scrolls.slice(settled)
+    assert.equal(await pageScroll(), before, `the cancelled swipe scrolled the page to ${JSON.stringify(pageScrolls)}`)
 
     let { selections, announcements, scrollEnds, touches } = await recorded(autoplay)
     let cancelled = touches[firstSwipe.length]
