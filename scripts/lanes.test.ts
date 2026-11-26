@@ -1,7 +1,7 @@
 import * as assert from 'remix/assert'
 import { describe, it } from 'remix/test'
 
-import { laneMatrix, lanes, planLanes, readPassCount, supportedNode } from './lanes.ts'
+import { defaultLimits, laneMatrix, lanes, planLanes, readPassCount, supportedNode } from './lanes.ts'
 
 const allScripts = Object.fromEntries(lanes.map((lane) => [lane.script, 'true']))
 
@@ -65,20 +65,50 @@ describe('laneMatrix', () => {
   it('runs each built lane once on the oldest supported Node', () => {
     let plans = planLanes({ scripts: { lint: 'oxlint' }, files: [] })
 
-    assert.deepEqual(laneMatrix(plans, { nodes, projects }), [{ lane: 'lint', name: 'lint', node: '24.3.0' }])
+    assert.deepEqual(laneMatrix(plans, { nodes, projects }), [
+      { lane: 'lint', name: 'lint', node: '24.3.0', jobMinutes: 20, installMinutes: 20, testMinutes: 20 },
+    ])
   })
 
   it('runs the runtime lanes on every supported Node and the browser lanes in every project', () => {
     let plans = planLanes({ scripts: allScripts, files: ['a.test.ts', 'b.test.e2e.ts'] })
-    let entries = laneMatrix(plans, { nodes, projects }).filter((entry) => ['test', 'e2e'].includes(entry.lane))
+    let entries = laneMatrix(plans, { nodes, projects })
+      .filter((entry) => ['test', 'e2e'].includes(entry.lane))
+      .map(({ lane, name, node, project }) => ({ lane, name, node, project }))
 
     assert.deepEqual(entries, [
-      { lane: 'test', name: 'test (Node 24.3.0)', node: '24.3.0' },
-      { lane: 'test', name: 'test (Node 26.13.0)', node: '26.13.0' },
+      { lane: 'test', name: 'test (Node 24.3.0)', node: '24.3.0', project: undefined },
+      { lane: 'test', name: 'test (Node 26.13.0)', node: '26.13.0', project: undefined },
       { lane: 'e2e', name: 'e2e (chromium)', node: '24.3.0', project: 'chromium' },
       { lane: 'e2e', name: 'e2e (firefox)', node: '24.3.0', project: 'firefox' },
       { lane: 'e2e', name: 'e2e (webkit)', node: '24.3.0', project: 'webkit' },
     ])
+  })
+
+  it('gives the WebKit end-to-end job its own install and test limits, and every other job 20 minutes', () => {
+    let plans = planLanes({ scripts: allScripts, files: ['a.test.ts', 'b.test.browser.tsx', 'c.test.e2e.ts'] })
+    let limits = Object.fromEntries(
+      laneMatrix(plans, { nodes, projects }).map((entry) => [
+        entry.name,
+        { job: entry.jobMinutes, install: entry.installMinutes, test: entry.testMinutes },
+      ]),
+    )
+    let { 'e2e (webkit)': webkit, ...others } = limits
+
+    assert.deepEqual(webkit, { job: 40, install: 20, test: 12 })
+    for (let [name, other] of Object.entries(others)) assert.deepEqual(other, defaultLimits, name)
+  })
+
+  it('leaves the WebKit end-to-end job its full test limit after the slowest install seen, with time for the other steps', () => {
+    let plans = planLanes({ scripts: allScripts, files: ['c.test.e2e.ts'] })
+    let webkit = laneMatrix(plans, { nodes, projects }).find((entry) => entry.name === 'e2e (webkit)')
+    let slowestInstall = 16 + 27 / 60
+    let lastPassingSuite = 5 + 45 / 60
+
+    assert.ok(webkit)
+    assert.ok(slowestInstall < webkit.installMinutes)
+    assert.ok(webkit.testMinutes >= 2 * lastPassingSuite)
+    assert.ok(webkit.jobMinutes - webkit.installMinutes - webkit.testMinutes >= 8)
   })
 
   it('leaves unbuilt lanes out', () => {

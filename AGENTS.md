@@ -215,7 +215,7 @@ The style reference's Overrides section shows each case, and its browser test ch
 - The registry lane runs `build:registry` (#4), and the site lane `build:site` (#34).
 - `check.ts` gives each lane's processes a marker. On Linux, it stops any process that outlives its lane and fails the lane. On every system, a lane fails when its output stays open after it exits, because a process it started still holds it.
 
-`.github/workflows/ci.yml` runs for every pull request and every push to main. A plan job lists the built lanes, and each runs as its own job: browser lanes once per Playwright project, and `test` and `build` on both supported Node versions. Unbuilt lanes appear as notices and in the run summary. `test/ci.test.ts` and `checkWorkflow` keep the workflow within these limits:
+`.github/workflows/ci.yml` runs for every pull request and every push to main. A plan job lists the built lanes, and each runs as its own job: browser lanes once per Playwright project, and `test` and `build` on both supported Node versions. Each job has a 20-minute limit. `projectLimits` in `scripts/lanes.ts` gives a browser lane's project its own limits for the job, the browser install step and the lane's step: `e2e (webkit)` gets 40, 20 and 12 minutes, since Ubuntu's mirrors can take over 16 minutes to install WebKit's system libraries (#92). Unbuilt lanes appear as notices and in the run summary. `test/ci.test.ts` and `checkWorkflow` keep the workflow within these limits:
 
 - It triggers only on pull requests and pushes to main, and has only `contents: read` permission.
 - It pins every action to a commit SHA and runs on `ubuntu-24.04`, a standard hosted runner that is free for public repositories.

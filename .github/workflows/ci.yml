@@ -48,7 +48,10 @@ jobs:
     name: ${{ matrix.name }}
     needs: plan
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # scripts/lanes.ts sets each job's limits: the whole job, the browser
+    # install, and the lane. A step that hits its limit fails the job, and the
+    # steps after it don't run.
+    timeout-minutes: ${{ matrix.jobMinutes }}
     strategy:
       fail-fast: false
       matrix:
@@ -85,9 +88,11 @@ jobs:
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-${{ matrix.project }}
       - name: Install the browser and its system libraries
         if: matrix.project
+        timeout-minutes: ${{ matrix.installMinutes }}
         run: node_modules/.bin/playwright install --with-deps "$PROJECT"
 
       - name: Run the lane
+        timeout-minutes: ${{ matrix.testMinutes }}
         run: bun run check "$LANE" ${PROJECT:+--project "$PROJECT"} --diagnostics .diagnostics
 
       # Diagnostics come from fixtures with invented data. They are uploaded

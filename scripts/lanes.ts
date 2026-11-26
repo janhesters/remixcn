@@ -18,7 +18,19 @@ export interface Lane {
   perNode?: boolean
   /** The ticket that adds the lane's script. */
   addedBy?: string
+  /** Time limits that differ from `defaultLimits`, by Playwright project. */
+  projectLimits?: Record<string, TimeLimits>
 }
+
+/** A CI job's limits in minutes: the whole job, the browser install step, and the lane's own step. */
+export interface TimeLimits {
+  job: number
+  install: number
+  test: number
+}
+
+/** The limits of every CI job without its own. The steps get the job's limit, so the job's limit decides. */
+export const defaultLimits: TimeLimits = { job: 20, install: 20, test: 20 }
 
 export const lanes: Lane[] = [
   { name: 'format', script: 'check:format', checks: 'Prettier formatting' },
@@ -44,6 +56,9 @@ export const lanes: Lane[] = [
     checks: 'end-to-end tests against local servers',
     tests: { pattern: /\.test\.e2e\.tsx?$/, label: '*.test.e2e.{ts,tsx}' },
     perProject: true,
+    // A slow Ubuntu mirror once took 16 min 27 s to install WebKit's system
+    // libraries, and the passing suite took 5 min 45 s (#92).
+    projectLimits: { webkit: { job: 40, install: 20, test: 12 } },
   },
   { name: 'components', script: 'check:components', checks: 'the catalog and browser-reachable imports' },
   { name: 'secrets', script: 'check:secrets', checks: 'no credentials in the repository' },
@@ -89,6 +104,13 @@ export interface MatrixEntry {
   name: string
   node: string
   project?: string
+  jobMinutes: number
+  installMinutes: number
+  testMinutes: number
+}
+
+function minutes({ job, install, test }: TimeLimits) {
+  return { jobMinutes: job, installMinutes: install, testMinutes: test }
 }
 
 /** Lists the CI jobs for the built lanes. `nodes[0]` is the Node version a lane runs on by default. */
@@ -104,11 +126,17 @@ export function laneMatrix(plans: LanePlan[], options: { nodes: string[]; projec
           name: `${lane.name} (${project})`,
           node: oldest,
           project,
+          ...minutes(lane.projectLimits?.[project] ?? defaultLimits),
         }))
       }
       if (lane.perNode) {
-        return options.nodes.map((node) => ({ lane: lane.name, name: `${lane.name} (Node ${node})`, node }))
+        return options.nodes.map((node) => ({
+          lane: lane.name,
+          name: `${lane.name} (Node ${node})`,
+          node,
+          ...minutes(defaultLimits),
+        }))
       }
-      return [{ lane: lane.name, name: lane.name, node: oldest }]
+      return [{ lane: lane.name, name: lane.name, node: oldest, ...minutes(defaultLimits) }]
     })
 }

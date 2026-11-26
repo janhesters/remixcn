@@ -40,6 +40,20 @@ describe('CI', () => {
     assert.deepEqual([...new Set(lines(/^\s*- run: (bun install.*)$/gm))], ['bun install --frozen-lockfile'])
   })
 
+  it("takes each lane job's limits from its matrix entry", () => {
+    let lane = read('.github/workflows/ci.yml').split(/^ {2}lane:$/m)[1]
+
+    assert.match(lane, /^ {4}timeout-minutes: \$\{\{ matrix\.jobMinutes \}\}$/m)
+    assert.match(
+      lane,
+      /- name: Install the browser and its system libraries\n(?: {8}.+\n)*? {8}timeout-minutes: \$\{\{ matrix\.installMinutes \}\}\n(?: {8}.+\n)*? {8}run: node_modules\/\.bin\/playwright install --with-deps "\$PROJECT"$/m,
+    )
+    assert.match(
+      lane,
+      /- name: Run the lane\n {8}timeout-minutes: \$\{\{ matrix\.testMinutes \}\}\n {8}run: bun run check "\$LANE"/,
+    )
+  })
+
   it('keys each cache by the lockfile or the Playwright version it holds', () => {
     let keys = lines(/^\s*key:\s*(.+)$/gm)
 
