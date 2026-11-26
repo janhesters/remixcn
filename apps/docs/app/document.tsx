@@ -6,10 +6,11 @@ import type { Handle, RemixNode } from 'remix/component'
 import { ImportMap } from 'remix/component/server'
 import type { ImportMapData } from 'remix/component/server'
 
+import { themeScript } from '../../../registry/lib/theme-keeper.ts'
+
 import type { DocsPage } from './page.ts'
 import { crumbsFor, navigation, searchEntries } from './pages.ts'
 import { DocsChrome } from './public/chrome.tsx'
-import { themeScript } from './public/theme.ts'
 import { canonicalUrl, href, pageTitle, repository, seoPhrase, siteName } from './site.ts'
 import { A, PageHeader } from './ui.tsx'
 import type { SectionInfo } from './ui.tsx'
