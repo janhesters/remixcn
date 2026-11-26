@@ -144,7 +144,8 @@ function onPress(stack: Stack, event: MouseEvent): boolean {
   })
 
   for (let entry of outside.reverse()) entry.options.onDismiss({ reason: 'outside-press', event })
-  return modal !== -1 && !isInside(stack, entries[modal], up, upPoint)
+  let modalEntry = entries[modal]
+  return modalEntry !== undefined && !isInside(stack, modalEntry, up, upPoint)
 }
 
 // Ahead of the page's own listeners, the mouse events and click that follow a

@@ -82,14 +82,16 @@ export function findTypeaheadMatch(
   let text = query.toLowerCase()
   if (text === '') return -1
 
-  let repeated = [...text].every((char) => char === text[0])
-  let search = repeated ? text[0] : text
+  let first = text.charAt(0)
+  let repeated = [...text].every((char) => char === first)
+  let search = repeated ? first : text
   let start = repeated ? current + 1 : Math.max(current, 0)
 
   for (let offset = 0; offset < labels.length; offset++) {
     let index = (start + offset) % labels.length
-    if (disabled[index]) continue
-    if (labels[index].trim().toLowerCase().startsWith(search)) return index
+    let label = labels[index]
+    if (disabled[index] || label === undefined) continue
+    if (label.trim().toLowerCase().startsWith(search)) return index
   }
   return -1
 }
@@ -318,10 +320,11 @@ export const rovingFocus: MixinFactory<HTMLElement, [options: RovingFocusOptions
         next = findTypeaheadMatch(items.map(getLabel), query, current, disabled)
         if (next === -1) return
       }
-      if (next === undefined) return
+      let item = next === undefined ? undefined : items[next]
+      if (item === undefined) return
 
       event.preventDefault()
-      activate(items[next], true)
+      activate(item, true)
     }
 
     function onFocusIn(event: FocusEvent) {
@@ -499,13 +502,14 @@ export const activeDescendant: MixinFactory<HTMLElement, [options: ActiveDescend
         next = findTypeaheadMatch(items.map(getLabel), query, current, disabled)
         if (next === -1) return
       }
-      if (next === undefined) return
+      let item = next === undefined ? undefined : items[next]
+      if (item === undefined) return
 
       event.preventDefault()
       if (next === current) return
-      if (options.highlight) options.highlight(items[next])
-      else highlightItem(host, items[next])
-      options.onActiveChange?.(items[next])
+      if (options.highlight) options.highlight(item)
+      else highlightItem(host, item)
+      options.onActiveChange?.(item)
     }
 
     handle.addEventListener('insert', (event) => {

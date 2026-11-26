@@ -57,13 +57,13 @@ describe('the packed remixcn executable', () => {
   }
 
   /** Copies the Remix 3.0.0 consumer fixture next to the workspace's installed packages. */
-  function createApp(name: string, config: Record<string, unknown>) {
+  function createApp(name: string, config: Record<string, unknown>, registryUrl = registry.url) {
     let app = join(scratch, name)
     cpSync(join(root, 'test/fixtures/consumer-app'), app, { recursive: true })
     symlinkSync(join(root, 'node_modules'), join(app, 'node_modules'), 'dir')
     writeFileSync(
       join(app, 'components.json'),
-      JSON.stringify({ registries: { '@remixcn': `${registry.url}{name}.json` }, ...config }),
+      JSON.stringify({ registries: { '@remixcn': `${registryUrl}{name}.json` }, ...config }),
     )
     return app
   }
@@ -237,6 +237,36 @@ describe('the packed remixcn executable', () => {
     )
     typecheck(app)
   })
+
+  it(
+    "installs the workspace registry's Dropdown Menu into an app that checks indexed access",
+    { timeout: 120_000 },
+    async () => {
+      let out = join(scratch, 'workspace-site/r')
+      let build = await runNode([bin, 'build', join(root, 'registry.json'), '--output', out], scratch)
+      assert.equal(build.status, 0, build.stderr)
+      let workspace = await serveRegistry(out, '/remixcn/r/')
+      try {
+        let app = createApp('dropdown-menu', {}, workspace.url)
+        let { compilerOptions } = JSON.parse(readFileSync(join(app, 'tsconfig.json'), 'utf8'))
+        assert.equal(compilerOptions.noUncheckedIndexedAccess, true)
+
+        await remixcn(['init', '--cwd', app])
+        let added = await remixcn(['add', 'dropdown-menu', '--cwd', app])
+        for (let file of [
+          'components/ui/dropdown-menu.tsx',
+          'lib/anchor-position.ts',
+          'lib/composite.ts',
+          'lib/layer.ts',
+        ]) {
+          assert.ok(added.stdout.includes(`app/ui/public/${file}`), added.stdout)
+        }
+        typecheck(app)
+      } finally {
+        await workspace.close()
+      }
+    },
+  )
 
   it(
     "serves the registries remixcn init configures through its MCP server, as shadcn's MCP server finds them",
