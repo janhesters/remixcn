@@ -13,10 +13,10 @@ index ca5dca612b71f77188b75c2191fbea94a6341eda..cb6bbeac64b669f59c880485715c9c38
              if (event.source !== iframe.contentWindow)
                  return;
 diff --git a/dist/lib/context.js b/dist/lib/context.js
-index a1f31bba577b470f37dc3aabaf36169a54dba3bc..04237c7a61908389ed9b391088a1af851c85b92b 100644
+index a1f31bba577b470f37dc3aabaf36169a54dba3bc..6a490481957d58f76af2d0305c72dba21717e0ba 100644
 --- a/dist/lib/context.js
 +++ b/dist/lib/context.js
-@@ -1,7 +1,16 @@
+@@ -1,24 +1,47 @@
  import { createFakeTimers } from './fake-timers.js';
  import { mock } from './mock.js';
  export function createTestContext(options) {
@@ -25,20 +25,34 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..04237c7a61908389ed9b391088a1af85
 +    // released without them. Each server closes once: a release waits for a
 +    // close its cleanup started. Once released, a t.serve() call that resumes
 +    // closes what it opened. A beforeStep that throws keeps the rest from
-+    // starting.
++    // starting. The restores of t.mock.method() and t.useFakeTimers() keep their
++    // place in the queue and run once: a release runs those a stalled cleanup
++    // kept from running, so the next test starts with the original methods and
++    // real timers.
      let cleanups = [];
 +    let openServers = new Map();
++    let pendingRestores = new Set();
++    let runnerRestore = (restore) => {
++        let once = () => {
++            if (pendingRestores.delete(once))
++                restore();
++        };
++        pendingRestores.add(once);
++        return once;
++    };
 +    let released = false;
 +    let afterCount = 0;
      let testContext = {
          signal: options?.signal ?? new AbortController().signal,
          mock: {
-@@ -9,16 +18,17 @@ export function createTestContext(options) {
+             fn: mock.fn,
              method(obj, methodName, impl) {
                  let mockFn = mock.method(obj, methodName, impl);
-                 if (mockFn.mock.restore)
+-                if (mockFn.mock.restore)
 -                    cleanups.push(mockFn.mock.restore);
-+                    cleanups.push({ label: 't.mock.method() restore', fn: mockFn.mock.restore });
++                if (mockFn.mock.restore) {
++                    cleanups.push({ label: 't.mock.method() restore', fn: runnerRestore(mockFn.mock.restore) });
++                }
                  return mockFn;
              },
          },
@@ -50,11 +64,11 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..04237c7a61908389ed9b391088a1af85
          useFakeTimers() {
              let timers = createFakeTimers();
 -            cleanups.push(timers.restore);
-+            cleanups.push({ label: 't.useFakeTimers() restore', fn: timers.restore });
++            cleanups.push({ label: 't.useFakeTimers() restore', fn: runnerRestore(timers.restore) });
              return timers;
          },
          async serve(server) {
-@@ -26,10 +36,21 @@ export function createTestContext(options) {
+@@ -26,10 +49,21 @@ export function createTestContext(options) {
              if (!e2e) {
                  throw new Error('t.serve() is only available in E2E test suites');
              }
@@ -76,7 +90,7 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..04237c7a61908389ed9b391088a1af85
              if (e2e.playwrightPageOptions?.navigationTimeout != null) {
                  page.setDefaultNavigationTimeout(e2e.playwrightPageOptions.navigationTimeout);
              }
-@@ -39,29 +60,43 @@ export function createTestContext(options) {
+@@ -39,29 +73,45 @@ export function createTestContext(options) {
              let coverageEnabled = e2e.coverage && e2e.browser.browserType().name() === 'chromium';
              if (coverageEnabled) {
                  await page.coverage.startJSCoverage({ resetOnNavigation: false });
@@ -129,12 +143,14 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..04237c7a61908389ed9b391088a1af85
          },
 +        async release() {
 +            released = true;
++            for (let restore of pendingRestores)
++                restore();
 +            await Promise.all([...openServers.values()].map((close) => close()));
 +        },
      };
  }
 diff --git a/dist/lib/executor.js b/dist/lib/executor.js
-index 9fe0f226196b49fad958ab6cc2744561a9d4be57..87ea5cc49b31dfa57da1e1e9d0694e135afe2639 100644
+index 9fe0f226196b49fad958ab6cc2744561a9d4be57..8dc28ae50a5b191240951bcc437e050ae333469e 100644
 --- a/dist/lib/executor.js
 +++ b/dist/lib/executor.js
 @@ -1,4 +1,9 @@
@@ -316,7 +332,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..87ea5cc49b31dfa57da1e1e9d0694e13
      return results;
  }
  function createE2EOptions(options, addE2ECoverageEntries) {
-@@ -201,10 +279,85 @@ function createPendingResult(name, suiteName, status, reason) {
+@@ -201,10 +279,86 @@ function createPendingResult(name, suiteName, status, reason) {
          result.reason = reason;
      return result;
  }
@@ -390,13 +406,14 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..87ea5cc49b31dfa57da1e1e9d0694e13
 +function isDeadlineError(error) {
 +    return error instanceof Error && error.name === 'DeadlineError';
 +}
-+// Closes what a test still holds. Returns the failure, if any, that names the
-+// phase: its deadline, or the error a close threw.
++// Closes what a test still holds, after the release has restored the methods
++// and timers a stalled cleanup left mocked. Returns the failure, if any, that
++// names the phase: its deadline, or the error a close threw.
 +async function releaseRun(contexts, release, ms, stalled) {
 +    let phase = 'the release of its open contexts and t.serve() servers';
 +    try {
 +        await withinDeadline(async () => {
-+            await Promise.all([...contexts.map((context) => context.close()), release()]);
++            await Promise.all([release(), ...contexts.map((context) => context.close())]);
 +        }, ms, (ms) => stalled(phase, ms));
 +        return undefined;
 +    }
@@ -405,7 +422,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..87ea5cc49b31dfa57da1e1e9d0694e13
      }
  }
  async function runRunnable(label, fn, options, abortController, ...signals) {
-@@ -277,10 +430,12 @@ function createHookFailure(hookName, error) {
+@@ -277,10 +431,12 @@ function createHookFailure(hookName, error) {
      let cause = error instanceof Error ? error : new Error(String(error));
      return new Error(`${hookName} failed: ${cause.message}`, { cause });
  }
@@ -421,7 +438,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..87ea5cc49b31dfa57da1e1e9d0694e13
          stack =
              stack && secondaryError.stack
 diff --git a/dist/lib/worker-e2e-file.js b/dist/lib/worker-e2e-file.js
-index 234b917adde69b5a2f81bbcc7c50acd18d590641..e47af0b9ffc3480ab4ef2a8e018379c8206c6c20 100644
+index 234b917adde69b5a2f81bbcc7c50acd18d590641..f57b7a59531cf6b5ed6f569cf118f5ffe64a6782 100644
 --- a/dist/lib/worker-e2e-file.js
 +++ b/dist/lib/worker-e2e-file.js
 @@ -1,3 +1,5 @@
@@ -448,18 +465,16 @@ index 234b917adde69b5a2f81bbcc7c50acd18d590641..e47af0b9ffc3480ab4ef2a8e018379c8
              });
              if (workerData.open) {
                  await onOpenResults?.(results);
-@@ -25,13 +31,22 @@ export async function runE2ETestFile(value, onOpenResults) {
+@@ -25,13 +31,20 @@ export async function runE2ETestFile(value, onOpenResults) {
                  await new Promise((resolve) => browser.on('disconnected', () => resolve()));
                  return undefined;
              }
 -            await browser.close();
              browserClosed = true;
-+            if (!(await closeBrowser(browser, deadlines.browserClose))) {
++            let closeError = await closeBrowser(browser, file, deadlines.browserClose);
++            if (closeError) {
 +                // The file fails, after the results of its tests, and its worker retires.
-+                let error = new Error(`Stalled in browser.close(): ${file} gave no result within its ${deadlines.browserClose}ms deadline`);
-+                error.name = 'DeadlineError';
-+                error.stack = `${error.name}: ${error.message}`;
-+                let failed = createFailedResults(error);
++                let failed = createFailedResults(closeError);
 +                results.tests.push(...failed.tests);
 +                results.failed += failed.failed;
 +                results.retireWorker = true;
@@ -469,11 +484,11 @@ index 234b917adde69b5a2f81bbcc7c50acd18d590641..e47af0b9ffc3480ab4ef2a8e018379c8
          finally {
              if (!browserClosed) {
 -                await browser.close();
-+                await closeBrowser(browser, deadlines.browserClose);
++                await closeBrowser(browser, file, deadlines.browserClose);
              }
          }
      }
-@@ -39,6 +54,41 @@ export async function runE2ETestFile(value, onOpenResults) {
+@@ -39,6 +52,56 @@ export async function runE2ETestFile(value, onOpenResults) {
          return createFailedResults(error);
      }
  }
@@ -498,19 +513,34 @@ index 234b917adde69b5a2f81bbcc7c50acd18d590641..e47af0b9ffc3480ab4ef2a8e018379c8
 +    let ms = Number(value);
 +    return value !== undefined && Number.isSafeInteger(ms) && ms > 0 ? ms : undefined;
 +}
-+// Whether the browser closed within the deadline. If not, the worker retires,
-+// and Playwright kills the browser as the process exits.
-+async function closeBrowser(browser, ms) {
++// Closes the browser. Returns the failure, if any, that names the file and
++// browser.close(): its missed deadline, or the reason the close rejected. Then
++// the worker retires, and Playwright kills the browser as the process exits.
++async function closeBrowser(browser, file, ms) {
 +    let timeoutId;
 +    let timedOut = new Promise((resolve) => {
-+        timeoutId = runnerSetTimeout(() => resolve(false), ms);
++        timeoutId = runnerSetTimeout(() => {
++            resolve(createCloseError('DeadlineError', `Stalled in browser.close(): ${file} gave no result within its ${ms}ms deadline`));
++        }, ms);
 +    });
++    let closed = Promise.resolve()
++        .then(() => browser.close())
++        .then(() => undefined, (reason) => createCloseError('Error', `Failed in browser.close(): ${file} rejected with ${describeReason(reason)}`));
 +    try {
-+        return await Promise.race([browser.close().then(() => true), timedOut]);
++        return await Promise.race([closed, timedOut]);
 +    }
 +    finally {
 +        runnerClearTimeout(timeoutId);
 +    }
++}
++function createCloseError(name, message) {
++    let error = new Error(message);
++    error.name = name;
++    error.stack = `${error.name}: ${error.message}`;
++    return error;
++}
++function describeReason(reason) {
++    return reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason);
 +}
  function parseE2ETestWorkerData(value) {
      if (!isRecord(value) || typeof value.file !== 'string') {
@@ -564,10 +594,10 @@ index 36e671a959f3ddb206a2c394faa278a497d6a64a..0fe4f81a9946170ca7b3a0da450d2433
      function onMessage(event: MessageEvent) {
        if (event.source !== iframe.contentWindow) return
 diff --git a/src/lib/context.ts b/src/lib/context.ts
-index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658931d458c 100644
+index f8e014772a7d00065943b292348c037fe0b754de..40f5e3b94ede1fca5a71c08f94353a19694f72a2 100644
 --- a/src/lib/context.ts
 +++ b/src/lib/context.ts
-@@ -107,9 +107,19 @@ export interface CreateTestContextE2EOptions {
+@@ -107,9 +107,30 @@ export interface CreateTestContextE2EOptions {
  
  export function createTestContext(options?: CreateTestContextOptions): {
    testContext: TestContext
@@ -581,20 +611,33 @@ index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658
 +  // released without them. Each server closes once: a release waits for a
 +  // close its cleanup started. Once released, a t.serve() call that resumes
 +  // closes what it opened. A beforeStep that throws keeps the rest from
-+  // starting.
++  // starting. The restores of t.mock.method() and t.useFakeTimers() keep their
++  // place in the queue and run once: a release runs those a stalled cleanup
++  // kept from running, so the next test starts with the original methods and
++  // real timers.
 +  let cleanups: Array<{ label: string; fn: () => void | Promise<void> }> = []
 +  let openServers = new Map<TestServer, () => Promise<void>>()
++  let pendingRestores = new Set<() => void>()
++  let runnerRestore = (restore: () => void) => {
++    let once = () => {
++      if (pendingRestores.delete(once)) restore()
++    }
++    pendingRestores.add(once)
++    return once
++  }
 +  let released = false
 +  let afterCount = 0
  
    let testContext: TestContext = {
      signal: options?.signal ?? new AbortController().signal,
-@@ -117,16 +127,17 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -117,16 +138,19 @@ export function createTestContext(options?: CreateTestContextOptions): {
        fn: mock.fn,
        method(obj, methodName, impl) {
          let mockFn = mock.method(obj, methodName, impl as any)
 -        if (mockFn.mock.restore) cleanups.push(mockFn.mock.restore)
-+        if (mockFn.mock.restore) cleanups.push({ label: 't.mock.method() restore', fn: mockFn.mock.restore })
++        if (mockFn.mock.restore) {
++          cleanups.push({ label: 't.mock.method() restore', fn: runnerRestore(mockFn.mock.restore) })
++        }
          return mockFn
        },
      },
@@ -606,11 +649,11 @@ index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658
      useFakeTimers() {
        let timers = createFakeTimers()
 -      cleanups.push(timers.restore)
-+      cleanups.push({ label: 't.useFakeTimers() restore', fn: timers.restore })
++      cleanups.push({ label: 't.useFakeTimers() restore', fn: runnerRestore(timers.restore) })
        return timers
      },
      async serve(server) {
-@@ -135,10 +146,21 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -135,10 +159,21 @@ export function createTestContext(options?: CreateTestContextOptions): {
          throw new Error('t.serve() is only available in E2E test suites')
        }
  
@@ -632,7 +675,7 @@ index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658
        if (e2e.playwrightPageOptions?.navigationTimeout != null) {
          page.setDefaultNavigationTimeout(e2e.playwrightPageOptions.navigationTimeout)
        }
-@@ -149,20 +171,27 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -149,20 +184,27 @@ export function createTestContext(options?: CreateTestContextOptions): {
        let coverageEnabled = e2e.coverage && e2e.browser.browserType().name() === 'chromium'
        if (coverageEnabled) {
          await page.coverage.startJSCoverage({ resetOnNavigation: false })
@@ -671,7 +714,7 @@ index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658
        })
  
        return page
-@@ -171,10 +200,18 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -171,10 +213,19 @@ export function createTestContext(options?: CreateTestContextOptions): {
  
    return {
      testContext,
@@ -687,13 +730,14 @@ index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658
      },
 +    async release() {
 +      released = true
++      for (let restore of pendingRestores) restore()
 +      await Promise.all([...openServers.values()].map((close) => close()))
 +    },
    }
  }
  
 diff --git a/src/lib/executor.ts b/src/lib/executor.ts
-index 0e65008f2b95420e4b28c0431cc05338efa8f654..3d73317726d4630ea6187ab0f8202be26b1df35d 100644
+index 0e65008f2b95420e4b28c0431cc05338efa8f654..565ef7f6cd9efcdb49897edeef3840627d0623d3 100644
 --- a/src/lib/executor.ts
 +++ b/src/lib/executor.ts
 @@ -38,8 +38,30 @@ type RunTestsE2EOptions = Omit<CreateTestContextE2EOptions, 'addE2ECoverageEntri
@@ -974,7 +1018,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..3d73317726d4630ea6187ab0f8202be2
    return results
  }
  
-@@ -307,10 +466,147 @@ async function runLifecycleHooks(
+@@ -307,10 +466,148 @@ async function runLifecycleHooks(
    abortController?: AbortController,
    inheritedSignal?: AbortSignal,
    reverse = false,
@@ -1101,8 +1145,9 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..3d73317726d4630ea6187ab0f8202be2
 +  return error instanceof Error && error.name === 'DeadlineError'
 +}
 +
-+// Closes what a test still holds. Returns the failure, if any, that names the
-+// phase: its deadline, or the error a close threw.
++// Closes what a test still holds, after the release has restored the methods
++// and timers a stalled cleanup left mocked. Returns the failure, if any, that
++// names the phase: its deadline, or the error a close threw.
 +async function releaseRun(
 +  contexts: Array<{ close(): Promise<void> }>,
 +  release: () => Promise<void>,
@@ -1113,7 +1158,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..3d73317726d4630ea6187ab0f8202be2
 +  try {
 +    await withinDeadline(
 +      async () => {
-+        await Promise.all([...contexts.map((context) => context.close()), release()])
++        await Promise.all([release(), ...contexts.map((context) => context.close())])
 +      },
 +      ms,
 +      (ms) => stalled(phase, ms),
@@ -1124,7 +1169,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..3d73317726d4630ea6187ab0f8202be2
    }
  }
  
-@@ -407,12 +703,13 @@ function createHookFailure(hookName: string, error: unknown): Error {
+@@ -407,12 +704,13 @@ function createHookFailure(hookName: string, error: unknown): Error {
  
  function createTestError(
    primaryError: unknown,
@@ -1154,7 +1199,7 @@ index c432ddeb959c52286136c3dae9d0aba298fb17d6..167cce1287c36ffeed5d6e5db0cb8098
  
  export type Counts = {
 diff --git a/src/lib/worker-e2e-file.ts b/src/lib/worker-e2e-file.ts
-index 845271c7e1344f3c3aba3e5928a960f9931e756d..7566f94e0c8910c405a5c85494ce7b42be139990 100644
+index 845271c7e1344f3c3aba3e5928a960f9931e756d..1ac9219bd7b9849b0e01ba538df008523ea33098 100644
 --- a/src/lib/worker-e2e-file.ts
 +++ b/src/lib/worker-e2e-file.ts
 @@ -1,4 +1,6 @@
@@ -1183,20 +1228,16 @@ index 845271c7e1344f3c3aba3e5928a960f9931e756d..7566f94e0c8910c405a5c85494ce7b42
        })
  
        if (workerData.open) {
-@@ -50,12 +56,23 @@ export async function runE2ETestFile(
+@@ -50,12 +56,19 @@ export async function runE2ETestFile(
          return undefined
        }
  
 -      await browser.close()
        browserClosed = true
-+      if (!(await closeBrowser(browser, deadlines.browserClose))) {
++      let closeError = await closeBrowser(browser, file, deadlines.browserClose)
++      if (closeError) {
 +        // The file fails, after the results of its tests, and its worker retires.
-+        let error = new Error(
-+          `Stalled in browser.close(): ${file} gave no result within its ${deadlines.browserClose}ms deadline`,
-+        )
-+        error.name = 'DeadlineError'
-+        error.stack = `${error.name}: ${error.message}`
-+        let failed = createFailedResults(error)
++        let failed = createFailedResults(closeError)
 +        results.tests.push(...failed.tests)
 +        results.failed += failed.failed
 +        results.retireWorker = true
@@ -1205,11 +1246,11 @@ index 845271c7e1344f3c3aba3e5928a960f9931e756d..7566f94e0c8910c405a5c85494ce7b42
      } finally {
        if (!browserClosed) {
 -        await browser.close()
-+        await closeBrowser(browser, deadlines.browserClose)
++        await closeBrowser(browser, file, deadlines.browserClose)
        }
      }
    } catch (error) {
-@@ -63,6 +80,45 @@ export async function runE2ETestFile(
+@@ -63,6 +76,78 @@ export async function runE2ETestFile(
    }
  }
  
@@ -1238,18 +1279,51 @@ index 845271c7e1344f3c3aba3e5928a960f9931e756d..7566f94e0c8910c405a5c85494ce7b42
 +  return value !== undefined && Number.isSafeInteger(ms) && ms > 0 ? ms : undefined
 +}
 +
-+// Whether the browser closed within the deadline. If not, the worker retires,
-+// and Playwright kills the browser as the process exits.
-+async function closeBrowser(browser: { close(): Promise<void> }, ms: number): Promise<boolean> {
++// Closes the browser. Returns the failure, if any, that names the file and
++// browser.close(): its missed deadline, or the reason the close rejected. Then
++// the worker retires, and Playwright kills the browser as the process exits.
++async function closeBrowser(
++  browser: { close(): Promise<void> },
++  file: string,
++  ms: number,
++): Promise<Error | undefined> {
 +  let timeoutId: ReturnType<typeof setTimeout> | undefined
-+  let timedOut = new Promise<false>((resolve) => {
-+    timeoutId = runnerSetTimeout(() => resolve(false), ms)
++  let timedOut = new Promise<Error>((resolve) => {
++    timeoutId = runnerSetTimeout(() => {
++      resolve(
++        createCloseError(
++          'DeadlineError',
++          `Stalled in browser.close(): ${file} gave no result within its ${ms}ms deadline`,
++        ),
++      )
++    }, ms)
 +  })
++  let closed = Promise.resolve()
++    .then(() => browser.close())
++    .then(
++      () => undefined,
++      (reason: unknown) =>
++        createCloseError(
++          'Error',
++          `Failed in browser.close(): ${file} rejected with ${describeReason(reason)}`,
++        ),
++    )
 +  try {
-+    return await Promise.race([browser.close().then(() => true), timedOut])
++    return await Promise.race([closed, timedOut])
 +  } finally {
 +    runnerClearTimeout(timeoutId)
 +  }
++}
++
++function createCloseError(name: string, message: string): Error {
++  let error = new Error(message)
++  error.name = name
++  error.stack = `${error.name}: ${error.message}`
++  return error
++}
++
++function describeReason(reason: unknown): string {
++  return reason instanceof Error ? `${reason.name}: ${reason.message}` : String(reason)
 +}
 +
  function parseE2ETestWorkerData(value: unknown): E2ETestWorkerData {

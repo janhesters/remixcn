@@ -119,7 +119,11 @@ async function runFixture(
   let fileFailures = [...output.matchAll(/^not ok \d+ - {2}# e2e:\w+\n {2}---\n {2}message: (.+)$/gm)].map(
     ([, message]) => message,
   )
-  return { status, output, elapsed, leftovers, results, fileFailures }
+  // Every result in TAP's order, a file's own failure with its message.
+  let tap = [
+    ...output.matchAll(/^(ok|not ok) \d+ - (.*?) # e2e:\w+( # SKIP)?(?:\n {2}---\n {2}message: (.+))?$/gm),
+  ].map(([, result, test, skip, message]) => (test ? `${result} ${test}${skip ?? ''}` : `${result} file: ${message}`))
+  return { status, output, elapsed, leftovers, results, fileFailures, tap }
 }
 
 function stalled(phase: string, file: string, test: string, ms: number) {
@@ -327,6 +331,55 @@ describe('the end-to-end runner deadlines', () => {
         output,
         /^Retired the test worker for test\/fixtures\/e2e-deadlines\/browser-close-stall\.test\.e2e\.ts/m,
       )
+      assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+      assert.deepEqual(leftovers, [])
+    },
+  )
+
+  it(
+    'fails a file whose browser close rejects after its tests pass, and keeps the test results first',
+    runTimeout,
+    async (t) => {
+      let { status, output, elapsed, leftovers, tap } = await runFixture(t, 'browser-close-rejects')
+
+      assert.equal(status, 1, output)
+      assert.deepEqual(
+        tap,
+        [
+          'ok browser close rejects > passes, and makes its browser’s close reject',
+          'ok browser close rejects > passes after it',
+          `not ok file: Failed in browser.close(): ${fixtures}/browser-close-rejects.test.e2e.ts rejected with Error: Invented close failure`,
+        ],
+        output,
+      )
+      assert.match(output, /^# pass 2\n# fail 1$/m)
+      assert.match(
+        output,
+        /^Retired the test worker for test\/fixtures\/e2e-deadlines\/browser-close-rejects\.test\.e2e\.ts/m,
+      )
+      assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+      assert.deepEqual(leftovers, [])
+    },
+  )
+
+  it(
+    'restores a method mock and fake timers queued behind a stalled cleanup before the next test starts',
+    runTimeout,
+    async (t) => {
+      let { status, output, elapsed, leftovers, results } = await runFixture(t, 'restore-after-stall')
+      let test = 'restore after stall > mocks a method and fakes timers behind a stalled cleanup'
+
+      assert.equal(status, 1, output)
+      assert.deepEqual(
+        results,
+        [`not ok ${test}`, 'ok restore after stall > starts with the original method and real timers'],
+        output,
+      )
+      assert.ok(
+        output.includes(stalled('t.after() callback 1', 'restore-after-stall', test, deadlines.cleanup)),
+        output,
+      )
+      assert.ok(!output.includes('Retired the test worker'), output)
       assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
       assert.deepEqual(leftovers, [])
     },
