@@ -55,7 +55,7 @@ describe('workspace', () => {
     for (let file of packageFiles) assert.equal(readJson(file).engines.node, '>=24.3.0', file)
   })
 
-  it('patches the browser test runner at the version bun.lock pins, in its served file and its source', () => {
+  it('patches the test runner at the version bun.lock pins, in its shipped files and their source', () => {
     let lock = readLockfile()
     let [runner] = lock.packages['@remix-run/test']
     let patches = { [runner]: `patches/${runner.replace('/', '%2F')}.patch` }
@@ -64,7 +64,19 @@ describe('workspace', () => {
     assert.deepEqual(lock.patchedDependencies, patches)
     assert.deepEqual(
       [...read(patches[runner]).matchAll(/^\+\+\+ b\/(.+)$/gm)].map(([, file]) => file),
-      ['dist/app/client/entry.js', 'src/app/client/entry.ts'],
+      [
+        'dist/app/client/entry.js',
+        'dist/lib/context.js',
+        'dist/lib/executor.js',
+        'dist/lib/worker-e2e-file.js',
+        'dist/lib/worker-process.js',
+        'src/app/client/entry.ts',
+        'src/lib/context.ts',
+        'src/lib/executor.ts',
+        'src/lib/reporters/results.ts',
+        'src/lib/worker-e2e-file.ts',
+        'src/lib/worker-process.ts',
+      ],
     )
   })
 
