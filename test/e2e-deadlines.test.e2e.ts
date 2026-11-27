@@ -15,14 +15,16 @@ const fixtures = 'test/fixtures/e2e-deadlines'
 
 // Short deadlines for the fixture runs, set through the patched runner's
 // environment. The lanes run with its defaults: 60 seconds for each setup hook
-// and test body, 30 for a test's cleanup, and 5 to release what a stalled
-// cleanup left open.
-const deadlines = { run: 15_000, cleanup: 5_000, release: 5_000 }
+// and test body, 30 for a test's cleanup and for closing the browser at the
+// end of a file, and 5 to release what a stalled cleanup left open. Only the
+// fixtures whose browser never closes shorten the close: a real browser on a
+// busy CI machine can take longer than 5 seconds to close.
+const deadlines = { run: 15_000, cleanup: 5_000, release: 5_000, browserClose: 5_000 }
 
 // The longest a stalled file may keep the command open: its body and cleanup
-// deadlines, the release, and closing the browser, plus starting the runner
-// and a browser on a busy CI machine.
-const bound = deadlines.run + deadlines.cleanup + deadlines.release + deadlines.cleanup + 30_000
+// deadlines, the release, and a browser close that stalls, plus starting the
+// runner and a browser on a busy CI machine.
+const bound = deadlines.run + deadlines.cleanup + deadlines.release + deadlines.browserClose + 30_000
 
 /** The engine this test runs in. Its Playwright project has the same name. */
 async function currentEngine(t: TestContext) {
@@ -73,10 +75,16 @@ async function findLeftovers(output: string) {
 
 /**
  * Runs one fixture file through the installed `remix test` end-to-end runner,
- * in the current engine with the lanes' Playwright config. Returns its exit
- * status, its output, how long it ran, and the processes it left behind.
+ * in the current engine with the lanes' Playwright config, the fixtures' cleanup
+ * deadline or the one given, and the default browser-close deadline unless one
+ * is given. Returns its exit status, its output, how long it ran, and the
+ * processes it left behind.
  */
-async function runFixture(t: TestContext, name: string) {
+async function runFixture(
+  t: TestContext,
+  name: string,
+  { cleanup = deadlines.cleanup, browserClose }: { cleanup?: number; browserClose?: number } = {},
+) {
   let engine = await currentEngine(t)
   let args = [remix, '--config', `${fixtures}/remix.json`, 'test', '--project', engine, '--reporter', 'tap']
   let started = performance.now()
@@ -88,7 +96,8 @@ async function runFixture(t: TestContext, name: string) {
     env: {
       ...process.env,
       REMIXCN_E2E_RUN_DEADLINE_MS: String(deadlines.run),
-      REMIXCN_E2E_CLEANUP_DEADLINE_MS: String(deadlines.cleanup),
+      REMIXCN_E2E_CLEANUP_DEADLINE_MS: String(cleanup),
+      ...(browserClose ? { REMIXCN_E2E_BROWSER_CLOSE_DEADLINE_MS: String(browserClose) } : {}),
     },
   })
   t.after(() => {
@@ -106,11 +115,19 @@ async function runFixture(t: TestContext, name: string) {
   let results = [...output.matchAll(/^(ok|not ok) \d+ - (.+?) # e2e:\w+( # SKIP)?/gm)].map(
     ([, result, test, skip]) => `${result} ${test}${skip ?? ''}`,
   )
-  return { status, output, elapsed, leftovers, results }
+  // A file's own failure, such as a browser that never closed, has no test name.
+  let fileFailures = [...output.matchAll(/^not ok \d+ - {2}# e2e:\w+\n {2}---\n {2}message: (.+)$/gm)].map(
+    ([, message]) => message,
+  )
+  return { status, output, elapsed, leftovers, results, fileFailures }
 }
 
 function stalled(phase: string, file: string, test: string, ms: number) {
   return `Stalled in ${phase}: ${fixtures}/${file}.test.e2e.ts > ${test} gave no result within its ${ms}ms deadline`
+}
+
+function stalledFile(phase: string, file: string, ms: number) {
+  return `Stalled in ${phase}: ${fixtures}/${file}.test.e2e.ts gave no result within its ${ms}ms deadline`
 }
 
 // Longer than a fixture run's bound, so a run that overstays it fails here.
@@ -162,6 +179,158 @@ describe('the end-to-end runner deadlines', () => {
     assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
     assert.deepEqual(leftovers, [])
   })
+
+  it(
+    'starts no cleanup or hook of an expired teardown when its stalled cleanup resumes during the next test',
+    runTimeout,
+    async (t) => {
+      let { status, output, elapsed, leftovers, results } = await runFixture(t, 'late-cleanup')
+      let test = 'late cleanup > registers a cleanup that resumes during the next test'
+
+      assert.equal(status, 1, output)
+      assert.deepEqual(results, [`not ok ${test}`, 'ok late cleanup > runs while the stalled cleanup resumes'], output)
+      assert.ok(output.includes(stalled('t.after() callback 1', 'late-cleanup', test, deadlines.cleanup)), output)
+      assert.ok(!output.includes('Retired the test worker'), output)
+      assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+      assert.deepEqual(leftovers, [])
+    },
+  )
+
+  it('starts no later afterAll hook once a stalled one resumes after its deadline', runTimeout, async (t) => {
+    let { status, output, elapsed, leftovers, results, fileFailures } = await runFixture(t, 'late-after-all', {
+      browserClose: deadlines.browserClose,
+    })
+
+    assert.equal(status, 1, output)
+    assert.deepEqual(
+      results,
+      ['ok late afterAll > passes, and holds the browser open', 'not ok late afterAll > afterAll'],
+      output,
+    )
+    assert.ok(
+      output.includes(
+        `afterAll failed: Stalled in afterAll hook 1: ${fixtures}/late-after-all.test.e2e.ts > late afterAll gave no result within its ${deadlines.cleanup}ms deadline`,
+      ),
+      output,
+    )
+    assert.deepEqual(fileFailures, [stalledFile('browser.close()', 'late-after-all', deadlines.browserClose)], output)
+    assert.ok(!output.includes('late afterAll hook started'), output)
+    assert.match(output, /^Retired the test worker for test\/fixtures\/e2e-deadlines\/late-after-all\.test\.e2e\.ts/m)
+    assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+    assert.deepEqual(leftovers, [])
+  })
+
+  it('stops a teardown whose step overruns its deadline before the deadline’s timer fires', runTimeout, async (t) => {
+    let cleanup = 1_000
+    let { status, output, elapsed, leftovers, results } = await runFixture(t, 'overdue-teardown', { cleanup })
+    let test = 'overdue cleanup > registers a cleanup that overruns its deadline'
+    let chains = [1, 2, 3, 4, 5, 6, 7, 8].map(
+      (length) => `overdue afterEach > overruns ${length} microtasks after its first afterEach hook returns`,
+    )
+    let throwing = 'overdue afterEach that throws > overruns in an afterEach hook that throws'
+
+    assert.equal(status, 1, output)
+    assert.deepEqual(
+      results,
+      [
+        `not ok ${test}`,
+        'ok overdue cleanup > runs after the overdue cleanup',
+        ...chains.map((chain) => `not ok ${chain}`),
+        `not ok ${throwing}`,
+        'ok overdue afterEach that throws > runs after the throwing afterEach hook',
+        'ok overdue afterAll > passes',
+        'not ok overdue afterAll > afterAll',
+      ],
+      output,
+    )
+    assert.ok(output.includes(stalled('t.after() callback 1', 'overdue-teardown', test, cleanup)), output)
+    for (let chain of chains) {
+      assert.match(
+        output,
+        new RegExp(
+          `Stalled in afterEach hook [12]: ${fixtures}/overdue-teardown\\.test\\.e2e\\.ts > ${chain} gave no result within its ${cleanup}ms deadline`,
+        ),
+      )
+    }
+    assert.ok(output.includes(stalled('afterEach hook', 'overdue-teardown', throwing, cleanup)), output)
+    assert.ok(!output.includes('late afterEach failure'), output)
+    assert.ok(
+      output.includes(
+        `afterAll failed: Stalled in afterAll hook 1: ${fixtures}/overdue-teardown.test.e2e.ts > overdue afterAll gave no result within its ${cleanup}ms deadline`,
+      ),
+      output,
+    )
+    assert.doesNotMatch(output, /^late .+ started$/m)
+    assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+    assert.deepEqual(leftovers, [])
+  })
+
+  it(
+    'fails an afterAll hook that overruns its deadline and throws as stalled, and retires its worker',
+    runTimeout,
+    async (t) => {
+      let cleanup = 1_000
+      let { status, output, elapsed, leftovers, results } = await runFixture(t, 'overdue-after-all-throws', {
+        cleanup,
+      })
+
+      assert.equal(status, 1, output)
+      assert.deepEqual(
+        results,
+        [
+          'ok overdue afterAll that throws > passes',
+          'not ok overdue afterAll that throws > afterAll',
+          'ok after the overdue afterAll > never runs once its worker retires # SKIP',
+        ],
+        output,
+      )
+      assert.ok(
+        output.includes(
+          `afterAll failed: Stalled in afterAll hook: ${fixtures}/overdue-after-all-throws.test.e2e.ts > overdue afterAll that throws gave no result within its ${cleanup}ms deadline`,
+        ),
+        output,
+      )
+      assert.ok(!output.includes('late afterAll failure'), output)
+      assert.match(
+        output,
+        /^Retired the test worker for test\/fixtures\/e2e-deadlines\/overdue-after-all-throws\.test\.e2e\.ts/m,
+      )
+      assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+      assert.deepEqual(leftovers, [])
+    },
+  )
+
+  it(
+    'fails a file whose tests pass but whose browser never closes, and keeps the test results',
+    runTimeout,
+    async (t) => {
+      let { status, output, elapsed, leftovers, results, fileFailures } = await runFixture(t, 'browser-close-stall', {
+        browserClose: deadlines.browserClose,
+      })
+
+      assert.equal(status, 1, output)
+      assert.deepEqual(
+        results,
+        [
+          'ok browser close stall > passes, and keeps its browser from closing',
+          'ok browser close stall > passes after it',
+        ],
+        output,
+      )
+      assert.deepEqual(
+        fileFailures,
+        [stalledFile('browser.close()', 'browser-close-stall', deadlines.browserClose)],
+        output,
+      )
+      assert.match(output, /^# pass 2\n# fail 1$/m)
+      assert.match(
+        output,
+        /^Retired the test worker for test\/fixtures\/e2e-deadlines\/browser-close-stall\.test\.e2e\.ts/m,
+      )
+      assert.ok(elapsed < bound, `ran ${Math.round(elapsed)}ms\n${output}`)
+      assert.deepEqual(leftovers, [])
+    },
+  )
 
   it(
     'frees a server whose close waits on the test’s own context, and runs the next test in the same worker',
