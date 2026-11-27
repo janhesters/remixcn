@@ -13,10 +13,10 @@ index ca5dca612b71f77188b75c2191fbea94a6341eda..cb6bbeac64b669f59c880485715c9c38
              if (event.source !== iframe.contentWindow)
                  return;
 diff --git a/dist/lib/context.js b/dist/lib/context.js
-index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23dbd47563 100644
+index a1f31bba577b470f37dc3aabaf36169a54dba3bc..04237c7a61908389ed9b391088a1af851c85b92b 100644
 --- a/dist/lib/context.js
 +++ b/dist/lib/context.js
-@@ -1,7 +1,15 @@
+@@ -1,7 +1,16 @@
  import { createFakeTimers } from './fake-timers.js';
  import { mock } from './mock.js';
  export function createTestContext(options) {
@@ -24,7 +24,8 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23
 +    // and the servers t.serve() took and its cleanups didn't close can be
 +    // released without them. Each server closes once: a release waits for a
 +    // close its cleanup started. Once released, a t.serve() call that resumes
-+    // closes what it opened.
++    // closes what it opened. A beforeStep that throws keeps the rest from
++    // starting.
      let cleanups = [];
 +    let openServers = new Map();
 +    let released = false;
@@ -32,7 +33,7 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23
      let testContext = {
          signal: options?.signal ?? new AbortController().signal,
          mock: {
-@@ -9,16 +17,17 @@ export function createTestContext(options) {
+@@ -9,16 +18,17 @@ export function createTestContext(options) {
              method(obj, methodName, impl) {
                  let mockFn = mock.method(obj, methodName, impl);
                  if (mockFn.mock.restore)
@@ -53,7 +54,7 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23
              return timers;
          },
          async serve(server) {
-@@ -26,10 +35,21 @@ export function createTestContext(options) {
+@@ -26,10 +36,21 @@ export function createTestContext(options) {
              if (!e2e) {
                  throw new Error('t.serve() is only available in E2E test suites');
              }
@@ -75,7 +76,7 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23
              if (e2e.playwrightPageOptions?.navigationTimeout != null) {
                  page.setDefaultNavigationTimeout(e2e.playwrightPageOptions.navigationTimeout);
              }
-@@ -39,29 +59,42 @@ export function createTestContext(options) {
+@@ -39,29 +60,43 @@ export function createTestContext(options) {
              let coverageEnabled = e2e.coverage && e2e.browser.browserType().name() === 'chromium';
              if (coverageEnabled) {
                  await page.coverage.startJSCoverage({ resetOnNavigation: false });
@@ -118,8 +119,9 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23
          testContext,
 -        async cleanup() {
 -            for (let fn of cleanups)
-+        async cleanup(onStep) {
++        async cleanup(onStep, beforeStep) {
 +            for (let { label, fn } of cleanups) {
++                beforeStep?.();
 +                onStep?.(label);
                  await fn();
 +            }
@@ -132,19 +134,20 @@ index a1f31bba577b470f37dc3aabaf36169a54dba3bc..b94be329dcd3aefa904230847b7aeb23
      };
  }
 diff --git a/dist/lib/executor.js b/dist/lib/executor.js
-index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e98678233869 100644
+index 9fe0f226196b49fad958ab6cc2744561a9d4be57..87ea5cc49b31dfa57da1e1e9d0694e135afe2639 100644
 --- a/dist/lib/executor.js
 +++ b/dist/lib/executor.js
-@@ -1,4 +1,8 @@
+@@ -1,4 +1,9 @@
  import { createTestContext } from './context.js';
 +// RemixCN patch: deadlines count runner time, so a test that fakes timers or
 +// pauses a browser clock can't stop them.
 +const runnerSetTimeout = globalThis.setTimeout;
 +const runnerClearTimeout = globalThis.clearTimeout;
++const runnerNow = performance.now.bind(performance);
  export async function runTests(options) {
      let suites = getRegisteredSuites();
      let e2eCoverageEntries = [];
-@@ -30,6 +34,11 @@ export async function runTests(options) {
+@@ -30,6 +35,11 @@ export async function runTests(options) {
              break;
      }
      let hasOnly = hasOnlyPatterns || hasOnlySuites || hasOnlyTests;
@@ -156,7 +159,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
      for (let suite of suites) {
          let suiteHasOnlyTests = suite.tests.some((test) => test.only);
          // If any suite or test uses .only, skip suites that do not contain focused work
-@@ -54,10 +63,18 @@ export async function runTests(options) {
+@@ -54,10 +64,18 @@ export async function runTests(options) {
              }
              continue;
          }
@@ -176,7 +179,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
              }
              catch (error) {
                  results.tests.push(createFailedHookResult('beforeAll', suite.name, error, performance.now() - startTime));
-@@ -66,6 +83,11 @@ export async function runTests(options) {
+@@ -66,6 +84,11 @@ export async function runTests(options) {
              }
          }
          for (let test of suite.tests) {
@@ -188,7 +191,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
              // If any suite or test uses .only, skip tests that are not focused
              if (hasOnly && !suite.only && !test.only) {
                  results.tests.push(createPendingResult(test.name, suite.name, 'skipped'));
-@@ -87,37 +109,77 @@ export async function runTests(options) {
+@@ -87,37 +110,79 @@ export async function runTests(options) {
              };
              let testError;
              let afterEachError;
@@ -228,35 +231,37 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
 -                await cleanup();
 -                if (suite.afterEach) {
 +                let phase = 'cleanup';
-+                let teardown = async () => {
-+                    await cleanup((label) => (phase = label));
++                let onStep = (label) => (phase = label);
++                let guard = createTeardownGuard(deadlines?.cleanup, (ms) => createDeadlineError(file, fullName, phase, ms));
++                let teardown = () => guard.settle(async () => {
++                    await cleanup(onStep, guard.check);
 +                    if (suite.afterEach) {
 +                        try {
-+                            await runLifecycleHooks('afterEach', suite.afterEach, undefined, undefined, true, (label, _hook, run) => {
-+                                phase = label;
-+                                return run();
-+                            });
++                            await runLifecycleHooks('afterEach', suite.afterEach, undefined, undefined, true, guardStep(guard, onStep));
 +                        }
 +                        catch (error) {
++                            guard.check();
 +                            afterEachFailed = true;
 +                            afterEachError = error;
 +                        }
 +                    }
-+                };
++                });
 +                if (deadlines) {
 +                    // RemixCN patch: cleanups and teardown hooks share one deadline. When
 +                    // one stalls or throws, the test reports it after its own failure,
-+                    // and the runner stops waiting on the rest.
++                    // and the runner stops waiting on the rest. Once the deadline passes,
++                    // its guard keeps the rest from starting, also when the stalled one
++                    // resumes while the next test runs, or the deadline's timer is late.
                      try {
 -                        await runLifecycleHooks('afterEach', suite.afterEach, undefined, undefined, true);
-+                        await withinDeadline(teardown, deadlines.cleanup, (ms) => createDeadlineError(file, fullName, phase, ms));
++                        await withinDeadline(teardown, deadlines.cleanup, (ms) => createDeadlineError(file, fullName, phase, ms), guard.controller);
                      }
                      catch (error) {
 -                        afterEachFailed = true;
 -                        afterEachError = error;
 +                        cleanupFailed = true;
 +                        cleanupError = isDeadlineError(error) ? error : createHookFailure(phase, error);
-+                    }
+                     }
 +                    // Then the runner closes what the test still holds, such as the
 +                    // contexts it opened, or a server it gave t.serve() before a deadline
 +                    // stopped it. If even that doesn't finish, the test fails with that
@@ -264,12 +269,12 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
 +                    releaseError = await releaseRun(e2e?.open ? [] : (e2e?.browser.contexts() ?? []).filter((c) => !contextsBefore.has(c)), release, deadlines.release, (phase, ms) => createDeadlineError(file, fullName, phase, ms));
 +                    if (releaseError) {
 +                        retiredBy = `not run: the worker retired after ${file} > ${fullName} left resources open`;
-                     }
-                 }
--                if (testFailed || afterEachFailed) {
++                    }
++                }
 +                else {
 +                    await teardown();
-+                }
+                 }
+-                if (testFailed || afterEachFailed) {
 +                if (testFailed || afterEachFailed || cleanupFailed || releaseError) {
                      result.status = 'failed';
 -                    result.error = createTestError(testFailed ? testError : undefined, afterEachFailed ? createHookFailure('afterEach', afterEachError) : undefined);
@@ -277,7 +282,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
                      results.failed++;
                  }
                  else {
-@@ -129,12 +191,24 @@ export async function runTests(options) {
+@@ -129,12 +194,22 @@ export async function runTests(options) {
          }
          if (suite.afterAll) {
              let startTime = performance.now();
@@ -285,10 +290,8 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
              try {
 -                await runLifecycleHooks('afterAll', suite.afterAll, undefined, undefined, true);
 +                if (deadlines) {
-+                    await withinDeadline(() => runLifecycleHooks('afterAll', suite.afterAll, undefined, undefined, true, (label, _hook, run) => {
-+                        phase = label;
-+                        return run();
-+                    }), deadlines.cleanup, (ms) => createDeadlineError(file, suite.name, phase, ms));
++                    let guard = createTeardownGuard(deadlines.cleanup, (ms) => createDeadlineError(file, suite.name, phase, ms));
++                    await withinDeadline(() => guard.settle(() => runLifecycleHooks('afterAll', suite.afterAll, undefined, undefined, true, guardStep(guard, (label) => (phase = label)))), deadlines.cleanup, (ms) => createDeadlineError(file, suite.name, phase, ms), guard.controller);
 +                }
 +                else {
 +                    await runLifecycleHooks('afterAll', suite.afterAll, undefined, undefined, true);
@@ -303,7 +306,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
              }
          }
      }
-@@ -144,6 +218,9 @@ export async function runTests(options) {
+@@ -144,6 +219,9 @@ export async function runTests(options) {
      if (e2eCoverageEntries.length > 0) {
          results.e2eBrowserCoverageEntries = e2eCoverageEntries;
      }
@@ -313,7 +316,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
      return results;
  }
  function createE2EOptions(options, addE2ECoverageEntries) {
-@@ -201,10 +278,49 @@ function createPendingResult(name, suiteName, status, reason) {
+@@ -201,10 +279,85 @@ function createPendingResult(name, suiteName, status, reason) {
          result.reason = reason;
      return result;
  }
@@ -324,7 +327,12 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
 -        await runRunnable(hookName, hook.fn, hook, abortController, inheritedSignal, hook.signal);
 +    for (let [index, hook] of orderedHooks.entries()) {
 +        let label = orderedHooks.length > 1 ? `${hookName} hook ${index + 1}` : `${hookName} hook`;
-+        await each(label, hook, () => runRunnable(hookName, hook.fn, hook, abortController, inheritedSignal, hook.signal));
++        await each(label, hook, (gate) => runRunnable(hookName, gate
++            ? () => {
++                gate();
++                return hook.fn();
++            }
++            : hook.fn, hook, abortController, inheritedSignal, hook.signal));
 +    }
 +}
 +// RemixCN patch: the end-to-end deadlines.
@@ -338,6 +346,37 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
 +        }, ms);
 +    });
 +    return Promise.race([Promise.resolve().then(run), deadline]).finally(() => runnerClearTimeout(timeoutId));
++}
++function createTeardownGuard(ms, stalled) {
++    let controller = new AbortController();
++    let cutoff = ms === undefined ? Infinity : runnerNow() + ms;
++    let check = () => {
++        if (ms !== undefined && !controller.signal.aborted && runnerNow() >= cutoff) {
++            controller.abort(stalled(ms));
++        }
++        controller.signal.throwIfAborted();
++    };
++    return {
++        controller,
++        signal: controller.signal,
++        check,
++        async settle(run) {
++            try {
++                await run();
++            }
++            catch (error) {
++                check();
++                throw error;
++            }
++            check();
++        },
++    };
++}
++function guardStep(guard, onStep) {
++    return (label, _hook, run) => run(() => {
++        guard.check();
++        onStep(label);
++    });
 +}
 +function positive(timeout) {
 +    return timeout !== undefined && timeout > 0 ? timeout : undefined;
@@ -366,7 +405,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
      }
  }
  async function runRunnable(label, fn, options, abortController, ...signals) {
-@@ -277,10 +393,12 @@ function createHookFailure(hookName, error) {
+@@ -277,10 +430,12 @@ function createHookFailure(hookName, error) {
      let cause = error instanceof Error ? error : new Error(String(error));
      return new Error(`${hookName} failed: ${cause.message}`, { cause });
  }
@@ -382,7 +421,7 @@ index 9fe0f226196b49fad958ab6cc2744561a9d4be57..0b31d7f921bca0aa526aa05c3db8e986
          stack =
              stack && secondaryError.stack
 diff --git a/dist/lib/worker-e2e-file.js b/dist/lib/worker-e2e-file.js
-index 234b917adde69b5a2f81bbcc7c50acd18d590641..6e1bbc0ddc0f83035ab5f2c8d98cffdc7d435f34 100644
+index 234b917adde69b5a2f81bbcc7c50acd18d590641..e47af0b9ffc3480ab4ef2a8e018379c8206c6c20 100644
 --- a/dist/lib/worker-e2e-file.js
 +++ b/dist/lib/worker-e2e-file.js
 @@ -1,3 +1,5 @@
@@ -391,30 +430,38 @@ index 234b917adde69b5a2f81bbcc7c50acd18d590641..6e1bbc0ddc0f83035ab5f2c8d98cffdc
  import { runTests } from './executor.js';
  import { importModule } from './import-module.js';
  import { getBrowserLauncher, getPlaywrightLaunchOptions, getPlaywrightPageOptions, } from './playwright.js';
-@@ -11,6 +13,7 @@ export async function runE2ETestFile(value, onOpenResults) {
+@@ -11,6 +13,8 @@ export async function runE2ETestFile(value, onOpenResults) {
          let opts = getPlaywrightLaunchOptions(workerData.playwrightUseOpts);
          let browser = await launcher.launch(opts);
          let browserClosed = false;
 +        let deadlines = getRunDeadlines(process.env);
++        let file = path.relative(process.cwd(), fileURLToPath(workerData.file));
          try {
              let results = await runTests({
                  browser,
-@@ -18,6 +21,8 @@ export async function runE2ETestFile(value, onOpenResults) {
+@@ -18,6 +22,8 @@ export async function runE2ETestFile(value, onOpenResults) {
                  playwrightPageOptions: getPlaywrightPageOptions(workerData.playwrightUseOpts),
                  coverage: !!workerData.coverage,
                  only: workerData.only,
-+                file: path.relative(process.cwd(), fileURLToPath(workerData.file)),
++                file,
 +                deadlines,
              });
              if (workerData.open) {
                  await onOpenResults?.(results);
-@@ -25,13 +30,15 @@ export async function runE2ETestFile(value, onOpenResults) {
+@@ -25,13 +31,22 @@ export async function runE2ETestFile(value, onOpenResults) {
                  await new Promise((resolve) => browser.on('disconnected', () => resolve()));
                  return undefined;
              }
 -            await browser.close();
              browserClosed = true;
-+            if (!(await closeBrowser(browser, deadlines.cleanup))) {
++            if (!(await closeBrowser(browser, deadlines.browserClose))) {
++                // The file fails, after the results of its tests, and its worker retires.
++                let error = new Error(`Stalled in browser.close(): ${file} gave no result within its ${deadlines.browserClose}ms deadline`);
++                error.name = 'DeadlineError';
++                error.stack = `${error.name}: ${error.message}`;
++                let failed = createFailedResults(error);
++                results.tests.push(...failed.tests);
++                results.failed += failed.failed;
 +                results.retireWorker = true;
 +            }
              return results;
@@ -422,16 +469,18 @@ index 234b917adde69b5a2f81bbcc7c50acd18d590641..6e1bbc0ddc0f83035ab5f2c8d98cffdc
          finally {
              if (!browserClosed) {
 -                await browser.close();
-+                await closeBrowser(browser, deadlines.cleanup);
++                await closeBrowser(browser, deadlines.browserClose);
              }
          }
      }
-@@ -39,6 +46,38 @@ export async function runE2ETestFile(value, onOpenResults) {
+@@ -39,6 +54,41 @@ export async function runE2ETestFile(value, onOpenResults) {
          return createFailedResults(error);
      }
  }
 +// RemixCN patch: the end-to-end deadlines, in milliseconds. The environment
-+// shortens them for the runner's own tests.
++// shortens them for the runner's own tests. Closing the browser at the end of
++// a file has its own, so a shorter cleanup deadline leaves a real browser's
++// close its default.
 +const DEFAULT_RUN_DEADLINE_MS = 60_000;
 +const DEFAULT_CLEANUP_DEADLINE_MS = 30_000;
 +const RELEASE_DEADLINE_MS = 5_000;
@@ -442,6 +491,7 @@ index 234b917adde69b5a2f81bbcc7c50acd18d590641..6e1bbc0ddc0f83035ab5f2c8d98cffdc
 +        run: readDeadline(env.REMIXCN_E2E_RUN_DEADLINE_MS) ?? DEFAULT_RUN_DEADLINE_MS,
 +        cleanup: readDeadline(env.REMIXCN_E2E_CLEANUP_DEADLINE_MS) ?? DEFAULT_CLEANUP_DEADLINE_MS,
 +        release: RELEASE_DEADLINE_MS,
++        browserClose: readDeadline(env.REMIXCN_E2E_BROWSER_CLOSE_DEADLINE_MS) ?? DEFAULT_CLEANUP_DEADLINE_MS,
 +    };
 +}
 +function readDeadline(value) {
@@ -514,15 +564,15 @@ index 36e671a959f3ddb206a2c394faa278a497d6a64a..0fe4f81a9946170ca7b3a0da450d2433
      function onMessage(event: MessageEvent) {
        if (event.source !== iframe.contentWindow) return
 diff --git a/src/lib/context.ts b/src/lib/context.ts
-index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929f012283d 100644
+index f8e014772a7d00065943b292348c037fe0b754de..bbedab67e7201bf88c5b7886574ca658931d458c 100644
 --- a/src/lib/context.ts
 +++ b/src/lib/context.ts
-@@ -107,9 +107,18 @@ export interface CreateTestContextE2EOptions {
+@@ -107,9 +107,19 @@ export interface CreateTestContextE2EOptions {
  
  export function createTestContext(options?: CreateTestContextOptions): {
    testContext: TestContext
 -  cleanup(): Promise<void>
-+  cleanup(onStep?: (label: string) => void): Promise<void>
++  cleanup(onStep?: (label: string) => void, beforeStep?: () => void): Promise<void>
 +  release(): Promise<void>
  } {
 -  let cleanups: Array<() => void | Promise<void>> = []
@@ -530,7 +580,8 @@ index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929
 +  // and the servers t.serve() took and its cleanups didn't close can be
 +  // released without them. Each server closes once: a release waits for a
 +  // close its cleanup started. Once released, a t.serve() call that resumes
-+  // closes what it opened.
++  // closes what it opened. A beforeStep that throws keeps the rest from
++  // starting.
 +  let cleanups: Array<{ label: string; fn: () => void | Promise<void> }> = []
 +  let openServers = new Map<TestServer, () => Promise<void>>()
 +  let released = false
@@ -538,7 +589,7 @@ index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929
  
    let testContext: TestContext = {
      signal: options?.signal ?? new AbortController().signal,
-@@ -117,16 +126,17 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -117,16 +127,17 @@ export function createTestContext(options?: CreateTestContextOptions): {
        fn: mock.fn,
        method(obj, methodName, impl) {
          let mockFn = mock.method(obj, methodName, impl as any)
@@ -559,7 +610,7 @@ index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929
        return timers
      },
      async serve(server) {
-@@ -135,10 +145,21 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -135,10 +146,21 @@ export function createTestContext(options?: CreateTestContextOptions): {
          throw new Error('t.serve() is only available in E2E test suites')
        }
  
@@ -581,7 +632,7 @@ index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929
        if (e2e.playwrightPageOptions?.navigationTimeout != null) {
          page.setDefaultNavigationTimeout(e2e.playwrightPageOptions.navigationTimeout)
        }
-@@ -149,20 +170,27 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -149,20 +171,27 @@ export function createTestContext(options?: CreateTestContextOptions): {
        let coverageEnabled = e2e.coverage && e2e.browser.browserType().name() === 'chromium'
        if (coverageEnabled) {
          await page.coverage.startJSCoverage({ resetOnNavigation: false })
@@ -620,14 +671,15 @@ index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929
        })
  
        return page
-@@ -171,10 +199,17 @@ export function createTestContext(options?: CreateTestContextOptions): {
+@@ -171,10 +200,18 @@ export function createTestContext(options?: CreateTestContextOptions): {
  
    return {
      testContext,
 -    async cleanup() {
 -      for (let fn of cleanups) await fn()
-+    async cleanup(onStep) {
++    async cleanup(onStep, beforeStep) {
 +      for (let { label, fn } of cleanups) {
++        beforeStep?.()
 +        onStep?.(label)
 +        await fn()
 +      }
@@ -641,10 +693,10 @@ index f8e014772a7d00065943b292348c037fe0b754de..b8216f4cd36ffaa5d97d18f96cb9e929
  }
  
 diff --git a/src/lib/executor.ts b/src/lib/executor.ts
-index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a6ab8d805 100644
+index 0e65008f2b95420e4b28c0431cc05338efa8f654..3d73317726d4630ea6187ab0f8202be26b1df35d 100644
 --- a/src/lib/executor.ts
 +++ b/src/lib/executor.ts
-@@ -38,8 +38,29 @@ type RunTestsE2EOptions = Omit<CreateTestContextE2EOptions, 'addE2ECoverageEntri
+@@ -38,8 +38,30 @@ type RunTestsE2EOptions = Omit<CreateTestContextE2EOptions, 'addE2ECoverageEntri
  
  export interface RunTestsOptions extends Partial<RunTestsE2EOptions> {
    only?: SerializedOnlyPattern[]
@@ -670,11 +722,12 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
 +// pauses a browser clock can't stop them.
 +const runnerSetTimeout = globalThis.setTimeout
 +const runnerClearTimeout = globalThis.clearTimeout
++const runnerNow = performance.now.bind(performance)
 +
  export async function runTests(options?: RunTestsOptions): Promise<TestResults> {
    let suites = getRegisteredSuites()
    let e2eCoverageEntries: Array<{ entries: V8CoverageEntry[]; baseUrl: string }> = []
-@@ -76,6 +97,11 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
+@@ -76,6 +98,11 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
    }
  
    let hasOnly = hasOnlyPatterns || hasOnlySuites || hasOnlyTests
@@ -686,7 +739,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
  
    for (let suite of suites) {
      let suiteHasOnlyTests = suite.tests.some((test) => test.only)
-@@ -104,10 +130,29 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
+@@ -104,10 +131,29 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
        continue
      }
  
@@ -717,7 +770,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
        } catch (error) {
          results.tests.push(
            createFailedHookResult('beforeAll', suite.name, error, performance.now() - startTime),
-@@ -118,6 +163,12 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
+@@ -118,6 +164,12 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
      }
  
      for (let test of suite.tests) {
@@ -730,7 +783,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
        // If any suite or test uses .only, skip tests that are not focused
        if (hasOnly && !suite.only && !test.only) {
          results.tests.push(createPendingResult(test.name, suite.name, 'skipped'))
-@@ -148,46 +199,115 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
+@@ -148,46 +200,123 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
        }
        let testError: unknown
        let afterEachError: unknown
@@ -796,43 +849,51 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
 -        await cleanup()
 -        if (suite.afterEach) {
 +        let phase = 'cleanup'
-+        let teardown = async () => {
-+          await cleanup((label) => (phase = label))
-+          if (suite.afterEach) {
-+            try {
-+              await runLifecycleHooks(
-+                'afterEach',
-+                suite.afterEach,
-+                undefined,
-+                undefined,
-+                true,
-+                (label, _hook, run) => {
-+                  phase = label
-+                  return run()
-+                },
-+              )
-+            } catch (error) {
-+              afterEachFailed = true
-+              afterEachError = error
++        let onStep = (label: string) => (phase = label)
++        let guard = createTeardownGuard(deadlines?.cleanup, (ms) =>
++          createDeadlineError(file, fullName, phase, ms),
++        )
++        let teardown = () =>
++          guard.settle(async () => {
++            await cleanup(onStep, guard.check)
++            if (suite.afterEach) {
++              try {
++                await runLifecycleHooks(
++                  'afterEach',
++                  suite.afterEach,
++                  undefined,
++                  undefined,
++                  true,
++                  guardStep(guard, onStep),
++                )
++              } catch (error) {
++                guard.check()
++                afterEachFailed = true
++                afterEachError = error
++              }
 +            }
-+          }
-+        }
++          })
 +
 +        if (deadlines) {
 +          // RemixCN patch: cleanups and teardown hooks share one deadline. When
 +          // one stalls or throws, the test reports it after its own failure,
-+          // and the runner stops waiting on the rest.
++          // and the runner stops waiting on the rest. Once the deadline passes,
++          // its guard keeps the rest from starting, also when the stalled one
++          // resumes while the next test runs, or the deadline's timer is late.
            try {
 -            await runLifecycleHooks('afterEach', suite.afterEach, undefined, undefined, true)
-+            await withinDeadline(teardown, deadlines.cleanup, (ms) =>
-+              createDeadlineError(file, fullName, phase, ms),
++            await withinDeadline(
++              teardown,
++              deadlines.cleanup,
++              (ms) => createDeadlineError(file, fullName, phase, ms),
++              guard.controller,
 +            )
            } catch (error) {
 -            afterEachFailed = true
 -            afterEachError = error
 +            cleanupFailed = true
 +            cleanupError = isDeadlineError(error) ? error : createHookFailure(phase, error)
-           }
++          }
 +          // Then the runner closes what the test still holds, such as the
 +          // contexts it opened, or a server it gave t.serve() before a deadline
 +          // stopped it. If even that doesn't finish, the test fails with that
@@ -845,7 +906,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
 +          )
 +          if (releaseError) {
 +            retiredBy = `not run: the worker retired after ${file} > ${fullName} left resources open`
-+          }
+           }
 +        } else {
 +          await teardown()
          }
@@ -861,7 +922,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
            )
            results.failed++
          } else {
-@@ -201,13 +321,29 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
+@@ -201,13 +330,39 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
  
      if (suite.afterAll) {
        let startTime = performance.now()
@@ -869,14 +930,24 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
        try {
 -        await runLifecycleHooks('afterAll', suite.afterAll, undefined, undefined, true)
 +        if (deadlines) {
++          let guard = createTeardownGuard(deadlines.cleanup, (ms) =>
++            createDeadlineError(file, suite.name, phase, ms),
++          )
 +          await withinDeadline(
 +            () =>
-+              runLifecycleHooks('afterAll', suite.afterAll!, undefined, undefined, true, (label, _hook, run) => {
-+                phase = label
-+                return run()
-+              }),
++              guard.settle(() =>
++                runLifecycleHooks(
++                  'afterAll',
++                  suite.afterAll!,
++                  undefined,
++                  undefined,
++                  true,
++                  guardStep(guard, (label) => (phase = label)),
++                ),
++              ),
 +            deadlines.cleanup,
 +            (ms) => createDeadlineError(file, suite.name, phase, ms),
++            guard.controller,
 +          )
 +        } else {
 +          await runLifecycleHooks('afterAll', suite.afterAll, undefined, undefined, true)
@@ -892,7 +963,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
        }
      }
    }
-@@ -220,6 +356,10 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
+@@ -220,6 +375,10 @@ export async function runTests(options?: RunTestsOptions): Promise<TestResults>
      results.e2eBrowserCoverageEntries = e2eCoverageEntries
    }
  
@@ -903,11 +974,11 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
    return results
  }
  
-@@ -307,10 +447,78 @@ async function runLifecycleHooks(
+@@ -307,10 +466,147 @@ async function runLifecycleHooks(
    abortController?: AbortController,
    inheritedSignal?: AbortSignal,
    reverse = false,
-+  each: (label: string, hook: LifecycleHook, run: () => Promise<void>) => Promise<void> = (
++  each: (label: string, hook: LifecycleHook, run: RunHook) => Promise<void> = (
 +    _label,
 +    _hook,
 +    run,
@@ -918,11 +989,27 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
 -    await runRunnable(hookName, hook.fn, hook, abortController, inheritedSignal, hook.signal)
 +  for (let [index, hook] of orderedHooks.entries()) {
 +    let label = orderedHooks.length > 1 ? `${hookName} hook ${index + 1}` : `${hookName} hook`
-+    await each(label, hook, () =>
-+      runRunnable(hookName, hook.fn, hook, abortController, inheritedSignal, hook.signal),
++    await each(label, hook, (gate) =>
++      runRunnable(
++        hookName,
++        gate
++          ? () => {
++              gate()
++              return hook.fn()
++            }
++          : hook.fn,
++        hook,
++        abortController,
++        inheritedSignal,
++        hook.signal,
++      ),
 +    )
 +  }
 +}
++
++// RemixCN patch: runs a hook. A gate runs right before the hook's function
++// does, and throws to keep it from starting.
++type RunHook = (gate?: () => void) => Promise<void>
 +
 +// RemixCN patch: the end-to-end deadlines.
 +function withinDeadline(
@@ -942,6 +1029,59 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
 +  return Promise.race([Promise.resolve().then(run), deadline]).finally(() =>
 +    runnerClearTimeout(timeoutId),
 +  )
++}
++
++// One guard per teardown batch: a test's cleanups and afterEach hooks, or a
++// suite's afterAll hooks. Its cutoff counts runner time from the batch's start.
++// The batch checks it right before each step starts and once it settles,
++// whether it resolved or threw, so a step that took too long stops the batch
++// and fails it with its phase, also when the deadline's timer fires late. A
++// step already running may settle on its own, but no later one starts.
++// Without a deadline, the guard never stops a batch.
++interface TeardownGuard {
++  controller: AbortController
++  signal: AbortSignal
++  check(): void
++  settle(run: () => Promise<void>): Promise<void>
++}
++
++function createTeardownGuard(
++  ms: number | undefined,
++  stalled: (ms: number) => Error,
++): TeardownGuard {
++  let controller = new AbortController()
++  let cutoff = ms === undefined ? Infinity : runnerNow() + ms
++  let check = () => {
++    if (ms !== undefined && !controller.signal.aborted && runnerNow() >= cutoff) {
++      controller.abort(stalled(ms))
++    }
++    controller.signal.throwIfAborted()
++  }
++  return {
++    controller,
++    signal: controller.signal,
++    check,
++    async settle(run) {
++      try {
++        await run()
++      } catch (error) {
++        check()
++        throw error
++      }
++      check()
++    },
++  }
++}
++
++function guardStep(
++  guard: TeardownGuard,
++  onStep: (label: string) => void,
++): (label: string, hook: LifecycleHook, run: RunHook) => Promise<void> {
++  return (label, _hook, run) =>
++    run(() => {
++      guard.check()
++      onStep(label)
++    })
 +}
 +
 +function positive(timeout: number | undefined): number | undefined {
@@ -984,7 +1124,7 @@ index 0e65008f2b95420e4b28c0431cc05338efa8f654..7d3a9b458bbfd868333bbd5b7616629a
    }
  }
  
-@@ -407,12 +615,13 @@ function createHookFailure(hookName: string, error: unknown): Error {
+@@ -407,12 +703,13 @@ function createHookFailure(hookName: string, error: unknown): Error {
  
  function createTestError(
    primaryError: unknown,
@@ -1014,7 +1154,7 @@ index c432ddeb959c52286136c3dae9d0aba298fb17d6..167cce1287c36ffeed5d6e5db0cb8098
  
  export type Counts = {
 diff --git a/src/lib/worker-e2e-file.ts b/src/lib/worker-e2e-file.ts
-index 845271c7e1344f3c3aba3e5928a960f9931e756d..0f3642b7393877555941f485a45913502aafe022 100644
+index 845271c7e1344f3c3aba3e5928a960f9931e756d..7566f94e0c8910c405a5c85494ce7b42be139990 100644
 --- a/src/lib/worker-e2e-file.ts
 +++ b/src/lib/worker-e2e-file.ts
 @@ -1,4 +1,6 @@
@@ -1025,57 +1165,71 @@ index 845271c7e1344f3c3aba3e5928a960f9931e756d..0f3642b7393877555941f485a4591350
  import { importModule } from './import-module.ts'
  import {
    getBrowserLauncher,
-@@ -33,6 +35,7 @@ export async function runE2ETestFile(
+@@ -33,6 +35,8 @@ export async function runE2ETestFile(
      let opts = getPlaywrightLaunchOptions(workerData.playwrightUseOpts)
      let browser = await launcher.launch(opts)
      let browserClosed = false
 +    let deadlines = getRunDeadlines(process.env)
++    let file = path.relative(process.cwd(), fileURLToPath(workerData.file))
  
      try {
        let results = await runTests({
-@@ -41,6 +44,8 @@ export async function runE2ETestFile(
+@@ -41,6 +45,8 @@ export async function runE2ETestFile(
          playwrightPageOptions: getPlaywrightPageOptions(workerData.playwrightUseOpts),
          coverage: !!workerData.coverage,
          only: workerData.only,
-+        file: path.relative(process.cwd(), fileURLToPath(workerData.file)),
++        file,
 +        deadlines,
        })
  
        if (workerData.open) {
-@@ -50,12 +55,14 @@ export async function runE2ETestFile(
+@@ -50,12 +56,23 @@ export async function runE2ETestFile(
          return undefined
        }
  
 -      await browser.close()
        browserClosed = true
-+      if (!(await closeBrowser(browser, deadlines.cleanup))) {
++      if (!(await closeBrowser(browser, deadlines.browserClose))) {
++        // The file fails, after the results of its tests, and its worker retires.
++        let error = new Error(
++          `Stalled in browser.close(): ${file} gave no result within its ${deadlines.browserClose}ms deadline`,
++        )
++        error.name = 'DeadlineError'
++        error.stack = `${error.name}: ${error.message}`
++        let failed = createFailedResults(error)
++        results.tests.push(...failed.tests)
++        results.failed += failed.failed
 +        results.retireWorker = true
 +      }
        return results
      } finally {
        if (!browserClosed) {
 -        await browser.close()
-+        await closeBrowser(browser, deadlines.cleanup)
++        await closeBrowser(browser, deadlines.browserClose)
        }
      }
    } catch (error) {
-@@ -63,6 +70,41 @@ export async function runE2ETestFile(
+@@ -63,6 +80,45 @@ export async function runE2ETestFile(
    }
  }
  
 +// RemixCN patch: the end-to-end deadlines, in milliseconds. The environment
-+// shortens them for the runner's own tests.
++// shortens them for the runner's own tests. Closing the browser at the end of
++// a file has its own, so a shorter cleanup deadline leaves a real browser's
++// close its default.
 +const DEFAULT_RUN_DEADLINE_MS = 60_000
 +const DEFAULT_CLEANUP_DEADLINE_MS = 30_000
 +const RELEASE_DEADLINE_MS = 5_000
 +const runnerSetTimeout = globalThis.setTimeout
 +const runnerClearTimeout = globalThis.clearTimeout
 +
-+function getRunDeadlines(env: NodeJS.ProcessEnv): RunDeadlines {
++function getRunDeadlines(env: NodeJS.ProcessEnv): RunDeadlines & { browserClose: number } {
 +  return {
 +    run: readDeadline(env.REMIXCN_E2E_RUN_DEADLINE_MS) ?? DEFAULT_RUN_DEADLINE_MS,
 +    cleanup: readDeadline(env.REMIXCN_E2E_CLEANUP_DEADLINE_MS) ?? DEFAULT_CLEANUP_DEADLINE_MS,
 +    release: RELEASE_DEADLINE_MS,
++    browserClose:
++      readDeadline(env.REMIXCN_E2E_BROWSER_CLOSE_DEADLINE_MS) ?? DEFAULT_CLEANUP_DEADLINE_MS,
 +  }
 +}
 +
